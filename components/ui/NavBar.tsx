@@ -16,6 +16,7 @@ import {
   People24Regular, Person24Regular, Dismiss24Regular,
 } from "@fluentui/react-icons";
 import Link from "next/link";
+import Image from "next/image";
 import { signOut, useSession } from "next-auth/react";
 import { usePathname, useRouter } from "next/navigation";
 import { useNavBarStyles } from "./styles/useNavBarStyles";
@@ -67,11 +68,16 @@ export function NavBar() {
             aria-label="Open navigation menu"
           />
           {/* Brand */}
-          <Text weight="bold" size={500}>
-            <Link href={isAdminRoute ? "/admin" : "/"} className={styles.brandLink}>
-              Quizzer
-            </Link>
-          </Text>
+          <Link href={isAdminRoute ? "/admin" : "/"} className={styles.brandLink}>
+            <Image
+              src="/quizzer.svg"
+              alt="Quizzer"
+              width={120}
+              height={32}
+              priority
+              style={{ height: "auto", width: "auto", maxHeight: 32 }}
+            />
+          </Link>
         </div>
 
         {/* Center: Desktop nav links (public only, hidden on mobile) */}
@@ -150,7 +156,14 @@ export function NavBar() {
               />
             }
           >
-            Quizzer
+            <Image
+              src="/quizzer.svg"
+              alt="Quizzer"
+              width={120}
+              height={32}
+              priority
+              style={{ height: "auto", width: "auto", maxHeight: 32 }}
+            />
           </DrawerHeaderTitle>
         </DrawerHeader>
         <DrawerBody>

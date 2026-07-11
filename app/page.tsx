@@ -119,10 +119,11 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Student Dashboard Section (Only shown if logged in as student) */}
       {isStudent && (
         <section className="max-w-[1100px] mx-auto mt-10 mb-5 w-full px-6 relative z-10">
           <div className="flex flex-col gap-6">
+
+            {/* Dashboard Header */}
             <div className="flex justify-between items-center">
               <h2 className="text-3xl font-extrabold text-slate-900 m-0 tracking-tight">
                 Welcome back, {session.user?.name || session.user?.email?.split("@")[0] || (session.user as any)?.phoneNumber || "User"}!
@@ -132,68 +133,62 @@ export default async function HomePage() {
               </span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Card 1: Half-Played Quizzes */}
-              <div className="bg-white p-7 rounded-2xl border border-slate-200 shadow-xs flex flex-col gap-4">
-                <h3 className="text-xl font-bold text-slate-800 m-0 flex items-center gap-2.5">
-                  <span className="text-2xl">⏳</span> In-Progress Quizzes
+            {/* In-Progress Quizzes — Full-width strip, only shown when there are active quizzes */}
+            {inProgressAttempts.length > 0 && (
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 flex flex-col gap-4">
+                <h3 className="text-lg font-bold text-amber-800 m-0 flex items-center gap-2">
+                  <span className="text-xl">⏳</span> Continue Where You Left Off
                 </h3>
-                
-                {inProgressAttempts.length === 0 ? (
-                  <p className="text-sm text-slate-500 m-0 italic leading-relaxed">
-                    No quizzes currently in progress. Start by selecting an exam topic!
-                  </p>
-                ) : (
-                  <div className="flex flex-col gap-3.5">
-                    {inProgressAttempts.slice(0, 3).map((attempt) => {
-                      const totalQuestions = attempt.quiz.questions.length;
-                      const answeredCount = attempt.answers.length;
-                      const progressPercent = totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0;
-                      
-                      return (
-                        <div key={attempt.id} className="p-4 border border-slate-100 rounded-xl bg-slate-50/55">
-                          <div className="flex justify-between items-start mb-2">
-                            <span className="font-semibold text-slate-700 text-sm">{attempt.quiz.title}</span>
-                            <span className="px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-100 rounded-full text-xs font-semibold">
-                              {answeredCount}/{totalQuestions}
-                            </span>
-                          </div>
-                          
-                          {/* Mini Progress Bar */}
-                          <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden mb-3">
-                            <div className="h-full bg-amber-500 rounded-full" style={{ width: `${progressPercent}%` }} />
-                          </div>
-
-                          <div className="flex justify-between items-center">
-                            <span className="text-slate-400 text-xs">Resume from Q{answeredCount + 1}</span>
-                            <Link href={`/quiz/${attempt.quizId}`} className="text-xs text-indigo-600 font-semibold flex items-center gap-1 hover:text-indigo-800 transition">
-                              Resume <ArrowRight16Regular style={{ fontSize: "12px" }} />
-                            </Link>
-                          </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {inProgressAttempts.map((attempt) => {
+                    const totalQuestions = attempt.quiz.questions.length;
+                    const answeredCount = attempt.answers.length;
+                    const progressPercent = totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0;
+                    return (
+                      <div key={attempt.id} className="bg-white border border-amber-100 rounded-xl p-4 flex flex-col gap-3 shadow-xs">
+                        <div className="flex justify-between items-start gap-2">
+                          <span className="font-semibold text-slate-700 text-sm leading-snug line-clamp-2">{attempt.quiz.title}</span>
+                          <span className="shrink-0 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-bold">
+                            {answeredCount}/{totalQuestions}
+                          </span>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
+                        {/* Progress Bar */}
+                        <div className="h-1.5 w-full bg-amber-100 rounded-full overflow-hidden">
+                          <div className="h-full bg-amber-500 rounded-full transition-all" style={{ width: `${progressPercent}%` }} />
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-400 text-xs">{progressPercent}% complete · Q{answeredCount + 1} next</span>
+                          <Link
+                            href={`/quiz/${attempt.quizId}`}
+                            className="text-xs font-bold text-amber-700 flex items-center gap-1 hover:text-amber-900 transition no-underline"
+                          >
+                            Resume <ArrowRight16Regular style={{ fontSize: "12px" }} />
+                          </Link>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
+            )}
 
-              {/* Card 2: Last Played Result */}
+            {/* Bottom Row: Last Played Result */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Card: Last Played Result */}
               <div className="bg-white p-7 rounded-2xl border border-slate-200 shadow-xs flex flex-col gap-4 justify-between">
                 <div>
                   <h3 className="text-xl font-bold text-slate-800 m-0 flex items-center gap-2.5 mb-4">
                     <span className="text-2xl">🏆</span> Last Played Result
                   </h3>
-
                   {!lastCompletedAttempt ? (
                     <p className="text-sm text-slate-500 m-0 italic leading-relaxed">
-                      No completed quiz attempts found. Start a quiz and check your score here!
+                      No completed quiz attempts yet. Finish a quiz to see your score here!
                     </p>
                   ) : (
                     <div className="flex flex-col gap-3">
                       <span className="text-base font-semibold text-slate-700">
                         {lastCompletedAttempt.quiz.title}
                       </span>
-                      
                       <div className="flex gap-4 items-center my-2">
                         <div className={`text-4xl font-extrabold ${
                           lastCompletedAttempt.scorePercentage >= 80 ? "text-emerald-600" : lastCompletedAttempt.scorePercentage >= 50 ? "text-amber-500" : "text-red-500"
@@ -201,14 +196,13 @@ export default async function HomePage() {
                           {Math.round(lastCompletedAttempt.scorePercentage)}%
                         </div>
                         <div className="text-sm text-slate-500 leading-relaxed">
-                          <div>Correct answers: <strong>{lastCompletedAttempt.correctCount} / {lastCompletedAttempt.quiz.questions.length}</strong></div>
-                          <div>Time taken: <strong>{Math.floor(lastCompletedAttempt.timeTakenSec / 60)}m {lastCompletedAttempt.timeTakenSec % 60}s</strong></div>
+                          <div>Correct: <strong>{lastCompletedAttempt.correctCount} / {lastCompletedAttempt.quiz.questions.length}</strong></div>
+                          <div>Time: <strong>{Math.floor(lastCompletedAttempt.timeTakenSec / 60)}m {lastCompletedAttempt.timeTakenSec % 60}s</strong></div>
                         </div>
                       </div>
                     </div>
                   )}
                 </div>
-
                 {lastCompletedAttempt && (
                   <div className="flex justify-between items-center border-t border-slate-100 pt-3.5 mt-3">
                     <Link href={`/quiz/results/${lastCompletedAttempt.id}`} className="text-sm text-indigo-600 font-semibold hover:text-indigo-800 transition no-underline">
@@ -220,7 +214,26 @@ export default async function HomePage() {
                   </div>
                 )}
               </div>
+
+              {/* Card: Quick Start */}
+              <div className="bg-gradient-to-br from-indigo-50 to-indigo-100/60 p-7 rounded-2xl border border-indigo-100 shadow-xs flex flex-col gap-4 justify-between">
+                <div>
+                  <h3 className="text-xl font-bold text-indigo-900 m-0 flex items-center gap-2.5 mb-2">
+                    <span className="text-2xl">🚀</span> Start a New Quiz
+                  </h3>
+                  <p className="text-sm text-indigo-700/80 m-0 leading-relaxed">
+                    Pick an exam topic to test your knowledge and track your scores.
+                  </p>
+                </div>
+                <Link
+                  href="/exams"
+                  className="inline-flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-lg font-bold text-sm shadow hover:bg-indigo-700 transition no-underline w-fit"
+                >
+                  <BookOpen24Regular style={{ fontSize: "18px" }} /> Browse Exams
+                </Link>
+              </div>
             </div>
+
           </div>
         </section>
       )}

@@ -5,7 +5,10 @@ import {
   Card, CardHeader, Text, Button, ProgressBar, Badge, Spinner, 
   TeachingPopover, TeachingPopoverTrigger, TeachingPopoverSurface, 
   TeachingPopoverHeader, TeachingPopoverTitle, TeachingPopoverBody,
-  Avatar
+  Avatar,
+  DataGrid, DataGridHeader, DataGridRow, DataGridHeaderCell,
+  DataGridBody, DataGridCell, TableCellLayout, TableColumnDefinition,
+  createTableColumn,
 } from "@fluentui/react-components";
 import { useRouter } from "next/navigation";
 import { 
@@ -56,6 +59,9 @@ export function QuizWizard({ quiz }: { quiz: any }) {
         
         if (attemptData.success && attemptData.attemptId && attemptData.answers && attemptData.answers.length > 0) {
           setActiveAttempt(attemptData);
+          console.log("[QuizWizard] Found in-progress attempt:", attemptData.attemptId, "answers:", attemptData.answers.length);
+        } else {
+          console.log("[QuizWizard] No in-progress attempt found. attemptId:", attemptData.attemptId, "answers:", attemptData.answers?.length);
         }
 
         // Fetch leaderboard
@@ -78,10 +84,31 @@ export function QuizWizard({ quiz }: { quiz: any }) {
     return () => clearInterval(timer);
   }, [isPlaying]);
 
-  // 3. Handlers for Starting Quiz
-  const handleStart = async (forceNew: boolean) => {
+  /**
+   * Starts or resumes the quiz.
+   * @param forceNew - If true, deletes any existing attempt and starts fresh.
+   * @param resumeAttemptId - If provided, skips the API call and uses this attempt directly.
+   */
+  const handleStart = async (forceNew: boolean, resumeAttemptId?: string) => {
     setLoading(true);
     try {
+      // If we already have the attempt data from the initial load, use it directly
+      if (!forceNew && resumeAttemptId && activeAttempt) {
+        setAttemptId(resumeAttemptId);
+        const formattedAnswers = activeAttempt.answers.map((ans: any) => ({
+          questionId: ans.questionId,
+          selectedAnswer: ans.selectedAnswer,
+          isCorrect: ans.isCorrect,
+        }));
+        setAnswers(formattedAnswers);
+        setTimeTaken(activeAttempt.timeTakenSec || 0);
+        setCurrentIndex(formattedAnswers.length);
+        setSelectedOption(null);
+        setShowHint(false);
+        setIsPlaying(true);
+        return;
+      }
+
       const res = await fetch("/api/attempt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -181,6 +208,65 @@ export function QuizWizard({ quiz }: { quiz: any }) {
     return `${m}:${s}`;
   };
 
+  /** DataGrid column definitions for the leaderboard */
+  const leaderboardColumns: TableColumnDefinition<any>[] = [
+    createTableColumn<any>({
+      columnId: "rank",
+      renderHeaderCell: () => "Rank",
+      renderCell: (item) => {
+        const badgeStyle: Record<number, string> = {
+          1: "#f59e0b", // gold
+          2: "#94a3b8", // silver
+          3: "#cd7f32", // bronze
+        };
+        const bg = badgeStyle[item.rank] || "#e2e8f0";
+        return (
+          <TableCellLayout>
+            <span style={{
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
+              width: 28, height: 28, borderRadius: "50%",
+              backgroundColor: bg, color: item.rank <= 3 ? "#fff" : "#475569",
+              fontWeight: 700, fontSize: 13,
+            }}>
+              {item.rank}
+            </span>
+          </TableCellLayout>
+        );
+      },
+    }),
+    createTableColumn<any>({
+      columnId: "player",
+      renderHeaderCell: () => "Player",
+      renderCell: (item) => (
+        <TableCellLayout
+          media={<Avatar size={24} name={item.name} image={{ src: item.image || undefined }} />}
+        >
+          <Text weight={item.rank <= 3 ? "semibold" : "regular"}>{item.name}</Text>
+        </TableCellLayout>
+      ),
+    }),
+    createTableColumn<any>({
+      columnId: "score",
+      renderHeaderCell: () => "Score",
+      renderCell: (item) => (
+        <TableCellLayout>
+          <Text style={{ color: item.scorePercentage >= 80 ? "#10b981" : item.scorePercentage >= 50 ? "#f59e0b" : "#ef4444", fontWeight: 600 }}>
+            {Math.round(item.scorePercentage)}%
+          </Text>
+        </TableCellLayout>
+      ),
+    }),
+    createTableColumn<any>({
+      columnId: "time",
+      renderHeaderCell: () => "Time",
+      renderCell: (item) => (
+        <TableCellLayout>
+          <Text>{formatTime(item.timeTakenSec)}</Text>
+        </TableCellLayout>
+      ),
+    }),
+  ];
+
   // Rendering Loading Screen
   if (loading) {
     return (
@@ -212,7 +298,7 @@ export function QuizWizard({ quiz }: { quiz: any }) {
                   appearance="primary" 
                   size="large" 
                   icon={<Play24Filled />} 
-                  onClick={() => handleStart(false)}
+                  onClick={() => handleStart(false, activeAttempt.attemptId)}
                   className={styles.btnResume}
                 >
                   Resume Quiz (Question {activeAttempt.answers.length + 1})
@@ -253,48 +339,30 @@ export function QuizWizard({ quiz }: { quiz: any }) {
               No rankings available yet. Be the first to top the leaderboard!
             </Text>
           ) : (
-            <table className={styles.leaderboardTable}>
-              <thead>
-                <tr className={styles.leaderboardRow}>
-                  <th className={`${styles.leaderboardHeaderCell} ${styles.leaderboardHeaderColRank}`}>Rank</th>
-                  <th className={styles.leaderboardHeaderCell}>Player</th>
-                  <th className={`${styles.leaderboardHeaderCell} ${styles.leaderboardHeaderColScore}`}>Score</th>
-                  <th className={`${styles.leaderboardHeaderCell} ${styles.leaderboardHeaderColTime}`}>Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {leaderboard.map((rank, index) => {
-                  let badgeClass = styles.rankDefault;
-                  if (index === 0) badgeClass = styles.rankGold;
-                  else if (index === 1) badgeClass = styles.rankSilver;
-                  else if (index === 2) badgeClass = styles.rankBronze;
-
-                  return (
-                    <tr key={rank.userId} className={styles.leaderboardRow}>
-                      <td className={styles.leaderboardCell}>
-                        <span className={`${styles.rankBadge} ${badgeClass}`}>
-                          {index + 1}
-                        </span>
-                      </td>
-                      <td className={styles.leaderboardCell}>
-                        <div className={styles.avatarGroup}>
-                          <Avatar size={24} name={rank.name} image={{ src: rank.image || undefined }} />
-                          <Text weight={index < 3 ? "semibold" : "regular"}>{rank.name}</Text>
-                        </div>
-                      </td>
-                      <td className={`${styles.leaderboardCell} ${styles.leaderboardCellScore}`}>
-                        <Text style={{ color: rank.scorePercentage >= 80 ? '#10b981' : rank.scorePercentage >= 50 ? '#f59e0b' : '#ef4444' }}>
-                          {Math.round(rank.scorePercentage)}%
-                        </Text>
-                      </td>
-                      <td className={`${styles.leaderboardCell} ${styles.leaderboardCellTime}`}>
-                        {formatTime(rank.timeTakenSec)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <DataGrid
+              items={leaderboard.map((entry: any, index: number) => ({ ...entry, rank: index + 1 }))}
+              columns={leaderboardColumns}
+              getRowId={(item) => item.userId}
+              focusMode="none"
+              aria-label="Leaderboard"
+            >
+              <DataGridHeader>
+                <DataGridRow>
+                  {({ renderHeaderCell }) => (
+                    <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
+                  )}
+                </DataGridRow>
+              </DataGridHeader>
+              <DataGridBody>
+                {({ item, rowId }) => (
+                  <DataGridRow key={rowId}>
+                    {({ renderCell }) => (
+                      <DataGridCell>{renderCell(item)}</DataGridCell>
+                    )}
+                  </DataGridRow>
+                )}
+              </DataGridBody>
+            </DataGrid>
           )}
         </Card>
       </div>

@@ -9,7 +9,7 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 
-const AI_TIMEOUT_MS = 120000;
+const AI_TIMEOUT_MS = 240000;
 
 function extractJson(text: string): any {
   const trimmed = text.trim();

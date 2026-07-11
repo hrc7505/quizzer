@@ -36,7 +36,8 @@ export const AttemptService = {
     questionId: string,
     selectedAnswer: string,
     isCorrect: boolean,
-    timeTakenSec: number
+    timeTakenSec: number,
+    signal?: AbortSignal
   ): Promise<{ success: boolean }> => {
     const res = await fetch("/api/attempt/save", {
       method: "POST",
@@ -48,6 +49,7 @@ export const AttemptService = {
         isCorrect,
         timeTakenSec,
       }),
+      signal,
     });
     const data = await res.json();
     if (!res.ok) {

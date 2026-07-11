@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Card, Input, Text, Button } from "@fluentui/react-components";
+import { Card, Input, Text } from "@fluentui/react-components";
 import { Search24Regular, ArrowRight16Regular, Sparkle24Regular } from "@fluentui/react-icons";
 import Link from "next/link";
+import { useDirectoryCardListStyles } from "./styles/useDirectoryCardListStyles";
 
 interface DirectoryItem {
   id: string;
@@ -41,65 +42,45 @@ export function DirectoryCardList({
     (item.description && item.description.toLowerCase().includes(query.toLowerCase()))
   );
 
+  const styles = useDirectoryCardListStyles();
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+    <div className={styles.container}>
       {/* Search Input Bar */}
-      <div style={{
-        backgroundColor: "white", padding: "14px 20px", borderRadius: "12px",
-        border: "1px solid #e2e8f0", boxShadow: "0 2px 4px rgba(0,0,0,0.02)"
-      }}>
-        <Input
-          contentBefore={<Search24Regular style={{ fontSize: "18px", color: "#64748b" }} />}
+      <div className={styles.searchBar}>
+<Input
+          contentBefore={<Search24Regular className={styles.searchIcon} />}
           placeholder={searchPlaceholder}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          style={{ width: "100%", maxWidth: "360px" }}
+          className={styles.searchInput}
         />
       </div>
 
       {/* Grid of Cards */}
       {filtered.length > 0 ? (
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-          gap: "16px"
-        }}>
+<div className={styles.grid}>
           {filtered.map(item => (
-            <Link key={item.id} href={item.href} style={{ textDecoration: "none" }}>
-              <Card style={{
-                borderRadius: "16px",
-                border: "1px solid #e2e8f0",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.03)",
-                padding: "24px",
-                height: "100%",
-                display: "flex",
-                flexDirection: "column",
-                gap: "12px",
-                backgroundColor: "white",
-                cursor: "pointer",
-                transition: "all 0.2s ease-in-out"
-              }}>
+<Link key={item.id} href={item.href} className={styles.link}>
+<Card className={styles.card}>
                 <div>
-                  <Text size={400} weight="bold" style={{ color: "#0f172a", display: "block", marginBottom: "6px" }}>
+<Text size={400} weight="bold" className={styles.title}>
                     {item.title}
                   </Text>
                   {item.description && (
-                    <Text size={200} style={{ color: "#64748b", lineHeight: "1.4", display: "block" }}>
+<Text size={200} className={styles.description}>
                       {item.description.length > 120 ? `${item.description.slice(0, 120)}...` : item.description}
                     </Text>
                   )}
                 </div>
 
-                <div style={{ marginTop: "auto", display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "12px" }}>
+<div className={styles.metaRow}>
                   {item.meta ? (
-                    <span style={{
-                      fontSize: "11px", color: "#4f46e5", fontWeight: "semibold",
-                      backgroundColor: "#e0e7ff", padding: "4px 8px", borderRadius: "6px"
-                    }}>
+                    <span className={styles.metaBadge}>
                       {item.meta}
                     </span>
                   ) : <span />}
-                  <div style={{ display: "flex", alignItems: "center", gap: "4px", color: "#0078d4", fontSize: "13px", fontWeight: "bold" }}>
+<div className={styles.openRow}>
                     Open <ArrowRight16Regular />
                   </div>
                 </div>
@@ -108,16 +89,12 @@ export function DirectoryCardList({
           ))}
         </div>
       ) : (
-        <div style={{
-          textAlign: "center", padding: "64px 24px",
-          backgroundColor: "white", borderRadius: "16px",
-          border: "1px dashed #cbd5e1"
-        }}>
-          <Sparkle24Regular style={{ fontSize: "36px", color: "#94a3b8", marginBottom: "12px" }} />
-          <Text size={500} weight="bold" block style={{ color: "#1e293b", marginBottom: "6px" }}>
+<div className={styles.emptyState}>
+<Sparkle24Regular className={styles.emptyIcon} />
+<Text size={500} weight="bold" block className={styles.emptyTitle}>
             {emptyMessage}
           </Text>
-          <Text size={200} style={{ color: "#64748b" }}>Try adjusting your search terms or verify your configuration.</Text>
+<Text size={200} className={styles.emptyDescription}>Try adjusting your search terms or verify your configuration.</Text>
         </div>
       )}
     </div>

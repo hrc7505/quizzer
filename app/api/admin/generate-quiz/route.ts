@@ -9,7 +9,7 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 
-const AI_TIMEOUT_MS = 25000;
+const AI_TIMEOUT_MS = 120000;
 
 function extractJson(text: string): any {
   const trimmed = text.trim();
@@ -126,6 +126,11 @@ async function generateQuestionsBatch(prompt: string): Promise<any[]> {
     }
 
     return extractJson(resultText);
+  } catch (err) {
+    if (controller.signal.aborted) {
+      throw new Error("AI content generation timed out. Try again with smaller input or a longer timeout.");
+    }
+    throw err;
   } finally {
     clearTimeout(timeoutId);
   }

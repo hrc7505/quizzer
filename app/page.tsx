@@ -11,7 +11,7 @@ import { authOptions } from "@/lib/auth";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "QuizGen · AI-Powered Quiz Generator & Explainer",
+  title: "Quizzer · AI-Powered Quiz Generator & Explainer",
   description: "Create interactive quizzes and detailed AI explanations instantly.",
 };
 
@@ -328,7 +328,7 @@ export default async function HomePage() {
       {/* Footer */}
       <footer className="mt-auto py-6 border-t border-slate-200 bg-white text-center">
         <span className="text-xs text-slate-400">
-          © {new Date().getFullYear()} QuizGen · AI-powered interactive learning platform.
+          © {new Date().getFullYear()} Quizzer · AI-powered interactive learning platform.
         </span>
       </footer>
     </div>

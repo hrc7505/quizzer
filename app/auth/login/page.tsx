@@ -50,7 +50,7 @@ function LoginContent() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
             <Sparkle24Regular style={{ color: '#0078d4' }} />
             <Text weight="bold" size={600}>
-              Sign In to QuizGen
+              Sign In to Quizzer
             </Text>
           </div>
         }

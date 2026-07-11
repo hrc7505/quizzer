@@ -1,10 +1,10 @@
-// QuizGen Service Worker – caches the app shell for offline use
-const CACHE_NAME = "quizgen-v1";
+// Quizzer Service Worker – caches the app shell for offline use
+const CACHE_NAME = "quizzer-v1";
 const SHELL_ASSETS = [
   "/",
   "/manifest.json",
-  "/icon-192.png",
-  "/icon-512.png",
+  "/web-app-manifest-192x192.png",
+  "/web-app-manifest-512x512.png",
 ];
 
 self.addEventListener("install", (event) => {

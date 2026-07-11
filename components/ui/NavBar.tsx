@@ -69,7 +69,7 @@ export function NavBar() {
           {/* Brand */}
           <Text weight="bold" size={500}>
             <Link href={isAdminRoute ? "/admin" : "/"} className={styles.brandLink}>
-              QuizGen
+              Quizzer
             </Link>
           </Text>
         </div>
@@ -150,7 +150,7 @@ export function NavBar() {
               />
             }
           >
-            QuizGen
+            Quizzer
           </DrawerHeaderTitle>
         </DrawerHeader>
         <DrawerBody>

@@ -22,11 +22,6 @@ export default async function DirectQuizPlayPage({ params }: DirectQuizPlayPageP
     include: {
       topics: {
         include: {
-          parentTopics: {
-            include: {
-              exams: true,
-            },
-          },
           exams: true,
         },
       },
@@ -37,25 +32,17 @@ export default async function DirectQuizPlayPage({ params }: DirectQuizPlayPageP
     return notFound();
   }
 
-  // 1. Find a subtopic (a topic linked to the quiz that has a parent topic)
-  const subtopic = quiz.topics.find((t) => t.parentTopics.length > 0) || quiz.topics[0];
+  const subtopic = quiz.topics[0];
 
   if (!subtopic) {
     return notFound();
   }
 
-  const parentTopic = subtopic.parentTopics[0];
+  const exam = subtopic.exams[0];
 
-  // 2. Check if there's an associated exam
-  const exam = parentTopic?.exams[0] || subtopic.exams[0];
-
-  // 3. Perform correct redirect based on the resolved taxonomy path
-  if (exam && parentTopic) {
-    redirect(`/exams/${exam.id}/${parentTopic.id}/${subtopic.id}/quiz/${quiz.id}`);
-  } else if (parentTopic) {
-    redirect(`/topics/${parentTopic.id}/${subtopic.id}/quiz/${quiz.id}`);
+  if (exam) {
+    redirect(`/exams/${exam.id}/${subtopic.id}/quiz/${quiz.id}`);
   } else {
-    // Fallback if taxonomy is flat
-    redirect(`/topics/${subtopic.id}/${subtopic.id}/quiz/${quiz.id}`);
+    redirect(`/topics/${subtopic.id}/quiz/${quiz.id}`);
   }
 }

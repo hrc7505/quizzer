@@ -6,14 +6,9 @@ export async function GET() {
     const exams = await prisma.exam.findMany({
       include: {
         topics: {
-          where: { parentTopics: { none: {} } },
           include: {
-            subtopics: {
-              include: {
-                quizzes: {
-                  include: { _count: { select: { questions: true } } }
-                }
-              }
+            quizzes: {
+              include: { _count: { select: { questions: true } } }
             }
           }
         }

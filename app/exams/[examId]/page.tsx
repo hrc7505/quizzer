@@ -30,9 +30,8 @@ export default async function ExamTopicsPage({ params }: ExamPageProps) {
     where: { id: examId },
     include: {
       topics: {
-        where: { parentTopics: { none: {} } },
         include: {
-          _count: { select: { subtopics: true, quizzes: true } }
+          _count: { select: { quizzes: true } }
         },
         orderBy: { createdAt: "desc" }
       }
@@ -48,7 +47,7 @@ export default async function ExamTopicsPage({ params }: ExamPageProps) {
     title: t.title,
     description: t.description,
     href: `/exams/${examId}/${t.id}`,
-    meta: `${t._count.subtopics} Subtopics · ${t._count.quizzes} Quizzes`
+    meta: `${t._count.quizzes} Quizzes`
   }));
 
   const breadcrumbItems = [

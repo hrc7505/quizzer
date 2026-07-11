@@ -148,12 +148,32 @@ export const useQuizWizardStyles = makeStyles({
     paddingLeft: '24px',
     paddingRight: '24px',
   },
-  btnStart: {
+  splitButton: {
+    display: 'inline-flex',
+    alignItems: 'stretch',
+  },
+  splitPrimary: {
     height: '48px',
     paddingLeft: '28px',
-    paddingRight: '28px',
+    paddingRight: '20px',
     backgroundColor: '#4f46e5',
     color: 'white',
+    borderTopRightRadius: '0',
+    borderBottomRightRadius: '0',
+    ':hover': {
+      backgroundColor: '#4338ca',
+    },
+  },
+  splitChevron: {
+    height: '48px',
+    minWidth: '40px',
+    paddingLeft: '8px',
+    paddingRight: '8px',
+    backgroundColor: '#4f46e5',
+    color: 'white',
+    borderTopLeftRadius: '0',
+    borderBottomLeftRadius: '0',
+    borderLeft: '1px solid rgba(255, 255, 255, 0.4)',
     ':hover': {
       backgroundColor: '#4338ca',
     },

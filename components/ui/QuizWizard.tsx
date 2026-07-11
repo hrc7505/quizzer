@@ -9,15 +9,18 @@ import {
   DataGrid, DataGridHeader, DataGridRow, DataGridHeaderCell,
   DataGridBody, DataGridCell, TableCellLayout, TableColumnDefinition,
   createTableColumn,
+  Menu, MenuTrigger, MenuButton, MenuPopover, MenuList, MenuItem,
 } from "@fluentui/react-components";
 import { useRouter } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
 import { 
-  Play24Filled, ArrowClockwise24Regular, Sparkle24Regular, 
+  Play24Filled, ArrowClockwise24Regular, Sparkle24Regular,
   Trophy24Regular, Timer24Regular, BookOpen24Regular
 } from "@fluentui/react-icons";
+
 import { AttemptService } from "@/lib/services/attempt.service";
 import { useQuizWizardStyles } from "./styles/useQuizWizardStyles";
+import { WhatsAppIcon, FacebookIcon, TelegramIcon } from "./socialIcons";
 
 /**
  * QuizWizard Component. Coordinates quiz play state, fetches leaderboards, 
@@ -40,6 +43,8 @@ export function QuizWizard({ quiz }: { quiz: any }) {
   const [activeAttempt, setActiveAttempt] = useState<any | null>(null);
   const [attemptId, setAttemptId] = useState<string>("");
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
+
+
 
   // Gameplay State
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -257,10 +262,30 @@ export function QuizWizard({ quiz }: { quiz: any }) {
   };
 
   const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-    const s = (seconds % 60).toString().padStart(2, '0');
+    const m = Math.floor(seconds / 60).toString().padStart(2, "0");
+    const s = (seconds % 60).toString().padStart(2, "0");
     return `${m}:${s}`;
   };
+
+  const handleShare = (platform: "whatsapp" | "facebook" | "telegram") => {
+    const origin = window.location.origin;
+    const shareUrl = `${origin}/quiz/${quiz.id}`;
+    const shareText = `Check out this quiz: ${quiz.title} on Quizzer!`;
+
+    const encodedText = encodeURIComponent(shareText);
+    const encodedUrl = encodeURIComponent(shareUrl);
+
+    const urlByPlatform: Record<typeof platform, string> = {
+      whatsapp: `https://wa.me/?text=${encodedText}%20${encodedUrl}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedText}`,
+      telegram: `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`,
+    };
+
+    window.open(urlByPlatform[platform], "_blank", "noopener,noreferrer");
+  };
+
+
+
 
   /** DataGrid column definitions for the leaderboard */
   const leaderboardColumns: TableColumnDefinition<any>[] = [
@@ -368,15 +393,40 @@ export function QuizWizard({ quiz }: { quiz: any }) {
                 </Button>
               </>
             ) : (
-              <Button 
-                appearance="primary" 
-                size="large" 
-                icon={<Play24Filled />} 
-                onClick={() => handleStart(false)}
-                className={styles.btnStart}
-              >
-                Start Quiz
-              </Button>
+              <div className={styles.splitButton}>
+                <Button
+                  appearance="primary"
+                  size="large"
+                  icon={<Play24Filled />}
+                  onClick={() => handleStart(false)}
+                  className={styles.splitPrimary}
+                >
+                  Start Quiz
+                </Button>
+                <Menu>
+                  <MenuTrigger disableButtonEnhancement>
+                    <MenuButton
+                      appearance="primary"
+                      size="large"
+                      aria-label="Share this quiz"
+                      className={styles.splitChevron}
+                    />
+                  </MenuTrigger>
+                  <MenuPopover>
+                    <MenuList>
+                      <MenuItem icon={<WhatsAppIcon />} onClick={() => handleShare("whatsapp")}>
+                        Share on WhatsApp
+                      </MenuItem>
+                      <MenuItem icon={<FacebookIcon />} onClick={() => handleShare("facebook")}>
+                        Share on Facebook
+                      </MenuItem>
+                      <MenuItem icon={<TelegramIcon />} onClick={() => handleShare("telegram")}>
+                        Share on Telegram
+                      </MenuItem>
+                    </MenuList>
+                  </MenuPopover>
+                </Menu>
+              </div>
             )}
           </div>
         </Card>

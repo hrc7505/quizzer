@@ -28,12 +28,15 @@ import {
 } from "@fluentui/react-components";
 import { Dismiss20Regular } from "@fluentui/react-icons";
 import { useRef, useState, useEffect } from "react";
+import { useSession, signIn } from "next-auth/react";
+
 import { jsPDF } from "jspdf";
 import Link from "next/link";
 import { AttemptService } from "@/lib/services/attempt.service";
 import ReactMarkdown from "react-markdown";
 import { QuizResultsProps } from "./interfaces/QuizResults.interface";
 import { useQuizResultsStyles } from "./styles/useQuizResultsStyles";
+import { WhatsAppIcon, FacebookIcon, TelegramIcon } from "./socialIcons";
 
 /**
  * QuizResults component renders the results screen after quiz completion,
@@ -43,7 +46,11 @@ import { useQuizResultsStyles } from "./styles/useQuizResultsStyles";
 export function QuizResults({ attempt }: QuizResultsProps) {
   const styles = useQuizResultsStyles();
   const resultRef = useRef<HTMLDivElement>(null);
+  const { status } = useSession();
+
   const [downloading, setDownloading] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
@@ -160,6 +167,7 @@ export function QuizResults({ attempt }: QuizResultsProps) {
   };
 
   const handleElaborate = async (questionId: string) => {
+
     setActiveElaborationId(questionId);
     setIsDrawerOpen(true);
     if (elaborations[questionId]?.data || elaborations[questionId]?.loading) return;
@@ -185,12 +193,58 @@ export function QuizResults({ attempt }: QuizResultsProps) {
   const scoreColor = attempt.scorePercentage >= 80 ? "success" : attempt.scorePercentage >= 50 ? "warning" : "error";
   const progressColor = attempt.scorePercentage >= 80 ? "green" : attempt.scorePercentage >= 50 ? "orange" : "red";
 
+  const handleShare = (platform: "whatsapp" | "facebook" | "telegram") => {
+    if (status === "unauthenticated") {
+      signIn(undefined, { callbackUrl: window.location.href });
+      return;
+    }
+
+    const origin = window.location.origin;
+    const shareUrl = `${origin}/quiz/${attempt.quizId}`;
+    const shareText = `${attempt.quiz.title} — I scored ${Math.round(attempt.scorePercentage)}% on Quizzer!`;
+
+    const encodedText = encodeURIComponent(shareText);
+    const encodedUrl = encodeURIComponent(shareUrl);
+
+    const urlByPlatform: Record<typeof platform, string> = {
+      whatsapp: `https://wa.me/?text=${encodedText}%20${encodedUrl}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedText}`,
+      telegram: `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`,
+    };
+
+    window.open(urlByPlatform[platform], "_blank", "noopener,noreferrer");
+  };
+
+
   return (
     <div className={styles.container}>
       
       <div className={styles.header}>
         <Text size={700} weight="bold">Quiz Results</Text>
         <div className={styles.buttonGroup}>
+          <div
+            className={styles.shareWrap}
+            onMouseEnter={() => setShareOpen(true)}
+            onMouseLeave={() => setShareOpen(false)}
+          >
+            <Button appearance="subtle" className={styles.shareTrigger} aria-label="Share">
+              Share
+            </Button>
+            {shareOpen && (
+              <div className={styles.shareMenu} role="menu" aria-label="Share quiz">
+                <Button icon={<WhatsAppIcon />} appearance="subtle" className={styles.shareBtn} onClick={() => handleShare("whatsapp")}>
+                  WhatsApp
+                </Button>
+                <Button icon={<FacebookIcon />} appearance="subtle" className={styles.shareBtn} onClick={() => handleShare("facebook")}>
+                  Facebook
+                </Button>
+                <Button icon={<TelegramIcon />} appearance="subtle" className={styles.shareBtn} onClick={() => handleShare("telegram")}>
+                  Telegram
+                </Button>
+              </div>
+            )}
+          </div>
+
           <Button appearance="secondary" onClick={() => setIsReviewOpen(true)}>
             Detailed Review
           </Button>

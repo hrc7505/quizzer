@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { 
-  Card, CardHeader, Text, Button, ProgressBar, Badge, Spinner, 
+  Card, Text, Button, ProgressBar, Badge, Spinner, 
   TeachingPopover, TeachingPopoverTrigger, TeachingPopoverSurface, 
   TeachingPopoverHeader, TeachingPopoverTitle, TeachingPopoverBody,
   Avatar,
@@ -426,56 +426,6 @@ export function QuizWizard({ quiz }: { quiz: any }) {
                 } else if (isSelected && !isCorrectAnswer) {
                   optionStateClass = styles.optionIncorrect;
                 }
-              }
-
-              return (
-                <div 
-                  key={i} 
-                  onClick={() => handleOptionClick(opt)}
-                  className={`${styles.optionItem} ${optionStateClass}`}
-                >
-                  <Text size={300} weight={selectedOption && isCorrectAnswer ? "bold" : "regular"}>
-                    {opt}
-                  </Text>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Explanation Box shown post answering */}
-          {selectedOption && (
-            <div className={styles.explanationBox}>
-              <div className={styles.explanationHeaderRow}>
-                <Sparkle24Regular className={styles.explanationIcon} />
-                <Text weight="bold" className={styles.explanationTitle}>Answer Explanation:</Text>
-              </div>
-              <Text size={300} className={styles.explanationText}>
-                {currentQuestion.description}
-              </Text>
-            </div>
-          )}
-
-          {/* Navigation Controls */}
-          <div className={styles.actionsRow}>
-            <Button 
-              appearance="primary" 
-              size="large" 
-              disabled={!selectedOption || isSubmitting} 
-              onClick={handleNext}
-              className={styles.btnNext}
-            >
-              {isSubmitting ? (
-                <Spinner size="tiny" />
-              ) : (
-                currentIndex === questions.length - 1 ? "Finish Quiz" : "Next Question"
-              )}
-            </Button>
-          </div>
-        </Card>
-      )}
-    </div>
-  );
-}
               }
 
               return (

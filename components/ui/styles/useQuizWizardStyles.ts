@@ -87,6 +87,12 @@ export const useQuizWizardStyles = makeStyles({
     borderRadius: "8px",
     borderLeft: "4px solid #3b82f6",
   },
+  explanationHeaderRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    marginBottom: "6px",
+  },
   actionsRow: {
     marginTop: "24px",
     display: "flex",

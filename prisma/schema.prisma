@@ -42,8 +42,10 @@ model User {
   emailVerified DateTime?
   image         String?
   phoneNumber   String?   @unique
+  role          String    @default("USER") // "USER" or "ADMIN"
   accounts      Account[]
   sessions      Session[]
+  attempts      QuizAttempt[]
 }
 
 model VerificationToken {
@@ -106,10 +108,13 @@ model QuizAttempt {
   id              String       @id @default(uuid())
   quizId          String
   quiz            Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  scorePercentage Float
-  correctCount    Int
-  wrongCount      Int
-  timeTakenSec    Int
+  userId          String?
+  user            User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scorePercentage Float        @default(0.0)
+  correctCount    Int          @default(0)
+  wrongCount      Int          @default(0)
+  timeTakenSec    Int          @default(0)
+  completed       Boolean      @default(false)
   createdAt       DateTime     @default(now())
   answers         UserAnswer[]
 }

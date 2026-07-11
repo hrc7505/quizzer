@@ -24,11 +24,13 @@ import {
   DialogContent,
   DialogActions,
   DialogTrigger,
+  Avatar,
 } from "@fluentui/react-components";
 import { Dismiss20Regular } from "@fluentui/react-icons";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { jsPDF } from "jspdf";
 import Link from "next/link";
+import { AttemptService } from "@/lib/services/attempt.service";
 import ReactMarkdown from "react-markdown";
 import { QuizResultsProps } from "./interfaces/QuizResults.interface";
 import { useQuizResultsStyles } from "./styles/useQuizResultsStyles";
@@ -43,6 +45,22 @@ export function QuizResults({ attempt }: QuizResultsProps) {
   const resultRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
   const [isReviewOpen, setIsReviewOpen] = useState(false);
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
+
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      try {
+        const ld = await AttemptService.getLeaderboard(attempt.quizId);
+        setLeaderboard(ld);
+      } catch (err) {
+        console.error("Failed to load leaderboard:", err);
+      } finally {
+        setLoadingLeaderboard(false);
+      }
+    };
+    fetchLeaderboard();
+  }, [attempt.quizId]);
 
   // Pre-seed in-memory cache from DB-persisted elaborations
   const initialElaborations: Record<string, { loading: boolean; data?: string; error?: string }> = {};
@@ -216,6 +234,73 @@ export function QuizResults({ attempt }: QuizResultsProps) {
               </div>
             </div>
           </div>
+        </Card>
+
+        {/* Leaderboard Card */}
+        <Card className={styles.leaderboardCard}>
+          <div className={styles.leaderboardTitleRow}>
+            <span className={styles.leaderboardIcon}>🏆</span>
+            <Text size={500} weight="bold">Quiz Leaderboard - Top 10 Player Rankings</Text>
+          </div>
+
+          {loadingLeaderboard ? (
+            <div style={{ display: "flex", justifyContent: "center", padding: "16px" }}>
+              <Spinner label="Loading leaderboard..." size="tiny" />
+            </div>
+          ) : leaderboard.length === 0 ? (
+            <Text size={300} style={{ color: "#94a3b8", fontStyle: "italic", display: "block", textAlign: "center", padding: "16px 0" }}>
+              No rankings available yet.
+            </Text>
+          ) : (
+            <table className={styles.leaderboardTable}>
+              <thead>
+                <tr className={styles.leaderboardRow}>
+                  <th className={`${styles.leaderboardHeaderCell} ${styles.leaderboardHeaderColRank}`}>Rank</th>
+                  <th className={styles.leaderboardHeaderCell}>Player</th>
+                  <th className={`${styles.leaderboardHeaderCell} ${styles.leaderboardHeaderColScore}`}>Score</th>
+                  <th className={`${styles.leaderboardHeaderCell} ${styles.leaderboardHeaderColTime}`}>Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {leaderboard.map((rank, index) => {
+                  let badgeClass = styles.rankDefault;
+                  if (index === 0) badgeClass = styles.rankGold;
+                  else if (index === 1) badgeClass = styles.rankSilver;
+                  else if (index === 2) badgeClass = styles.rankBronze;
+
+                  const formatTime = (seconds: number) => {
+                    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+                    const s = (seconds % 60).toString().padStart(2, '0');
+                    return `${m}:${s}`;
+                  };
+
+                  return (
+                    <tr key={rank.userId} className={styles.leaderboardRow}>
+                      <td className={styles.leaderboardCell}>
+                        <span className={`${styles.rankBadge} ${badgeClass}`}>
+                          {index + 1}
+                        </span>
+                      </td>
+                      <td className={styles.leaderboardCell}>
+                        <div className={styles.playerGroup}>
+                          <Avatar size={20} name={rank.name} image={{ src: rank.image || undefined }} />
+                          <Text weight={index < 3 ? "semibold" : "regular"}>{rank.name}</Text>
+                        </div>
+                      </td>
+                      <td className={`${styles.leaderboardCell} ${styles.leaderboardCellScore}`}>
+                        <Text style={{ color: rank.scorePercentage >= 80 ? "#10b981" : rank.scorePercentage >= 50 ? "#f59e0b" : "#ef4444" }}>
+                          {Math.round(rank.scorePercentage)}%
+                        </Text>
+                      </td>
+                      <td className={`${styles.leaderboardCell} ${styles.leaderboardCellTime}`}>
+                        {formatTime(rank.timeTakenSec)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </Card>
       </div>
 

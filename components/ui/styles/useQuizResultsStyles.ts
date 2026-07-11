@@ -104,5 +104,76 @@ export const useQuizResultsStyles = makeStyles({
     display: 'flex',
     justifyContent: 'center',
     ...shorthands.padding('32px'),
-  }
+  },
+  leaderboardCard: {
+    marginTop: "24px",
+    padding: "24px",
+    borderRadius: "12px",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.03)",
+  },
+  leaderboardTitleRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    marginBottom: "16px",
+  },
+  leaderboardIcon: {
+    fontSize: "20px",
+  },
+  leaderboardTable: {
+    width: "100%",
+    borderCollapse: "collapse",
+    marginTop: "8px",
+  },
+  leaderboardRow: {
+    borderBottom: "1px solid #f1f5f9",
+  },
+  leaderboardHeaderCell: {
+    padding: "8px",
+    textAlign: "left",
+    fontSize: "12px",
+    color: "#64748b",
+    fontWeight: "600",
+  },
+  leaderboardHeaderColRank: {
+    width: "60px",
+  },
+  leaderboardHeaderColScore: {
+    textAlign: "center",
+  },
+  leaderboardHeaderColTime: {
+    textAlign: "right",
+  },
+  leaderboardCell: {
+    padding: "10px 8px",
+    fontSize: "14px",
+    color: "#334155",
+  },
+  leaderboardCellScore: {
+    textAlign: "center",
+    fontWeight: "bold",
+  },
+  leaderboardCellTime: {
+    textAlign: "right",
+    fontFamily: "monospace",
+  },
+  rankBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "24px",
+    height: "24px",
+    borderRadius: "50%",
+    fontWeight: "bold",
+    fontSize: "12px",
+  },
+  rankGold: { color: "#92400e", backgroundColor: "#fef3c7" },
+  rankSilver: { color: "#374151", backgroundColor: "#e5e7eb" },
+  rankBronze: { color: "#78350f", backgroundColor: "#ffedd5" },
+  rankDefault: { color: "#64748b", backgroundColor: "#f1f5f9" },
+  playerGroup: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
 });

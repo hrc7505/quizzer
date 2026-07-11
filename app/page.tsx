@@ -5,118 +5,113 @@ import {
   Sparkle24Regular, ArrowRight16Regular
 } from "@/components/ui/ServerIcons";
 import Link from "next/link";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "QuizGen · AI-Powered Quiz Generator & Explainer",
-  description: "Learn faster with AI-generated quizzes, persistent deep-dive explanations, and structured exam preparation."
+  description: "Create interactive quizzes and detailed AI explanations instantly.",
 };
 
-/**
- * Beautiful, premium Landing Page for QuizGen.
- * Explains the product features, queries dynamic database counts,
- * and directs users to practice or read deep dives.
- * Fully Server Component safe (uses plain HTML/CSS instead of React Context components).
- */
-export default async function Home() {
-  // Fetch dynamic statistics to make the home page feel active
+export default async function HomePage() {
+  const session = await getServerSession(authOptions);
+
+  // Fetch counts for Live Statistics
   const [examsCount, quizzesCount, questionsCount, deepDivesCount] = await Promise.all([
     prisma.exam.count(),
     prisma.quiz.count(),
     prisma.question.count(),
-    prisma.question.count({ where: { elaboration: { not: null } } })
+    prisma.question.count({
+      where: {
+        elaboration: {
+          not: null,
+        },
+      },
+    }),
   ]);
 
+  // Fetch Student Dashboard data if logged in as a student
+  const isStudent = session?.user && (session.user as any).role === "USER";
+  let inProgressAttempts: any[] = [];
+  let lastCompletedAttempt: any = null;
+
+  if (isStudent) {
+    const userId = (session.user as any).id;
+    const [ipData, lcData] = await Promise.all([
+      prisma.quizAttempt.findMany({
+        where: {
+          userId,
+          completed: false,
+          answers: {
+            some: {},
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        include: {
+          quiz: {
+            include: {
+              questions: true,
+            },
+          },
+          answers: true,
+        },
+      }),
+      prisma.quizAttempt.findFirst({
+        where: {
+          userId,
+          completed: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        include: {
+          quiz: {
+            include: {
+              questions: true,
+            },
+          },
+        },
+      }),
+    ]);
+    inProgressAttempts = ipData;
+    lastCompletedAttempt = lcData;
+  }
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#f8fafc', color: '#1e293b', fontFamily: 'Segoe UI, system-ui, sans-serif' }}>
+    <div className="flex flex-col min-h-screen bg-slate-50 text-slate-800 font-sans">
       <NavBar />
 
       {/* Hero Section */}
-      <section style={{
-        background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)",
-        color: "white",
-        padding: "80px 24px",
-        textAlign: "center",
-        position: "relative",
-        overflow: "hidden"
-      }}>
+      <section className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white py-20 px-6 text-center relative overflow-hidden">
         {/* Decorative background gradients */}
-        <div style={{
-          position: "absolute", top: "-50%", left: "-20%", width: "600px", height: "600px",
-          borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)",
-          pointerEvents: "none"
-        }} />
-        <div style={{
-          position: "absolute", bottom: "-50%", right: "-20%", width: "600px", height: "600px",
-          borderRadius: "50%", background: "radial-gradient(circle, rgba(16,185,129,0.1) 0%, transparent 70%)",
-          pointerEvents: "none"
-        }} />
+        <div className="absolute -top-1/2 -left-1/5 w-[600px] h-[600px] rounded-full bg-[radial-gradient(circle,rgba(99,102,241,0.15)_0%,transparent_70%)] pointer-events-none" />
+        <div className="absolute -bottom-1/2 -right-1/5 w-[600px] h-[600px] rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.1)_0%,transparent_70%)] pointer-events-none" />
 
-        <div style={{ maxWidth: "800px", margin: "0 auto", position: "relative", zIndex: 1 }}>
-          <div style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "8px",
-            backgroundColor: "rgba(99, 102, 241, 0.2)",
-            padding: "6px 14px",
-            borderRadius: "30px",
-            border: "1px solid rgba(99, 102, 241, 0.3)",
-            marginBottom: "24px"
-          }}>
-            <Sparkle24Regular style={{ color: "#818cf8", fontSize: "16px" }} />
-            <span style={{ color: "#c7d2fe", fontSize: "12px", fontWeight: "600" }}>AI-Powered Study Assistant</span>
+        <div className="max-w-3xl mx-auto relative z-10">
+          <div className="inline-flex items-center gap-2 bg-indigo-500/20 px-3.5 py-1.5 rounded-full border border-indigo-500/30 mb-6">
+            <Sparkle24Regular className="text-indigo-400" style={{ fontSize: "16px" }} />
+            <span className="text-indigo-200 text-xs font-semibold">AI-Powered Study Assistant</span>
           </div>
 
-          <h1 style={{
-            fontSize: "48px", fontWeight: "800", lineHeight: "1.2",
-            margin: "0 0 16px 0", background: "linear-gradient(to right, #ffffff, #e2e8f0)",
-            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-            letterSpacing: "-0.02em"
-          }}>
+          <h1 className="text-5xl font-extrabold leading-tight mb-4 bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent tracking-tight">
             Smart Study. AI-Powered Preparation.
           </h1>
           
-          <p style={{ fontSize: "18px", color: "#94a3b8", lineHeight: "1.6", margin: "0 0 32px 0" }}>
+          <p className="text-lg text-slate-400 leading-relaxed mb-8">
             Generate high-quality multiple-choice quizzes instantly from titles, text documents, or PDFs.
             Test your knowledge and leverage Gemini AI to deep-dive into complex concepts.
           </p>
 
-          <div style={{ display: "flex", gap: "16px", justifyContent: "center", flexWrap: "wrap" }}>
-            <Link href="/exams" style={{
-              textDecoration: "none",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              backgroundColor: "#0078d4",
-              color: "white",
-              padding: "0 24px",
-              height: "48px",
-              borderRadius: "8px",
-              fontWeight: "bold",
-              fontSize: "14px",
-              boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-              transition: "background-color 0.2s"
-            }}>
+          <div className="flex gap-4 justify-center flex-wrap">
+            <Link href="/exams" className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 h-12 rounded-lg font-bold text-sm shadow-xs hover:bg-blue-700 transition duration-200 no-underline">
               <BookOpen24Regular style={{ fontSize: "20px" }} />
               Browse Exams
             </Link>
-            <Link href="/deep-dives" style={{
-              textDecoration: "none",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              backgroundColor: "rgba(255,255,255,0.05)",
-              color: "white",
-              border: "1px solid rgba(255,255,255,0.3)",
-              padding: "0 24px",
-              height: "48px",
-              borderRadius: "8px",
-              fontWeight: "bold",
-              fontSize: "14px",
-              boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-              transition: "all 0.2s"
-            }}>
+            <Link href="/deep-dives" className="inline-flex items-center gap-2 bg-white/5 text-white border border-white/30 px-6 h-12 rounded-lg font-bold text-sm shadow-xs hover:bg-white/10 hover:border-white/50 transition duration-200 no-underline">
               <Brain24Regular style={{ fontSize: "20px" }} />
               AI Deep Dives
             </Link>
@@ -124,101 +119,176 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* Student Dashboard Section (Only shown if logged in as student) */}
+      {isStudent && (
+        <section className="max-w-[1100px] mx-auto mt-10 mb-5 w-full px-6 relative z-10">
+          <div className="flex flex-col gap-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-3xl font-extrabold text-slate-900 m-0 tracking-tight">
+                Welcome back, {session.user?.name || session.user?.email?.split("@")[0] || (session.user as any)?.phoneNumber || "User"}!
+              </h2>
+              <span className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-full text-xs font-semibold">
+                Student Dashboard
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Card 1: Half-Played Quizzes */}
+              <div className="bg-white p-7 rounded-2xl border border-slate-200 shadow-xs flex flex-col gap-4">
+                <h3 className="text-xl font-bold text-slate-800 m-0 flex items-center gap-2.5">
+                  <span className="text-2xl">⏳</span> In-Progress Quizzes
+                </h3>
+                
+                {inProgressAttempts.length === 0 ? (
+                  <p className="text-sm text-slate-500 m-0 italic leading-relaxed">
+                    No quizzes currently in progress. Start by selecting an exam topic!
+                  </p>
+                ) : (
+                  <div className="flex flex-col gap-3.5">
+                    {inProgressAttempts.slice(0, 3).map((attempt) => {
+                      const totalQuestions = attempt.quiz.questions.length;
+                      const answeredCount = attempt.answers.length;
+                      const progressPercent = totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0;
+                      
+                      return (
+                        <div key={attempt.id} className="p-4 border border-slate-100 rounded-xl bg-slate-50/55">
+                          <div className="flex justify-between items-start mb-2">
+                            <span className="font-semibold text-slate-700 text-sm">{attempt.quiz.title}</span>
+                            <span className="px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-100 rounded-full text-xs font-semibold">
+                              {answeredCount}/{totalQuestions}
+                            </span>
+                          </div>
+                          
+                          {/* Mini Progress Bar */}
+                          <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden mb-3">
+                            <div className="h-full bg-amber-500 rounded-full" style={{ width: `${progressPercent}%` }} />
+                          </div>
+
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-400 text-xs">Resume from Q{answeredCount + 1}</span>
+                            <Link href={`/quiz/${attempt.quizId}`} className="text-xs text-indigo-600 font-semibold flex items-center gap-1 hover:text-indigo-800 transition">
+                              Resume <ArrowRight16Regular style={{ fontSize: "12px" }} />
+                            </Link>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Card 2: Last Played Result */}
+              <div className="bg-white p-7 rounded-2xl border border-slate-200 shadow-xs flex flex-col gap-4 justify-between">
+                <div>
+                  <h3 className="text-xl font-bold text-slate-800 m-0 flex items-center gap-2.5 mb-4">
+                    <span className="text-2xl">🏆</span> Last Played Result
+                  </h3>
+
+                  {!lastCompletedAttempt ? (
+                    <p className="text-sm text-slate-500 m-0 italic leading-relaxed">
+                      No completed quiz attempts found. Start a quiz and check your score here!
+                    </p>
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      <span className="text-base font-semibold text-slate-700">
+                        {lastCompletedAttempt.quiz.title}
+                      </span>
+                      
+                      <div className="flex gap-4 items-center my-2">
+                        <div className={`text-4xl font-extrabold ${
+                          lastCompletedAttempt.scorePercentage >= 80 ? "text-emerald-600" : lastCompletedAttempt.scorePercentage >= 50 ? "text-amber-500" : "text-red-500"
+                        }`}>
+                          {Math.round(lastCompletedAttempt.scorePercentage)}%
+                        </div>
+                        <div className="text-sm text-slate-500 leading-relaxed">
+                          <div>Correct answers: <strong>{lastCompletedAttempt.correctCount} / {lastCompletedAttempt.quiz.questions.length}</strong></div>
+                          <div>Time taken: <strong>{Math.floor(lastCompletedAttempt.timeTakenSec / 60)}m {lastCompletedAttempt.timeTakenSec % 60}s</strong></div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {lastCompletedAttempt && (
+                  <div className="flex justify-between items-center border-t border-slate-100 pt-3.5 mt-3">
+                    <Link href={`/quiz/results/${lastCompletedAttempt.id}`} className="text-sm text-indigo-600 font-semibold hover:text-indigo-800 transition no-underline">
+                      View Detailed Review
+                    </Link>
+                    <Link href={`/quiz/${lastCompletedAttempt.quizId}`} className="text-sm text-emerald-600 font-semibold flex items-center gap-1 hover:text-emerald-800 transition no-underline">
+                      Play Again <ArrowRight16Regular style={{ fontSize: "12px" }} />
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Live Statistics */}
-      <section style={{ maxWidth: "1100px", margin: "-40px auto 60px auto", width: "100%", padding: "0 24px", position: "relative", zIndex: 2 }}>
-        <div style={{
-          backgroundColor: "white", borderRadius: "16px",
-          boxShadow: "0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.05)",
-          border: "1px solid #e2e8f0",
-          display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          padding: "24px 16px", textAlign: "center", gap: "24px"
-        }}>
-          <div>
-            <span style={{ display: "block", fontSize: "32px", fontWeight: "bold", color: "#4f46e5" }}>{examsCount}</span>
-            <span style={{ fontSize: "14px", color: "#64748b", fontWeight: "600" }}>Exams Structured</span>
+      <section className={`max-w-[1100px] mx-auto mb-16 w-full px-6 relative z-10 ${isStudent ? "mt-6" : "-mt-10"}`}>
+        <div className="bg-white rounded-2xl shadow-xs border border-slate-200 grid grid-cols-2 md:grid-cols-4 py-6 px-4 text-center gap-6">
+          <div className="flex flex-col">
+            <span className="block text-3xl font-extrabold text-indigo-600">{examsCount}</span>
+            <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider mt-1">Exams Structured</span>
           </div>
-          <div style={{ borderLeft: "1px solid #e2e8f0", borderRight: "1px solid #e2e8f0" }}>
-            <span style={{ display: "block", fontSize: "32px", fontWeight: "bold", color: "#0ea5e9" }}>{quizzesCount}</span>
-            <span style={{ fontSize: "14px", color: "#64748b", fontWeight: "600" }}>Interactive Quizzes</span>
+          <div className="border-l border-r border-slate-100 flex flex-col">
+            <span className="block text-3xl font-extrabold text-sky-500">{quizzesCount}</span>
+            <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider mt-1">Interactive Quizzes</span>
           </div>
-          <div style={{ borderRight: "1px solid #e2e8f0" }}>
-            <span style={{ display: "block", fontSize: "32px", fontWeight: "bold", color: "#10b981" }}>{questionsCount}</span>
-            <span style={{ fontSize: "14px", color: "#64748b", fontWeight: "600" }}>Practice Questions</span>
+          <div className="md:border-r border-slate-100 flex flex-col">
+            <span className="block text-3xl font-extrabold text-emerald-500">{questionsCount}</span>
+            <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider mt-1">Practice Questions</span>
           </div>
-          <div>
-            <span style={{ display: "block", fontSize: "32px", fontWeight: "bold", color: "#f59e0b" }}>{deepDivesCount}</span>
-            <span style={{ fontSize: "14px", color: "#64748b", fontWeight: "600" }}>AI Explanations Saved</span>
+          <div className="flex flex-col">
+            <span className="block text-3xl font-extrabold text-amber-500">{deepDivesCount}</span>
+            <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider mt-1">AI Explanations Saved</span>
           </div>
         </div>
       </section>
 
       {/* Features Grid */}
-      <section style={{ maxWidth: "1100px", margin: "0 auto 80px auto", width: "100%", padding: "0 24px" }}>
-        <div style={{ textAlign: "center", marginBottom: "48px" }}>
-          <h2 style={{ fontSize: "28px", fontWeight: "bold", color: "#0f172a", margin: "0 0 8px 0" }}>Key Features & Highlights</h2>
-          <p style={{ fontSize: "16px", color: "#64748b", margin: 0 }}>Everything you need to master topics and pass your exams.</p>
+      <section className="max-w-[1100px] mx-auto mb-20 w-full px-6">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold text-slate-900 mb-2">Key Features & Highlights</h2>
+          <p className="text-slate-500 text-base">Everything you need to master topics and pass your exams.</p>
         </div>
 
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-          gap: "24px"
-        }}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Card 1 */}
-          <div style={{
-            backgroundColor: "white", padding: "28px", borderRadius: "12px",
-            border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.02)",
-            display: "flex", gap: "16px"
-          }}>
-            <div style={{
-              width: "48px", height: "48px", borderRadius: "8px", backgroundColor: "#e0e7ff",
-              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
-            }}>
-              <Sparkle24Regular style={{ color: "#4f46e5" }} />
+          <div className="bg-white p-7 rounded-xl border border-slate-200 shadow-xs flex gap-4">
+            <div className="w-12 h-12 rounded-lg flex items-center justify-center shrink-0 bg-indigo-50 text-indigo-600">
+              <Sparkle24Regular />
             </div>
             <div>
-              <h3 style={{ fontSize: "18px", fontWeight: "bold", color: "#1e293b", margin: "0 0 8px 0" }}>Gemini Quiz Generation</h3>
-              <p style={{ fontSize: "14px", color: "#475569", lineHeight: "1.5", margin: 0 }}>
+              <h3 className="text-lg font-bold text-slate-800 mb-2">Gemini Quiz Generation</h3>
+              <p className="text-sm text-slate-600 leading-relaxed m-0">
                 Upload a study guide PDF, paste long-form textbook materials, or input a simple title. The AI chunks content, formats questions, and creates modular quizzes.
               </p>
             </div>
           </div>
 
           {/* Card 2 */}
-          <div style={{
-            backgroundColor: "white", padding: "28px", borderRadius: "12px",
-            border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.02)",
-            display: "flex", gap: "16px"
-          }}>
-            <div style={{
-              width: "48px", height: "48px", borderRadius: "8px", backgroundColor: "#e0f2fe",
-              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
-            }}>
-              <Brain24Regular style={{ color: "#0284c7" }} />
+          <div className="bg-white p-7 rounded-xl border border-slate-200 shadow-xs flex gap-4">
+            <div className="w-12 h-12 rounded-lg flex items-center justify-center shrink-0 bg-sky-50 text-sky-600">
+              <Brain24Regular />
             </div>
             <div>
-              <h3 style={{ fontSize: "18px", fontWeight: "bold", color: "#1e293b", margin: "0 0 8px 0" }}>Persistent Explanations</h3>
-              <p style={{ fontSize: "14px", color: "#475569", lineHeight: "1.5", margin: 0 }}>
+              <h3 className="text-lg font-bold text-slate-800 mb-2">Persistent Explanations</h3>
+              <p className="text-sm text-slate-600 leading-relaxed m-0">
                 Tired of reading simple answer keys? Get full-page, structured explanations cached instantly in the database. Read options analysis, search keywords, and learn from mistakes.
               </p>
             </div>
           </div>
 
           {/* Card 3 */}
-          <div style={{
-            backgroundColor: "white", padding: "28px", borderRadius: "12px",
-            border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.02)",
-            display: "flex", gap: "16px"
-          }}>
-            <div style={{
-              width: "48px", height: "48px", borderRadius: "8px", backgroundColor: "#d1fae5",
-              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
-            }}>
-              <BookOpen24Regular style={{ color: "#059669" }} />
+          <div className="bg-white p-7 rounded-xl border border-slate-200 shadow-xs flex gap-4">
+            <div className="w-12 h-12 rounded-lg flex items-center justify-center shrink-0 bg-emerald-50 text-emerald-600">
+              <BookOpen24Regular />
             </div>
             <div>
-              <h3 style={{ fontSize: "18px", fontWeight: "bold", color: "#1e293b", margin: "0 0 8px 0" }}>Structured Taxonomy</h3>
-              <p style={{ fontSize: "14px", color: "#475569", lineHeight: "1.5", margin: 0 }}>
+              <h3 className="text-lg font-bold text-slate-800 mb-2">Structured Taxonomy</h3>
+              <p className="text-sm text-slate-600 leading-relaxed m-0">
                 Keep materials organized. Create exams, main topics, subtopics, and quizzes independently, then easily link them together using our intuitive drag-and-connect manager.
               </p>
             </div>
@@ -227,30 +297,14 @@ export default async function Home() {
       </section>
 
       {/* CTA Section */}
-      <section style={{
-        backgroundColor: "#f1f5f9",
-        borderTop: "1px solid #e2e8f0",
-        padding: "60px 24px",
-        textAlign: "center"
-      }}>
-        <div style={{ maxWidth: "600px", margin: "0 auto" }}>
-          <h2 style={{ fontSize: "24px", fontWeight: "bold", color: "#0f172a", margin: "0 0 12px 0" }}>Ready to boost your study session?</h2>
-          <p style={{ margin: "0 0 24px 0", color: "#475569", fontSize: "16px" }}>
+      <section className="bg-slate-100 border-t border-slate-200 py-16 px-6 text-center">
+        <div className="max-w-2xl mx-auto">
+          <h2 className="text-2xl font-bold text-slate-900 mb-3">Ready to boost your study session?</h2>
+          <p className="text-slate-600 text-base mb-6">
             Explore study topics, take timed quizzes, and build your cached AI library today.
           </p>
-          <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
-            <Link href="/exams" style={{
-              textDecoration: "none",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              backgroundColor: "#4f46e5",
-              color: "white",
-              padding: "10px 20px",
-              borderRadius: "6px",
-              fontWeight: "bold",
-              fontSize: "14px"
-            }}>
+          <div className="flex gap-4 justify-center">
+            <Link href="/exams" className="inline-flex items-center gap-1.5 bg-indigo-600 text-white px-5 py-2.5 rounded-lg font-bold text-sm hover:bg-indigo-700 transition duration-200 no-underline">
               Start Practice Now
               <ArrowRight16Regular />
             </Link>
@@ -259,8 +313,8 @@ export default async function Home() {
       </section>
 
       {/* Footer */}
-      <footer style={{ marginTop: "auto", padding: "24px", borderTop: "1px solid #e2e8f0", backgroundColor: "white", textAlign: "center" }}>
-        <span style={{ fontSize: "12px", color: "#94a3b8" }}>
+      <footer className="mt-auto py-6 border-t border-slate-200 bg-white text-center">
+        <span className="text-xs text-slate-400">
           © {new Date().getFullYear()} QuizGen · AI-powered interactive learning platform.
         </span>
       </footer>

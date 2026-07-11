@@ -21,7 +21,11 @@ export default async function ExamsPage() {
       orderBy: { createdAt: "desc" }
     }),
     prisma.topic.findMany({
-      where: { exams: { none: {} } },
+      where: {
+        exams: { none: {} },
+        parentTopics: { none: {} },
+        title: { not: "__internal__" }
+      },
       include: {
         _count: { select: { quizzes: true } }
       },

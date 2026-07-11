@@ -31,7 +31,10 @@ export default async function TopicSubtopicsPage({ params }: SubtopicsPageProps)
     prisma.topic.findUnique({
       where: { id: topicId },
       include: {
-        _count: { select: { quizzes: true } }
+        subtopics: {
+          include: { _count: { select: { quizzes: true } } },
+          orderBy: { createdAt: "desc" }
+        }
       }
     })
   ]);
@@ -40,7 +43,13 @@ export default async function TopicSubtopicsPage({ params }: SubtopicsPageProps)
     notFound();
   }
 
-  const subtopicItems: { id: string; title: string; description?: string; href: string; meta: string }[] = [];
+  const subtopicItems = topic.subtopics.map(sub => ({
+    id: sub.id,
+    title: sub.title,
+    description: sub.description,
+    href: `/exams/${examId}/${topicId}/${sub.id}`,
+    meta: `${sub._count.quizzes} Quizzes`
+  }));
 
   const breadcrumbItems = [
     { label: "Exams", href: "/exams" },

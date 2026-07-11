@@ -136,7 +136,7 @@ export function AdminUsersManager({ initialUsers }: AdminUsersManagerProps) {
         return (
           <TableCellLayout>
             <Button
-              icon={<Delete20Regular />}
+              icon={loading ? <Spinner size="tiny" /> : <Delete20Regular />}
               appearance="subtle"
               disabled={isSelf || loading}
               onClick={() => handleDeleteClick(user)}

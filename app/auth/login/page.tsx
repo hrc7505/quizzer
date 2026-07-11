@@ -16,8 +16,15 @@ function LoginContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleGoogleLogin = () => {
-    signIn("google", { callbackUrl });
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    try {
+      await signIn("google", { callbackUrl });
+    } catch {
+      setError("An unexpected error occurred.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDevLogin = async (e: React.FormEvent) => {
@@ -73,6 +80,7 @@ function LoginContent() {
           appearance="primary" 
           size="large" 
           onClick={handleGoogleLogin}
+          disabled={loading}
           style={{ 
             backgroundColor: '#0078d4', 
             color: 'white', 
@@ -81,7 +89,7 @@ function LoginContent() {
             borderRadius: '6px'
           }}
         >
-          Sign In with Google
+          {loading ? <Spinner size="tiny" /> : "Sign In with Google"}
         </Button>
 
         <div style={{ display: 'flex', alignItems: 'center', margin: '12px 0' }}>

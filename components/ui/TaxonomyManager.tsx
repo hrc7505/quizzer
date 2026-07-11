@@ -282,6 +282,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
   };
 
   const handleSaveExam = async () => {
+    setLoading(true);
     const url = examForm.id ? `/api/admin/exams/${examForm.id}` : "/api/admin/exams";
     const method = examForm.id ? "PUT" : "POST";
     
@@ -291,12 +292,13 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       body: JSON.stringify(examForm)
     });
     setExamDialogOpen(false);
-    fetchData();
+    await fetchData();
   };
 
   // Bulk links exams with standalone main topics
   const handleSaveExamLinks = async () => {
     if (!linkExamId) return;
+    setLoading(true);
     const url = `/api/admin/exams/${linkExamId}`;
     const targetExam = exams.find(e => e.id === linkExamId);
     if (!targetExam) return;
@@ -314,12 +316,13 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       })
     });
     setExamLinkDialogOpen(false);
-    fetchData();
+    await fetchData();
   };
 
   // Bulk links main topics with standalone subtopics
   const handleSaveTopicLinks = async () => {
     if (!linkTopicId) return;
+    setLoading(true);
     const url = `/api/admin/topics/${linkTopicId}`;
     const targetTopic = topics.find(t => t.id === linkTopicId) || flatTopics.find(t => t.id === linkTopicId);
     if (!targetTopic) return;
@@ -337,12 +340,13 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       })
     });
     setTopicLinkDialogOpen(false);
-    fetchData();
+    await fetchData();
   };
 
   // Bulk links quizzes to a specific subtopic
   const handleSaveQuizLinks = async () => {
     if (!linkTopicId) return;
+    setLoading(true);
     const targetTopic = topics.find(t => t.id === linkTopicId) || flatTopics.find(t => t.id === linkTopicId);
     if (!targetTopic) return;
 
@@ -359,10 +363,11 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       })
     });
     setQuizLinkDialogOpen(false);
-    fetchData();
+    await fetchData();
   };
 
   const handleSaveTopic = async () => {
+    setLoading(true);
     const url = topicForm.id ? `/api/admin/topics/${topicForm.id}` : "/api/admin/topics";
     const method = topicForm.id ? "PUT" : "POST";
     
@@ -379,10 +384,11 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       body: JSON.stringify(payload)
     });
     setTopicDialogOpen(false);
-    fetchData();
+    await fetchData();
   };
 
   const handleSaveQuiz = async () => {
+    setLoading(true);
     const url = quizForm.id ? `/api/admin/quizzes/${quizForm.id}` : "/api/admin/quizzes";
     const method = quizForm.id ? "PUT" : "POST";
 
@@ -395,7 +401,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       })
     });
     setQuizDialogOpen(false);
-    fetchData();
+    await fetchData();
   };
 
   const handleDeleteExam = (id: string, name: string) => {
@@ -403,8 +409,9 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       "Delete Exam",
       `Are you sure you want to permanently delete "${name}"? This action cannot be undone and will delete all topics linked under it.`,
       async () => {
+        setLoading(true);
         await fetch(`/api/admin/exams/${id}`, { method: "DELETE" });
-        fetchData();
+        await fetchData();
       }
     );
   };
@@ -414,8 +421,9 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       "Delete Topic",
       `Are you sure you want to permanently delete the topic "${name}"? This will delete all subtopics nested under it.`,
       async () => {
+        setLoading(true);
         await fetch(`/api/admin/topics/${id}`, { method: "DELETE" });
-        fetchData();
+        await fetchData();
       }
     );
   };
@@ -425,8 +433,9 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       "Delete Quiz",
       `Are you sure you want to permanently delete the quiz "${name}"? This will delete all attempts and questions associated with it.`,
       async () => {
+        setLoading(true);
         await fetch(`/api/admin/quizzes/${id}`, { method: "DELETE" });
-        fetchData();
+        await fetchData();
       }
     );
   };
@@ -437,6 +446,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       `Are you sure you want to unlink "${topicName}" from the exam "${examName}"? It will become a standalone topic.`,
       async () => {
         if (!selectedExamId) return;
+        setLoading(true);
         const exam = exams.find(e => e.id === selectedExamId);
         if (!exam) return;
         const updatedTopicIds = exam.topics.filter(t => t.id !== topicId).map(t => t.id);
@@ -449,7 +459,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
             topicIds: updatedTopicIds
           })
         });
-        fetchData();
+        await fetchData();
       }
     );
   };
@@ -460,6 +470,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       `Are you sure you want to unlink "${subtopicName}" from the parent topic "${parentName}"? It will become a standalone topic.`,
       async () => {
         if (!selectedTopicId) return;
+        setLoading(true);
         const parentTopic = topics.find(t => t.id === selectedTopicId);
         if (!parentTopic) return;
         const updatedSubtopicIds = parentTopic.subtopics?.filter(t => t.id !== subtopicId).map(t => t.id) || [];
@@ -472,7 +483,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
             subtopicIds: updatedSubtopicIds
           })
         });
-        fetchData();
+        await fetchData();
       }
     );
   };
@@ -483,6 +494,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       `Are you sure you want to unlink the quiz "${quizTitle}" from the subtopic "${subtopicName}"?`,
       async () => {
         if (!selectedTopicId) return;
+        setLoading(true);
         const subtopic = topics.find(t => t.id === selectedTopicId) || flatTopics.find(t => t.id === selectedTopicId);
         if (!subtopic) return;
         const updatedQuizIds = subtopic.quizzes?.filter(q => q.id !== quizId).map(q => q.id) || [];
@@ -495,7 +507,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
             quizIds: updatedQuizIds
           })
         });
-        fetchData();
+        await fetchData();
       }
     );
   };

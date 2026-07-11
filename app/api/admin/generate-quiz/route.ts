@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { ai, GEMINI_MODEL } from "@/lib/gemini";
 import { Type } from "@google/genai";
 import { prisma } from "@/lib/prisma";
@@ -198,7 +199,7 @@ ${chunk}`;
 
       // Use a transaction so the quiz record is only persisted when questions are also saved.
       // If question insertion fails, the quiz row is rolled back — no empty quizzes left behind.
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         const quiz = await tx.quiz.create({
           data: {
             // Only connect to subtopic when one was explicitly provided

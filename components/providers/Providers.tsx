@@ -23,13 +23,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <SessionProvider>
-      {!mounted ? (
-        <div style={{ visibility: "hidden" }}>{children}</div>
-      ) : (
-        <UIProvider theme={isDark ? webDarkTheme : webLightTheme} style={{ height: "100vh", backgroundColor: isDark ? "#000" : "#f5f5f5" }}>
-          {children}
-        </UIProvider>
-      )}
+      <UIProvider theme={isDark ? webDarkTheme : webLightTheme} style={{ height: "100vh", backgroundColor: isDark ? "#000" : "#f5f5f5" }}>
+        <div style={{ visibility: !mounted ? "hidden" : "visible" }}>{children}</div>
+      </UIProvider>
     </SessionProvider>
   );
 }

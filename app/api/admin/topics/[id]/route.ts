@@ -14,6 +14,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         title, 
         description, 
         exams: examId !== undefined ? (examId ? { set: [{ id: examId }] } : { set: [] }) : undefined,
+        parentTopics: parentId !== undefined ? (parentId ? { set: [{ id: parentId }] } : { set: [] }) : undefined,
+        subtopics: subtopicIds && Array.isArray(subtopicIds) ? {
+          set: subtopicIds.map((sid: string) => ({ id: sid }))
+        } : undefined,
         quizzes: quizIds && Array.isArray(quizIds) ? {
           set: quizIds.map((qid: string) => ({ id: qid }))
         } : undefined

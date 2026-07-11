@@ -66,4 +66,7 @@ export const useAdminUsersManagerStyles = makeStyles({
       backgroundColor: "#a80000",
     },
   },
+  warningIcon: {
+    color: "#d13438",
+  },
 });

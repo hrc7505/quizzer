@@ -188,4 +188,37 @@ export const useQuizResultsStyles = makeStyles({
     alignItems: "center",
     gap: "8px",
   },
+  loadingContainer: {
+    display: "flex",
+    justifyContent: "center",
+    padding: "16px",
+  },
+  emptyLeaderboardText: {
+    color: "#94a3b8",
+    fontStyle: "italic",
+    display: "block",
+    textAlign: "center",
+    padding: "16px 0",
+  },
+  scoreValue: {
+    fontWeight: "bold",
+  },
+  statCorrect: {
+    color: "green",
+  },
+  statIncorrect: {
+    color: "red",
+  },
+  questionTextAccordion: {
+    color: "inherit",
+  },
+  questionTextAccordionWrong: {
+    color: "#d13438",
+  },
+  deepDiveButton: {
+    color: "#667eea",
+  },
+  markdownContainer: {
+    overflowX: "auto",
+  },
 });

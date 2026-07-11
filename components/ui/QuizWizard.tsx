@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { 
-  Card, CardHeader, Text, Button, ProgressBar, Badge, Spinner, 
+  Card, Text, Button, ProgressBar, Badge, Spinner, 
   TeachingPopover, TeachingPopoverTrigger, TeachingPopoverSurface, 
   TeachingPopoverHeader, TeachingPopoverTitle, TeachingPopoverBody,
   Avatar,
@@ -222,12 +222,7 @@ export function QuizWizard({ quiz }: { quiz: any }) {
         const bg = badgeStyle[item.rank] || "#e2e8f0";
         return (
           <TableCellLayout>
-            <span style={{
-              display: "inline-flex", alignItems: "center", justifyContent: "center",
-              width: 28, height: 28, borderRadius: "50%",
-              backgroundColor: bg, color: item.rank <= 3 ? "#fff" : "#475569",
-              fontWeight: 700, fontSize: 13,
-            }}>
+            <span className={`${styles.rankBadge} ${styles.rankSpan}`} style={{ backgroundColor: bg, color: item.rank <= 3 ? "#fff" : "#475569" }}>
               {item.rank}
             </span>
           </TableCellLayout>
@@ -250,7 +245,7 @@ export function QuizWizard({ quiz }: { quiz: any }) {
       renderHeaderCell: () => "Score",
       renderCell: (item) => (
         <TableCellLayout>
-          <Text style={{ color: item.scorePercentage >= 80 ? "#10b981" : item.scorePercentage >= 50 ? "#f59e0b" : "#ef4444", fontWeight: 600 }}>
+          <Text className={styles.scoreText} style={{ color: item.scorePercentage >= 80 ? "#10b981" : item.scorePercentage >= 50 ? "#f59e0b" : "#ef4444" }}>
             {Math.round(item.scorePercentage)}%
           </Text>
         </TableCellLayout>
@@ -270,7 +265,7 @@ export function QuizWizard({ quiz }: { quiz: any }) {
   // Rendering Loading Screen
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
+      <div className={styles.loadingContainer}>
         <Spinner label="Loading quiz..." size="large" />
       </div>
     );
@@ -282,7 +277,7 @@ export function QuizWizard({ quiz }: { quiz: any }) {
       <div className={styles.container}>
         <Card className={styles.startCard}>
           <div className={styles.startIconContainer}>
-            <BookOpen24Regular style={{ color: "#4f46e5", fontSize: "32px" }} />
+            <BookOpen24Regular className={styles.iconPrimary} />
           </div>
           <Text size={700} weight="bold" className={styles.startTitle}>
             {quiz.title}
@@ -306,7 +301,7 @@ export function QuizWizard({ quiz }: { quiz: any }) {
                 <Button 
                   appearance="outline" 
                   size="large" 
-                  icon={<ArrowClockwiseRegularWrapper />} 
+                  icon={<ArrowClockwise24Regular className={styles.iconMedium} />} 
                   onClick={() => handleStart(true)}
                   className={styles.btnStartFresh}
                 >
@@ -330,7 +325,7 @@ export function QuizWizard({ quiz }: { quiz: any }) {
         {/* Leaderboard Section */}
         <Card className={styles.leaderboardCard}>
           <div className={styles.leaderboardTitleRow}>
-            <Trophy24Regular style={{ color: '#f59e0b' }} />
+            <Trophy24Regular className={styles.iconGold} />
             <Text size={500} weight="bold">Top 10 Rankings</Text>
           </div>
 
@@ -378,8 +373,8 @@ export function QuizWizard({ quiz }: { quiz: any }) {
       {/* Quiz Top Header */}
       <div className={styles.header}>
         <Text size={600} weight="bold">{quiz.title}</Text>
-        <Badge appearance="filled" color="brand" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '6px 12px' }}>
-          <Timer24Regular style={{ fontSize: '14px' }} />
+        <Badge appearance="filled" color="brand" className={styles.badgeTimer}>
+          <Timer24Regular className={styles.iconSmall} />
           {formatTime(timeTaken)}
         </Badge>
       </div>
@@ -397,13 +392,13 @@ export function QuizWizard({ quiz }: { quiz: any }) {
       {currentQuestion && (
         <Card className={styles.questionCard}>
           <div className={styles.questionTextRow}>
-            <Text size={500} weight="semibold" style={{ flex: 1, lineHeight: '1.4' }}>
+            <Text size={500} weight="semibold" className={styles.questionText}>
               {currentQuestion.text}
             </Text>
             {currentQuestion.hint && (
               <TeachingPopover open={showHint} onOpenChange={(e, data) => setShowHint(data.open)}>
                 <TeachingPopoverTrigger>
-                  <Button appearance="subtle">💡 Hint</Button>
+                  <Button appearance="subtle">Hint</Button>
                 </TeachingPopoverTrigger>
                 <TeachingPopoverSurface>
                   <TeachingPopoverHeader>
@@ -450,11 +445,11 @@ export function QuizWizard({ quiz }: { quiz: any }) {
           {/* Explanation Box shown post answering */}
           {selectedOption && (
             <div className={styles.explanationBox}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-                <Sparkle24Regular style={{ color: '#2563eb', fontSize: '18px' }} />
-                <Text weight="bold" style={{ color: '#1e3a8a' }}>Answer Explanation:</Text>
+              <div className={styles.explanationHeaderRow}>
+                <Sparkle24Regular className={styles.explanationIcon} />
+                <Text weight="bold" className={styles.explanationTitle}>Answer Explanation:</Text>
               </div>
-              <Text size={300} style={{ color: '#1e40af', lineHeight: '1.5' }}>
+              <Text size={300} className={styles.explanationText}>
                 {currentQuestion.description}
               </Text>
             </div>
@@ -480,11 +475,4 @@ export function QuizWizard({ quiz }: { quiz: any }) {
       )}
     </div>
   );
-}
-
-/**
- * Arrow icon wrapper helper component.
- */
-function ArrowClockwiseRegularWrapper() {
-  return <ArrowClockwise24Regular style={{ fontSize: '16px' }} />;
 }

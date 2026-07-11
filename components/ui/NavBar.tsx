@@ -75,7 +75,7 @@ export function NavBar() {
               width={120}
               height={32}
               priority
-              style={{ height: "auto", width: "auto", maxHeight: 32 }}
+              className={styles.brandImage}
             />
           </Link>
         </div>
@@ -156,14 +156,14 @@ export function NavBar() {
               />
             }
           >
-            <Image
-              src="/quizzer.svg"
-              alt="Quizzer"
-              width={120}
-              height={32}
-              priority
-              style={{ height: "auto", width: "auto", maxHeight: 32 }}
-            />
+          <Image
+            src="/quizzer.svg"
+            alt="Quizzer"
+            width={120}
+            height={32}
+            priority
+            className={styles.brandImage}
+          />
           </DrawerHeaderTitle>
         </DrawerHeader>
         <DrawerBody>
@@ -198,7 +198,7 @@ export function NavBar() {
                   className={styles.mobileSignOutBtn}
                   onClick={() => { setIsMobileMenuOpen(false); signOut({ callbackUrl: "/" }); }}
                 >
-                  <SignOut24Regular style={{ fontSize: 18 }} /> Sign Out
+                  <SignOut24Regular className={styles.iconSmall} /> Sign Out
                 </button>
               </>
             ) : (
@@ -207,7 +207,7 @@ export function NavBar() {
                 className={styles.mobileSignInBtn}
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                <Person24Regular style={{ fontSize: 18 }} /> Sign In
+                <Person24Regular className={styles.iconSmall} /> Sign In
               </Link>
             )}
           </div>

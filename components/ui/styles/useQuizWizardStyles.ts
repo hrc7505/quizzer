@@ -38,9 +38,12 @@ export const useQuizWizardStyles = makeStyles({
     display: "flex",
     flexDirection: "column",
     gap: "12px",
+    alignItems: "flex-start",
     "@media (min-width: 640px)": {
       flexDirection: "row",
       gap: "16px",
+      alignItems: "center",
+      justifyContent: "space-between",
     },
   },
   optionsGrid: {
@@ -55,6 +58,10 @@ export const useQuizWizardStyles = makeStyles({
     cursor: "pointer",
     transition: "all 0.15s ease",
     ...shorthands.border("2px", "solid", "#e2e8f0"),
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    textAlign: "center",
     "@media (max-width: 480px)": {
       padding: "12px",
     },
@@ -79,6 +86,12 @@ export const useQuizWizardStyles = makeStyles({
     backgroundColor: "#eff6ff",
     borderRadius: "8px",
     borderLeft: "4px solid #3b82f6",
+  },
+  explanationHeaderRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    marginBottom: "6px",
   },
   actionsRow: {
     marginTop: "24px",
@@ -219,5 +232,58 @@ export const useQuizWizardStyles = makeStyles({
     display: "flex",
     alignItems: "center",
     gap: "8px",
+  },
+  loadingContainer: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    height: "300px",
+  },
+  iconPrimary: {
+    color: "#4f46e5",
+    fontSize: "32px",
+  },
+  iconGold: {
+    color: "#f59e0b",
+  },
+  iconSmall: {
+    fontSize: "14px",
+  },
+  badgeTimer: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    padding: "6px 12px",
+  },
+  questionText: {
+    flex: 1,
+    lineHeight: "1.4",
+  },
+  explanationIcon: {
+    color: "#2563eb",
+    fontSize: "18px",
+  },
+  explanationTitle: {
+    color: "#1e3a8a",
+  },
+  explanationText: {
+    color: "#1e40af",
+    lineHeight: "1.5",
+  },
+  iconMedium: {
+    fontSize: "16px",
+  },
+  rankSpan: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "28px",
+    height: "28px",
+    borderRadius: "50%",
+    fontWeight: 700,
+    fontSize: "13px",
+  },
+  scoreText: {
+    fontWeight: 600,
   },
 });

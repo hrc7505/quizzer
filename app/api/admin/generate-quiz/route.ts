@@ -3,49 +3,31 @@ import { ai, GEMINI_MODEL } from "@/lib/gemini";
 import { Type } from "@google/genai";
 import { prisma } from "@/lib/prisma";
 import { PDFParse } from "pdf-parse";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
-// Helper function to call Gemini for a specific prompt
-async function generateQuestionsBatch(prompt: string) {
-  const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
-    contents: prompt,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            text: { type: Type.STRING },
-            options: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-            },
-            correctAnswer: { type: Type.STRING },
-            hint: { type: Type.STRING },
-            description: { type: Type.STRING },
-          },
-          required: ["text", "options", "correctAnswer", "hint", "description"],
-        },
-      },
-    },
-  });
+const AI_TIMEOUT_MS = 25000;
 
-  const resultText = response.text;
-  if (!resultText) {
-    throw new Error("Failed to generate content");
+function extractJson(text: string): any {
+  const trimmed = text.trim();
+  const fenceMatch = trimmed.match(/^```(?:json)?\s*([\s\S]*?)```$/);
+  if (fenceMatch) {
+    return JSON.parse(fenceMatch[1].trim());
   }
-
-  return JSON.parse(resultText);
+  const start = trimmed.indexOf("[");
+  const end = trimmed.lastIndexOf("]");
+  if (start !== -1 && end !== -1 && end > start) {
+    return JSON.parse(trimmed.slice(start, end + 1));
+  }
+  return JSON.parse(trimmed);
 }
 
-// Helper to chunk text
 function chunkText(text: string, maxLength: number): string[] {
   const chunks: string[] = [];
   let currentChunk = "";
-  
+
   const sentences = text.split(/(?<=[.?!])\s+/);
-  
+
   for (const sentence of sentences) {
     if ((currentChunk.length + sentence.length) > maxLength && currentChunk.length > 0) {
       chunks.push(currentChunk.trim());
@@ -53,16 +35,75 @@ function chunkText(text: string, maxLength: number): string[] {
     }
     currentChunk += sentence + " ";
   }
-  
+
   if (currentChunk.trim().length > 0) {
     chunks.push(currentChunk.trim());
   }
-  
+
   return chunks;
+}
+
+function sanitizePdfText(text: string): string {
+  return text
+    .replace(/!\[.*?\]\(.*?\)/g, "")
+    .replace(/\[.*?\]\(.*?\.(png|jpg|jpeg|gif|bmp|webp|svg).*?\)/gi, "")
+    .replace(/data:image\/[a-zA-Z]+;base64,[a-zA-Z0-9+/=\s]+/gi, "")
+    .replace(/\[image.*?\]/gi, "")
+    .replace(/\[img.*?\]/gi, "")
+    .replace(/\b(image|img|figure|photo|picture)\.(png|jpg|jpeg|gif|bmp|webp|svg)\b/gi, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+async function generateQuestionsBatch(prompt: string): Promise<any[]> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+  
+  try {
+    const response = await ai.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              text: { type: Type.STRING },
+              options: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+              },
+              correctAnswer: { type: Type.STRING },
+              hint: { type: Type.STRING },
+              description: { type: Type.STRING },
+            },
+            required: ["text", "options", "correctAnswer", "hint", "description"],
+          },
+        },
+        abortSignal: controller.signal,
+      },
+    });
+
+    const resultText = response.text;
+    if (!resultText) {
+      throw new Error("Failed to generate content");
+    }
+
+    return extractJson(resultText);
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 export async function POST(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user || (session.user as any).role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const formData = await req.formData();
     const mode = formData.get("mode") as string;
     const existingTopicId = formData.get("existingTopicId") as string | null;
@@ -88,7 +129,6 @@ export async function POST(req: Request) {
       existingQuizzesCount = topic.quizzes.length;
       
       if (topic.questions.length > 0) {
-        // Limit context to the last 50 questions to avoid huge token usage on very large topics
         const recentQuestions = topic.questions.slice(-50);
         existingQuestionsText = `\n\nCRITICAL: Do NOT generate questions that are similar to these existing ones:\n` + 
           recentQuestions.map((q: any) => `- ${q.text}`).join("\n");
@@ -120,13 +160,11 @@ Provide a hint and a detailed description/explanation for the answer.${existingQ
         const buffer = Buffer.from(await file.arrayBuffer());
         const parser = new PDFParse({ data: buffer });
         const data = await parser.getText();
-        fullText = data.text;
+        fullText = sanitizePdfText(data.text);
       }
 
-      // Chunk the text to avoid token limits (e.g. 15000 chars per chunk)
       const textChunks = chunkText(fullText, 15000);
       
-      // Process chunks sequentially to avoid rate limiting
       for (let i = 0; i < textChunks.length; i++) {
         const chunk = textChunks[i];
         const prompt = `You are an expert quiz parser and generator.
@@ -147,7 +185,6 @@ ${chunk}`;
           allGeneratedQuestions = [...allGeneratedQuestions, ...batchQuestions];
         } catch (err) {
           console.warn(`Failed to process chunk ${i + 1}/${textChunks.length}`, err);
-          // Continue with other chunks even if one fails
         }
       }
     } else {
@@ -160,18 +197,11 @@ ${chunk}`;
       return NextResponse.json({ error: "No questions could be generated from the provided content" }, { status: 400 });
     }
 
-    // Determine which topic ID to use as the FK anchor for Question.topicId.
-    // • If a specific subtopic was provided (existingTopicId), questions belong to that topic.
-    // • Otherwise, find-or-create a single hidden sentinel topic so we never create a fresh
-    //   named topic entry that would pollute the admin taxonomy listing.
     let questionTopicId: string;
 
     if (topic) {
-      // existingTopicId was provided — use it both for quiz linking and question FK
       questionTopicId = topic.id;
     } else {
-      // Standalone generation: reuse (or create once) a hidden sentinel topic.
-      // It has no exam link and no parent, so it won't appear in public taxonomy.
       let sentinel = await prisma.topic.findFirst({
         where: { title: "__internal__" }
       });
@@ -186,41 +216,41 @@ ${chunk}`;
 
     const chunkSize = 30;
     const numQuizzes = Math.ceil(N / chunkSize);
-
-    // If existing, continue quiz indices from the last one
     let currentQuizIndex = existingQuizzesCount > 0 ? existingQuizzesCount + 1 : 1;
-    
-    // We might also have partially filled quizzes (e.g. part 1 has 15 questions). 
-    // To keep it simple, we just create new "Parts" starting from existingQuizzesCount + 1
-    
+
     for (let i = 0; i < N; i += chunkSize) {
       const chunk = allGeneratedQuestions.slice(i, i + chunkSize);
 
-      // Use a transaction so the quiz record is only persisted when questions are also saved.
-      // If question insertion fails, the quiz row is rolled back — no empty quizzes left behind.
-      await prisma.$transaction(async (tx: any) => {
-        const quiz = await tx.quiz.create({
-          data: {
-            // Only connect to subtopic when one was explicitly provided
-            ...(existingTopicId ? { topics: { connect: { id: existingTopicId } } } : {}),
-            title: (existingQuizzesCount > 0 || numQuizzes > 1) ? `${topicTitle} - Part ${currentQuizIndex}` : topicTitle,
-            difficulty,
-            quizOrder: currentQuizIndex,
-          }
-        });
+      try {
+        await prisma.$transaction(async (tx: any) => {
+          const quiz = await tx.quiz.create({
+            data: {
+              ...(existingTopicId ? { topics: { connect: { id: existingTopicId } } } : {}),
+              title: (existingQuizzesCount > 0 || numQuizzes > 1) ? `${topicTitle} - Part ${currentQuizIndex}` : topicTitle,
+              difficulty,
+              quizOrder: currentQuizIndex,
+            }
+          });
 
-        await tx.question.createMany({
-          data: chunk.map((q: any) => ({
-            topicId: questionTopicId,
-            quizId: quiz.id,
-            text: q.text,
-            options: q.options,
-            correctAnswer: q.correctAnswer,
-            hint: q.hint,
-            description: q.description,
-          })),
+          await tx.question.createMany({
+            data: chunk.map((q: any) => ({
+              topicId: questionTopicId,
+              quizId: quiz.id,
+              text: q.text,
+              options: q.options,
+              correctAnswer: q.correctAnswer,
+              hint: q.hint,
+              description: q.description,
+            })),
+          });
         });
-      });
+      } catch (txErr) {
+        console.error(`Transaction failed for chunk ${currentQuizIndex}:`, txErr);
+        return NextResponse.json({ 
+          error: "Failed to persist quiz data", 
+          detail: txErr instanceof Error ? txErr.message : "Unknown error" 
+        }, { status: 500 });
+      }
 
       currentQuizIndex++;
     }
@@ -233,6 +263,7 @@ ${chunk}`;
     });
   } catch (error) {
     console.error("Quiz generation error:", error);
-    return NextResponse.json({ error: "Failed to generate quiz" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Failed to generate quiz";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

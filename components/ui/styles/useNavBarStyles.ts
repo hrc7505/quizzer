@@ -36,6 +36,9 @@ export const useNavBarStyles = makeStyles({
   brandLink: {
     textDecoration: "none",
     color: "inherit",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   /** Desktop nav links: hidden on mobile, shown on md+ */
@@ -188,5 +191,13 @@ export const useNavBarStyles = makeStyles({
   adminDrawerFooter: {
     padding: "12px 16px",
     borderTop: "1px solid #e0e0e0",
+  },
+  brandImage: {
+    height: "32px",
+    width: "120px",
+    objectFit: "contain",
+  },
+  iconSmall: {
+    fontSize: "18px",
   },
 });

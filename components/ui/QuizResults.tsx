@@ -210,7 +210,7 @@ export function QuizResults({ attempt }: QuizResultsProps) {
             <Text size={500} weight="semibold">{attempt.quiz.title}</Text>
             
             <div className={styles.scoreNumber}>
-              <Text size={1000} weight="bold" style={{ color: progressColor }}>
+              <Text size={1000} weight="bold" className={styles.scoreValue} style={{ color: progressColor }}>
                 {Math.round(attempt.scorePercentage)}%
               </Text>
             </div>
@@ -222,11 +222,11 @@ export function QuizResults({ attempt }: QuizResultsProps) {
             <div className={styles.statsRow}>
               <div className={styles.statCol}>
                 <Text size={300}>Correct</Text><br/>
-                <Text size={600} weight="bold" style={{ color: "green" }}>{attempt.correctCount}</Text>
+                <Text size={600} weight="bold" className={styles.statCorrect}>{attempt.correctCount}</Text>
               </div>
               <div className={styles.statCol}>
                 <Text size={300}>Incorrect</Text><br/>
-                <Text size={600} weight="bold" style={{ color: "red" }}>{attempt.wrongCount}</Text>
+                <Text size={600} weight="bold" className={styles.statIncorrect}>{attempt.wrongCount}</Text>
               </div>
               <div className={styles.statCol}>
                 <Text size={300}>Time Taken</Text><br/>
@@ -244,11 +244,11 @@ export function QuizResults({ attempt }: QuizResultsProps) {
           </div>
 
           {loadingLeaderboard ? (
-            <div style={{ display: "flex", justifyContent: "center", padding: "16px" }}>
+            <div className={styles.loadingContainer}>
               <Spinner label="Loading leaderboard..." size="tiny" />
             </div>
           ) : leaderboard.length === 0 ? (
-            <Text size={300} style={{ color: "#94a3b8", fontStyle: "italic", display: "block", textAlign: "center", padding: "16px 0" }}>
+            <Text size={300} className={styles.emptyLeaderboardText}>
               No rankings available yet.
             </Text>
           ) : (
@@ -324,7 +324,7 @@ export function QuizResults({ attempt }: QuizResultsProps) {
                           <Badge color={isCorrect ? "success" : "danger"} shape="rounded">
                             {index + 1}
                           </Badge>
-                          <Text weight={isCorrect ? "regular" : "semibold"} style={{ color: isCorrect ? "inherit" : "#d13438" }}>
+                          <Text weight={isCorrect ? "regular" : "semibold"} className={isCorrect ? styles.questionTextAccordion : styles.questionTextAccordionWrong}>
                             {question.text}
                           </Text>
                         </div>
@@ -364,7 +364,7 @@ export function QuizResults({ attempt }: QuizResultsProps) {
                             </Button>
                             {elaborations[question.id]?.data && (
                               <Link href={`/deep-dives/${question.id}`} className={styles.link}>
-                                <Button appearance="subtle" size="small" style={{ color: "#667eea" }}>Open Full Page →</Button>
+                                <Button appearance="subtle" size="small" className={styles.deepDiveButton}>Open Full Page →</Button>
                               </Link>
                             )}
                           </div>
@@ -416,7 +416,7 @@ export function QuizResults({ attempt }: QuizResultsProps) {
                 </MessageBar>
               )}
               {elaborations[activeElaborationId]?.data && (
-                <div className="markdown-body" style={{ overflowX: "auto" }}>
+                <div className={`markdown-body ${styles.markdownContainer}`}>
                   <ReactMarkdown>{elaborations[activeElaborationId].data as string}</ReactMarkdown>
                 </div>
               )}

@@ -23,7 +23,7 @@ import { useRouter } from "next/navigation";
 interface TopicRef {
   id: string;
   title: string;
-  parentTopics: { id: string }[];
+  parentTopics?: { id: string }[];
 }
 
 interface Quiz {
@@ -221,7 +221,7 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
 
   const quizToLink = quizzes.find(q => q.id === linkQuizId);
   const availableSubtopics = topics.filter(t => 
-    t.parentTopics.length > 0 &&
+    (t.parentTopics?.length ?? 0) > 0 &&
     (!quizToLink || !quizToLink.topics.some(lt => lt.id === t.id))
   );
 

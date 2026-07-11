@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { signIn, signOut, useSession } from "next-auth/react";
 import { Button, Input, Field, Spinner, MessageBar, MessageBarBody, MessageBarTitle } from "@fluentui/react-components";
-import { useRouter } from "next/navigation";
 
 export function SignInForm() {
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -11,8 +10,8 @@ export function SignInForm() {
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  const router = useRouter();
+
+  const { data: session } = useSession();
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +49,12 @@ export function SignInForm() {
     setError(null);
     
     try {
+      // If a non-admin user is currently logged in, sign them out first
+      // so their session doesn't conflict with the admin credentials login
+      if (session && (session.user as any)?.role !== "ADMIN") {
+        await signOut({ redirect: false });
+      }
+
       const result = await signIn("credentials", {
         phoneNumber,
         otp,
@@ -59,7 +64,8 @@ export function SignInForm() {
       if (result?.error) {
         setError("Invalid OTP. Please try again.");
       } else {
-        router.push("/admin");
+        // Use hard navigation to avoid the Router-not-initialized error
+        window.location.href = "/admin";
       }
     } catch (err) {
       setError("An unexpected error occurred");

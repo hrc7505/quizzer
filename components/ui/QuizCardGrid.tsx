@@ -105,8 +105,8 @@ export function QuizCardGrid({ quizzes, subtopicTitle, basePath }: QuizCardGridP
       {paginated.length > 0 ? (
         <div style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-          gap: "20px"
+          gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+          gap: "16px"
         }}>
           {paginated.map(quiz => (
             <Card key={quiz.id} style={{

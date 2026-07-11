@@ -25,18 +25,7 @@ export async function GET(req: Request) {
     const topics = await prisma.topic.findMany({
       where,
       include: {
-        parentTopics: { select: { id: true, title: true } },
         exams: { select: { id: true, title: true } },
-        subtopics: {
-          include: {
-            quizzes: {
-              include: { _count: { select: { questions: true } } }
-            },
-            _count: {
-              select: { quizzes: true, questions: true }
-            }
-          }
-        },
         quizzes: {
           include: { _count: { select: { questions: true } } }
         },
@@ -62,10 +51,6 @@ export async function POST(req: Request) {
         title, 
         description, 
         exams: examId ? { connect: { id: examId } } : undefined,
-        parentTopics: parentId ? { connect: { id: parentId } } : undefined,
-        subtopics: subtopicIds && Array.isArray(subtopicIds) && subtopicIds.length > 0 ? {
-          connect: subtopicIds.map((sid: string) => ({ id: sid }))
-        } : undefined
       }
     });
     return NextResponse.json(topic);

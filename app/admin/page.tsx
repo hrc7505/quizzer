@@ -14,7 +14,7 @@ export default async function AdminPage() {
   });
   
   const avgScore = attempts.length > 0 
-    ? attempts.reduce((acc, curr) => acc + curr.scorePercentage, 0) / attempts.length 
+    ? attempts.reduce((acc: number, curr: { scorePercentage: number }) => acc + curr.scorePercentage, 0) / attempts.length 
     : 0;
 
   return (

@@ -6,7 +6,7 @@ import { BookOpen24Regular } from "@/components/ui/ServerIcons";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Exams Directory · QuizGen",
+  title: "Exams Directory · Quizzer",
   description: "Select an exam or standalone topic to begin practicing."
 };
 
@@ -21,9 +21,9 @@ export default async function ExamsPage() {
       orderBy: { createdAt: "desc" }
     }),
     prisma.topic.findMany({
-      where: { exams: { none: {} }, parentTopics: { none: {} } },
+      where: { exams: { none: {} } },
       include: {
-        _count: { select: { subtopics: true, quizzes: true } }
+        _count: { select: { quizzes: true } }
       },
       orderBy: { createdAt: "desc" }
     })
@@ -42,13 +42,13 @@ export default async function ExamsPage() {
     title: t.title,
     description: t.description,
     href: `/topics/${t.id}`,
-    meta: `${t._count.subtopics} Subtopics · ${t._count.quizzes} Quizzes`
+    meta: `${t._count.quizzes} Quizzes`
   }));
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#f9f9f9' }}>
       <NavBar />
-      <main style={{ padding: '40px 24px', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
+      <main style={{ padding: '24px 16px', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
           <div style={{
             width: "44px", height: "44px", borderRadius: "10px",

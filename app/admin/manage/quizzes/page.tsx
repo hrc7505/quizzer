@@ -17,14 +17,14 @@ export default async function ManageQuizzesPage() {
     prisma.quiz.findMany({
       include: {
         topics: {
-          select: { id: true, title: true, parentTopics: { select: { id: true } } }
+          select: { id: true, title: true }
         },
         _count: { select: { questions: true, attempts: true } }
       },
       orderBy: { quizOrder: "asc" }
     }),
     prisma.topic.findMany({
-      select: { id: true, title: true, parentTopics: { select: { id: true } } },
+      select: { id: true, title: true },
       orderBy: { title: "asc" }
     })
   ]);

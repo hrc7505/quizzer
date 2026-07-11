@@ -198,7 +198,7 @@ ${chunk}`;
 
       // Use a transaction so the quiz record is only persisted when questions are also saved.
       // If question insertion fails, the quiz row is rolled back — no empty quizzes left behind.
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: any) => {
         const quiz = await tx.quiz.create({
           data: {
             // Only connect to subtopic when one was explicitly provided

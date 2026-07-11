@@ -61,8 +61,8 @@ export function DirectoryCardList({
       {filtered.length > 0 ? (
         <div style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-          gap: "20px"
+          gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+          gap: "16px"
         }}>
           {filtered.map(item => (
             <Link key={item.id} href={item.href} style={{ textDecoration: "none" }}>

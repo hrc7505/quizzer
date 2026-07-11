@@ -75,7 +75,7 @@ export function NavBar() {
               width={120}
               height={32}
               priority
-              style={{ height: 32, width: 120, objectFit: "contain" }}
+              className={styles.brandImage}
             />
           </Link>
         </div>
@@ -162,7 +162,7 @@ export function NavBar() {
             width={120}
             height={32}
             priority
-            style={{ height: 32, width: 120, objectFit: "contain" }}
+            className={styles.brandImage}
           />
           </DrawerHeaderTitle>
         </DrawerHeader>
@@ -198,7 +198,7 @@ export function NavBar() {
                   className={styles.mobileSignOutBtn}
                   onClick={() => { setIsMobileMenuOpen(false); signOut({ callbackUrl: "/" }); }}
                 >
-                  <SignOut24Regular style={{ fontSize: 18 }} /> Sign Out
+                  <SignOut24Regular className={styles.iconSmall} /> Sign Out
                 </button>
               </>
             ) : (
@@ -207,7 +207,7 @@ export function NavBar() {
                 className={styles.mobileSignInBtn}
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                <Person24Regular style={{ fontSize: 18 }} /> Sign In
+                <Person24Regular className={styles.iconSmall} /> Sign In
               </Link>
             )}
           </div>

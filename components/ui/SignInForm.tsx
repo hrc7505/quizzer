@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { Button, Input, Field, Spinner, MessageBar, MessageBarBody, MessageBarTitle } from "@fluentui/react-components";
+import { useSignInFormStyles } from "./styles/useSignInFormStyles";
 
 export function SignInForm() {
+  const styles = useSignInFormStyles();
   const [phoneNumber, setPhoneNumber] = useState("");
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState<"phone" | "otp">("phone");
@@ -34,7 +36,7 @@ export function SignInForm() {
       } else {
         setError(data.error || "Failed to send OTP");
       }
-    } catch (err) {
+    } catch {
       setError("An unexpected error occurred");
     } finally {
       setLoading(false);
@@ -67,7 +69,7 @@ export function SignInForm() {
         // Use hard navigation to avoid the Router-not-initialized error
         window.location.href = "/admin";
       }
-    } catch (err) {
+    } catch {
       setError("An unexpected error occurred");
     } finally {
       setLoading(false);
@@ -75,7 +77,7 @@ export function SignInForm() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
+    <div className={styles.container}>
       {error && (
         <MessageBar intent="error">
           <MessageBarBody>
@@ -86,7 +88,7 @@ export function SignInForm() {
       )}
 
       {step === "phone" ? (
-        <form onSubmit={handleSendOtp} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <form onSubmit={handleSendOtp} className={styles.form}>
           <Field label="Phone Number" hint="Format: +1234567890">
             <Input 
               type="tel" 
@@ -97,12 +99,12 @@ export function SignInForm() {
               required
             />
           </Field>
-          <Button appearance="primary" type="submit" disabled={loading} style={{ width: "100%" }}>
+          <Button appearance="primary" type="submit" disabled={loading} className={styles.submitButton}>
             {loading ? <Spinner size="tiny" /> : "Send OTP"}
           </Button>
         </form>
       ) : (
-        <form onSubmit={handleVerifyOtp} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <form onSubmit={handleVerifyOtp} className={styles.form}>
           <Field label="One-Time Password (OTP)" hint="Check your console for the mock OTP!">
             <Input 
               type="text" 
@@ -113,10 +115,10 @@ export function SignInForm() {
               required
             />
           </Field>
-          <Button appearance="primary" type="submit" disabled={loading} style={{ width: "100%" }}>
+          <Button appearance="primary" type="submit" disabled={loading} className={styles.submitButton}>
             {loading ? <Spinner size="tiny" /> : "Verify & Login"}
           </Button>
-          <Button appearance="subtle" onClick={() => setStep("phone")} disabled={loading} style={{ width: "100%" }}>
+          <Button appearance="subtle" onClick={() => setStep("phone")} disabled={loading} className={styles.submitButton}>
             Back
           </Button>
         </form>

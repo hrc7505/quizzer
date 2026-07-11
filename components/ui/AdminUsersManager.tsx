@@ -223,7 +223,7 @@ export function AdminUsersManager({ initialUsers }: AdminUsersManagerProps) {
             <DialogTitle>Delete User</DialogTitle>
             <DialogContent>
               <div className={styles.dialogBodyRow}>
-                <Warning48Regular style={{ color: "#d13438" }} />
+                <Warning48Regular className={styles.warningIcon} />
                 <Text>
                   Are you sure you want to delete{" "}
                   <strong>{userToDelete?.name || userToDelete?.email}</strong>?{" "}

@@ -192,4 +192,12 @@ export const useNavBarStyles = makeStyles({
     padding: "12px 16px",
     borderTop: "1px solid #e0e0e0",
   },
+  brandImage: {
+    height: "32px",
+    width: "120px",
+    objectFit: "contain",
+  },
+  iconSmall: {
+    fontSize: "18px",
+  },
 });

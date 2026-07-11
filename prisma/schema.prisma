@@ -6,23 +6,20 @@ datasource db {
   provider = "postgresql"
 }
 
-// NextAuth Models
-
 model Account {
   id                String  @id @default(cuid())
   userId            String
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -36,16 +33,16 @@ model Session {
 }
 
 model User {
-  id            String    @id @default(cuid())
+  id            String        @id @default(cuid())
   name          String?
-  email         String?   @unique
+  email         String?       @unique
   emailVerified DateTime?
   image         String?
-  phoneNumber   String?   @unique
-  role          String    @default("USER") // "USER" or "ADMIN"
+  phoneNumber   String?       @unique
+  role          String        @default("USER")
   accounts      Account[]
-  sessions      Session[]
   attempts      QuizAttempt[]
+  sessions      Session[]
 }
 
 model VerificationToken {
@@ -56,8 +53,6 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-// App Models
-
 model Exam {
   id          String   @id @default(uuid())
   title       String
@@ -67,63 +62,61 @@ model Exam {
 }
 
 model Topic {
-  id           String     @id @default(uuid())
-  title        String
-  description  String?
-  createdAt    DateTime   @default(now())
-  
-  exams        Exam[]     @relation("ExamTopics")
-  parentTopics Topic[]    @relation("TopicHierarchy")
-  subtopics    Topic[]    @relation("TopicHierarchy")
-
-  quizzes      Quiz[]     @relation("TopicQuizzes")
-  questions    Question[]
+  id          String     @id @default(uuid())
+  title       String
+  createdAt   DateTime   @default(now())
+  description String?
+  questions   Question[]
+  exams       Exam[]     @relation("ExamTopics")
+  Topic_A     Topic[]    @relation("TopicHierarchy")
+  Topic_B     Topic[]    @relation("TopicHierarchy")
+  quizzes     Quiz[]     @relation("TopicQuizzes")
 }
 
 model Quiz {
-  id          String        @id @default(uuid())
-  title       String
-  difficulty  String        @default("Medium") // "Easy", "Medium", "Hard"
-  quizOrder   Int
-  topics      Topic[]       @relation("TopicQuizzes")
-  questions   Question[]
-  attempts    QuizAttempt[]
+  id         String        @id @default(uuid())
+  title      String
+  quizOrder  Int
+  difficulty String        @default("Medium")
+  questions  Question[]
+  attempts   QuizAttempt[]
+  topics     Topic[]       @relation("TopicQuizzes")
 }
 
 model Question {
   id            String   @id @default(uuid())
   topicId       String
-  topic         Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
   quizId        String?
-  quiz          Quiz?    @relation(fields: [quizId], references: [id], onDelete: SetNull)
   text          String
   options       String[]
   correctAnswer String
   hint          String
   description   String
-  elaboration   String?  @db.Text
+  elaboration   String?
+  quiz          Quiz?    @relation(fields: [quizId], references: [id])
+  topic         Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
 }
 
 model QuizAttempt {
   id              String       @id @default(uuid())
   quizId          String
-  quiz            Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  userId          String?
-  user            User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
   scorePercentage Float        @default(0.0)
   correctCount    Int          @default(0)
   wrongCount      Int          @default(0)
   timeTakenSec    Int          @default(0)
-  completed       Boolean      @default(false)
   createdAt       DateTime     @default(now())
+  completed       Boolean      @default(false)
+  userId          String?
+  quiz            Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  user            User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
   answers         UserAnswer[]
 }
 
 model UserAnswer {
   id             String      @id @default(uuid())
   attemptId      String
-  attempt        QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
   questionId     String
   selectedAnswer String
   isCorrect      Boolean
+  attempt        QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
 }

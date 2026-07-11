@@ -86,7 +86,7 @@ export default async function HomePage() {
       <NavBar />
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white py-20 px-6 text-center relative overflow-hidden">
+      <section className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white py-12 md:py-20 px-4 md:px-6 text-center relative overflow-hidden">
         {/* Decorative background gradients */}
         <div className="absolute -top-1/2 -left-1/5 w-[600px] h-[600px] rounded-full bg-[radial-gradient(circle,rgba(99,102,241,0.15)_0%,transparent_70%)] pointer-events-none" />
         <div className="absolute -bottom-1/2 -right-1/5 w-[600px] h-[600px] rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.1)_0%,transparent_70%)] pointer-events-none" />
@@ -97,21 +97,21 @@ export default async function HomePage() {
             <span className="text-indigo-200 text-xs font-semibold">AI-Powered Study Assistant</span>
           </div>
 
-          <h1 className="text-5xl font-extrabold leading-tight mb-4 bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent tracking-tight">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight mb-4 bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent tracking-tight">
             Smart Study. AI-Powered Preparation.
           </h1>
           
-          <p className="text-lg text-slate-400 leading-relaxed mb-8">
+          <p className="text-base md:text-lg text-slate-400 leading-relaxed mb-8 px-2">
             Generate high-quality multiple-choice quizzes instantly from titles, text documents, or PDFs.
             Test your knowledge and leverage Gemini AI to deep-dive into complex concepts.
           </p>
 
-          <div className="flex gap-4 justify-center flex-wrap">
-            <Link href="/exams" className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 h-12 rounded-lg font-bold text-sm shadow-xs hover:bg-blue-700 transition duration-200 no-underline">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center flex-wrap">
+            <Link href="/exams" className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-6 h-12 rounded-lg font-bold text-sm shadow-xs hover:bg-blue-700 transition duration-200 no-underline">
               <BookOpen24Regular style={{ fontSize: "20px" }} />
               Browse Exams
             </Link>
-            <Link href="/deep-dives" className="inline-flex items-center gap-2 bg-white/5 text-white border border-white/30 px-6 h-12 rounded-lg font-bold text-sm shadow-xs hover:bg-white/10 hover:border-white/50 transition duration-200 no-underline">
+            <Link href="/deep-dives" className="inline-flex items-center justify-center gap-2 bg-white/5 text-white border border-white/30 px-6 h-12 rounded-lg font-bold text-sm shadow-xs hover:bg-white/10 hover:border-white/50 transition duration-200 no-underline">
               <Brain24Regular style={{ fontSize: "20px" }} />
               AI Deep Dives
             </Link>

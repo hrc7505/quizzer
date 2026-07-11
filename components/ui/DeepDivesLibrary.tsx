@@ -125,7 +125,7 @@ export function DeepDivesLibrary({ questions }: DeepDivesLibraryProps) {
 
           <div style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
             gap: "16px"
           }}>
             {qs.map(q => (

@@ -48,7 +48,7 @@ export default async function ExamsPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#f9f9f9' }}>
       <NavBar />
-      <main style={{ padding: '40px 24px', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
+      <main style={{ padding: '24px 16px', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
           <div style={{
             width: "44px", height: "44px", borderRadius: "10px",

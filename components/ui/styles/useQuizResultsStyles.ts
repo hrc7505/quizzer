@@ -8,6 +8,13 @@ export const useQuizResultsStyles = makeStyles({
     display: 'flex',
     flexDirection: 'column',
     ...shorthands.gap('24px'),
+    maxWidth: '900px',
+    margin: '0 auto',
+    width: '100%',
+    padding: '0 16px',
+    "@media (max-width: 480px)": {
+      ...shorthands.gap('16px'),
+    },
   },
   header: {
     display: 'flex',
@@ -44,9 +51,14 @@ export const useQuizResultsStyles = makeStyles({
     maxWidth: '400px',
   },
   statsRow: {
-    display: 'flex',
-    ...shorthands.gap('32px'),
-    marginTop: '16px',
+    display: "flex",
+    ...shorthands.gap("24px"),
+    marginTop: "16px",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    "@media (max-width: 480px)": {
+      ...shorthands.gap("16px"),
+    },
   },
   statCol: {
     textAlign: 'center',

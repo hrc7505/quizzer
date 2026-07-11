@@ -26,15 +26,22 @@ export const useQuizWizardStyles = makeStyles({
     justifyContent: "space-between",
   },
   questionCard: {
-    padding: "24px",
-    borderRadius: "12px",
+    padding: "16px",
+    ...shorthands.borderRadius("12px"),
     boxShadow: "0 4px 16px rgba(0,0,0,0.04)",
+    "@media (max-width: 480px)": {
+      padding: "12px",
+      ...shorthands.borderRadius("8px"),
+    },
   },
   questionTextRow: {
     display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: "16px",
+    flexDirection: "column",
+    gap: "12px",
+    "@media (min-width: 640px)": {
+      flexDirection: "row",
+      gap: "16px",
+    },
   },
   optionsGrid: {
     display: "flex",
@@ -43,11 +50,14 @@ export const useQuizWizardStyles = makeStyles({
     marginTop: "24px",
   },
   optionItem: {
-    padding: "16px",
-    borderRadius: "8px",
+    padding: "14px",
+    ...shorthands.borderRadius("8px"),
     cursor: "pointer",
     transition: "all 0.15s ease",
     ...shorthands.border("2px", "solid", "#e2e8f0"),
+    "@media (max-width: 480px)": {
+      padding: "12px",
+    },
   },
   optionDefault: {
     backgroundColor: "#f8fafc",
@@ -79,10 +89,14 @@ export const useQuizWizardStyles = makeStyles({
     minWidth: "140px",
   },
   startCard: {
-    padding: "32px",
-    borderRadius: "16px",
+    padding: "24px",
+    ...shorthands.borderRadius("16px"),
     boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
     textAlign: "center",
+    "@media (max-width: 480px)": {
+      padding: "16px",
+      ...shorthands.borderRadius("12px"),
+    },
   },
   startIconContainer: {
     display: "inline-flex",

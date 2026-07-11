@@ -55,7 +55,6 @@ next-env.d.ts
 # Prisma
 /prisma/generated/
 /prisma/migrations/
-prisma.config.ts
 
 # IDE
 .idea/

@@ -25,7 +25,46 @@ export const useQuizResultsStyles = makeStyles({
     display: 'flex',
     ...shorthands.gap('12px'),
     alignItems: 'center',
+    position: 'relative',
   },
+  shareWrap: {
+    position: 'relative',
+    display: 'inline-flex',
+    alignItems: 'center',
+  },
+  shareTrigger: {
+    whiteSpace: 'nowrap',
+  },
+  shareMenu: {
+    position: 'absolute',
+    right: 0,
+    top: 'calc(100% + 8px)',
+    zIndex: 10,
+    backgroundColor: '#fff',
+    border: '1px solid #e2e8f0',
+    borderRadius: '12px',
+    boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
+    padding: '8px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+    minWidth: '160px',
+    // Transparent bridge across the 8px gap so the pointer never leaves
+    // the wrapper when moving from the trigger to the menu.
+    '::before': {
+      content: '""',
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: '-8px',
+      height: '8px',
+    },
+  },
+  shareBtn: {
+    width: '100%',
+    justifyContent: 'flex-start',
+  },
+
   link: {
     textDecoration: 'none',
   },

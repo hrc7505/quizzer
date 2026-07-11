@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { 
   Card, Text, Button, ProgressBar, Badge, Spinner, 
   TeachingPopover, TeachingPopoverTrigger, TeachingPopoverSurface, 
@@ -11,6 +11,7 @@ import {
   createTableColumn,
 } from "@fluentui/react-components";
 import { useRouter } from "next/navigation";
+import { useSession, signIn } from "next-auth/react";
 import { 
   Play24Filled, ArrowClockwise24Regular, Sparkle24Regular, 
   Trophy24Regular, Timer24Regular, BookOpen24Regular
@@ -27,9 +28,15 @@ import { useQuizWizardStyles } from "./styles/useQuizWizardStyles";
 export function QuizWizard({ quiz }: { quiz: any }) {
   const styles = useQuizWizardStyles();
   const router = useRouter();
+  const { data: session, status } = useSession();
+  const saveControllerRef = useRef<AbortController | null>(null);
+  const lastSaveSequenceRef = useRef(0);
+  const pendingSavePromiseRef = useRef<Promise<void> | null>(null);
   
   const [loading, setLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [authWarning, setAuthWarning] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [activeAttempt, setActiveAttempt] = useState<any | null>(null);
   const [attemptId, setAttemptId] = useState<string>("");
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
@@ -48,6 +55,20 @@ export function QuizWizard({ quiz }: { quiz: any }) {
   // 1. Initial Load: Check for in-progress attempts and retrieve quiz leaderboard
   useEffect(() => {
     const initData = async () => {
+      if (status === "loading") return;
+      if (status === "unauthenticated") {
+        setLoading(false);
+        setAuthWarning("Sign in to save progress and start this quiz.");
+        // Still fetch leaderboard for unauthenticated users.
+        try {
+          const leaderboardData = await AttemptService.getLeaderboard(quiz.id);
+          setLeaderboard(leaderboardData);
+        } catch (err) {
+          console.error("Failed to load leaderboard:", err);
+        }
+        return;
+      }
+
       try {
         // Fetch active attempt (without forcing new)
         const res = await fetch("/api/attempt", {
@@ -75,7 +96,7 @@ export function QuizWizard({ quiz }: { quiz: any }) {
     };
 
     initData();
-  }, [quiz.id]);
+  }, [quiz.id, status]);
 
   // 2. Play Timer: Increments every second once play is active
   useEffect(() => {
@@ -90,6 +111,13 @@ export function QuizWizard({ quiz }: { quiz: any }) {
    * @param resumeAttemptId - If provided, skips the API call and uses this attempt directly.
    */
   const handleStart = async (forceNew: boolean, resumeAttemptId?: string) => {
+    if (status === "unauthenticated") {
+      setAuthWarning("Please sign in to start this quiz.");
+      signIn(undefined, { callbackUrl: window.location.href });
+      return;
+    }
+
+    setAuthWarning(null);
     setLoading(true);
     try {
       // If we already have the attempt data from the initial load, use it directly
@@ -154,6 +182,42 @@ export function QuizWizard({ quiz }: { quiz: any }) {
     setSelectedOption(option);
   };
 
+  const saveAnswerInBackground = async (answer: {
+    questionId: string;
+    selectedAnswer: string;
+    isCorrect: boolean;
+  }) => {
+    lastSaveSequenceRef.current += 1;
+    const currentSaveId = lastSaveSequenceRef.current;
+
+    if (saveControllerRef.current) {
+      saveControllerRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    saveControllerRef.current = controller;
+
+    const savePromise = AttemptService.saveAnswer(
+      attemptId,
+      answer.questionId,
+      answer.selectedAnswer,
+      answer.isCorrect,
+      timeTaken,
+      controller.signal
+    )
+      .then(() => undefined)
+      .catch((error) => {
+        if (error?.name === "AbortError") {
+          return;
+        }
+        console.error("Failed to save answer progress:", error);
+        setSaveError("Failed to save progress. Your latest answer may not be persisted.");
+      });
+
+    pendingSavePromiseRef.current = savePromise;
+    return savePromise;
+  };
+
   const handleNext = async () => {
     if (!selectedOption || !currentQuestion) return;
 
@@ -161,33 +225,23 @@ export function QuizWizard({ quiz }: { quiz: any }) {
     const currentAnswerObj = {
       questionId: currentQuestion.id,
       selectedAnswer: selectedOption,
-      isCorrect
+      isCorrect,
     };
-    
+
     const newAnswers = [...answers, currentAnswerObj];
     setAnswers(newAnswers);
 
-    // Save answer dynamically to the server database
-    try {
-      await AttemptService.saveAnswer(
-        attemptId, 
-        currentQuestion.id, 
-        selectedOption, 
-        isCorrect, 
-        timeTaken
-      );
-    } catch (error) {
-      console.error("Failed to save answer progress:", error);
-    }
+    const savePromise = saveAnswerInBackground(currentAnswerObj);
 
     if (currentIndex < questions.length - 1) {
-      setCurrentIndex(prev => prev + 1);
+      setCurrentIndex((prev) => prev + 1);
       setSelectedOption(null);
       setShowHint(false);
     } else {
-      // Finalize Quiz Attempt
+      // Finalize Quiz Attempt after the last answer is saved.
       setIsSubmitting(true);
       try {
+        await savePromise;
         const res = await AttemptService.completeAttempt(attemptId, timeTaken);
         if (res.success) {
           router.push(`/quiz/results/${res.attemptId}`);
@@ -286,7 +340,12 @@ export function QuizWizard({ quiz }: { quiz: any }) {
             Difficulty: <strong>{quiz.difficulty}</strong> • Total Questions: <strong>{questions.length}</strong>
           </Text>
 
-          <div className={styles.startButtonsRow}>
+          {authWarning && (
+          <div style={{ marginBottom: '16px', padding: '14px 16px', borderRadius: '12px', backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d' }}>
+            <Text size={300} weight="semibold">{authWarning}</Text>
+          </div>
+        )}
+        <div className={styles.startButtonsRow}>
             {activeAttempt ? (
               <>
                 <Button 

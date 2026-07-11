@@ -2,23 +2,14 @@ import { NextResponse } from "next/server";
 import { ai, GEMINI_MODEL } from "@/lib/gemini";
 import { Type } from "@google/genai";
 import { prisma } from "@/lib/prisma";
-import DOMMatrixShim from "@thednp/dommatrix";
-import { Path2D as Path2DShim } from "path2d";
-import ImageDataShim from "@canvas/image-data";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import PDFParser from "pdf2json";
+import fs from "fs";
+import path from "path";
+import os from "os";
 
-// Initialize polyfills BEFORE importing pdf-parse
-if (typeof globalThis !== "undefined") {
-  if (!globalThis.DOMMatrix) globalThis.DOMMatrix = DOMMatrixShim;
-  if (!globalThis.ImageData) globalThis.ImageData = ImageDataShim;
-  if (!globalThis.Path2D) globalThis.Path2D = Path2DShim as unknown as typeof Path2D;
-}
-
-// Now safe to import pdf-parse after polyfills are set
-import { PDFParse } from "pdf-parse";
-
-const AI_TIMEOUT_MS = 25000;
+const AI_TIMEOUT_MS = 240000;
 
 function extractJson(text: string): any {
   const trimmed = text.trim();
@@ -67,6 +58,37 @@ function sanitizePdfText(text: string): string {
     .trim();
 }
 
+async function parsePdfBuffer(buffer: Buffer): Promise<string> {
+  const tempFile = path.join(os.tmpdir(), `pdf-${Date.now()}-${Math.random().toString(36).slice(2)}.pdf`);
+  
+  try {
+    fs.writeFileSync(tempFile, buffer);
+
+    return new Promise((resolve, reject) => {
+      const pdfParser = new PDFParser(null, true);
+
+      pdfParser.on("pdfParser_dataError", (errData: any) => {
+        reject(new Error(`PDF parsing error: ${errData}`));
+      });
+
+      pdfParser.on("pdfParser_dataReady", () => {
+        try {
+          const text = pdfParser.getRawTextContent();
+          resolve(text || "");
+        } catch (err) {
+          reject(err);
+        }
+      });
+
+      pdfParser.loadPDF(tempFile);
+    });
+  } finally {
+    if (fs.existsSync(tempFile)) {
+      fs.unlinkSync(tempFile);
+    }
+  }
+}
+
 async function generateQuestionsBatch(prompt: string): Promise<any[]> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
@@ -104,6 +126,11 @@ async function generateQuestionsBatch(prompt: string): Promise<any[]> {
     }
 
     return extractJson(resultText);
+  } catch (err) {
+    if (controller.signal.aborted) {
+      throw new Error("AI content generation timed out. Try again with smaller input or a longer timeout.");
+    }
+    throw err;
   } finally {
     clearTimeout(timeoutId);
   }
@@ -170,9 +197,8 @@ Provide a hint and a detailed description/explanation for the answer.${existingQ
         if (!file) return NextResponse.json({ error: "Missing pdf file" }, { status: 400 });
 
         const buffer = Buffer.from(await file.arrayBuffer());
-        const parser = new PDFParse({ data: buffer });
-        const data = await parser.getText();
-        fullText = sanitizePdfText(data.text);
+        const text = await parsePdfBuffer(buffer);
+        fullText = sanitizePdfText(text);
       }
 
       const textChunks = chunkText(fullText, 15000);

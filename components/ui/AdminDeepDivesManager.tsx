@@ -96,6 +96,7 @@ export function AdminDeepDivesManager({ questions: initialQuestions }: AdminDeep
       "Delete Elaboration",
       `Are you sure you want to delete the saved Deep Dive for "${q.text.slice(0, 60)}…"? It will be regenerated from AI the next time it is requested.`,
       async () => {
+        setLoadingId(q.id);
         await fetch("/api/admin/elaborate", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
@@ -111,6 +112,7 @@ export function AdminDeepDivesManager({ questions: initialQuestions }: AdminDeep
       "Delete All Deep Dives",
       `Are you sure you want to permanently delete all ${questions.length} saved elaborations? They will be regenerated fresh on next request.`,
       async () => {
+        setLoadingId("bulk");
         await fetch("/api/admin/elaborate/all", { method: "DELETE" });
         setQuestions([]);
       }
@@ -178,9 +180,10 @@ export function AdminDeepDivesManager({ questions: initialQuestions }: AdminDeep
             <Button
               size="small"
               appearance="subtle"
-              icon={<Delete20Regular />}
+              icon={loadingId === item.id ? <Spinner size="tiny" /> : <Delete20Regular />}
               style={{ color: "#d13438" }}
               onClick={() => handleDelete(item)}
+              disabled={loadingId === item.id || loadingId === "bulk"}
             />
           </Tooltip>
         </div>
@@ -242,11 +245,12 @@ export function AdminDeepDivesManager({ questions: initialQuestions }: AdminDeep
             <Button
               size="small"
               appearance="outline"
-              icon={<Delete20Regular />}
+              icon={loadingId === "bulk" ? <Spinner size="tiny" /> : <Delete20Regular />}
               style={{ color: "#d13438", borderColor: "#d13438" }}
               onClick={handleBulkDelete}
+              disabled={loadingId === "bulk"}
             >
-              Delete All
+              {loadingId === "bulk" ? "Deleting..." : "Delete All"}
             </Button>
           )}
 

@@ -3,6 +3,9 @@ import { ai, GEMINI_MODEL } from "@/lib/gemini";
 import { Type } from "@google/genai";
 import { prisma } from "@/lib/prisma";
 import { PDFParse } from "pdf-parse";
+import DOMMatrixShim from "@thednp/dommatrix";
+import { Path2D as Path2DShim } from "path2d";
+import ImageDataShim from "@canvas/image-data";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 
@@ -53,6 +56,18 @@ function sanitizePdfText(text: string): string {
     .replace(/\b(image|img|figure|photo|picture)\.(png|jpg|jpeg|gif|bmp|webp|svg)\b/gi, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+async function ensurePdfParseRuntimePolyfills(): Promise<void> {
+  if (globalThis.DOMMatrix && globalThis.ImageData && globalThis.Path2D) return;
+
+  try {
+    if (!globalThis.DOMMatrix) globalThis.DOMMatrix = DOMMatrixShim;
+    if (!globalThis.ImageData) globalThis.ImageData = ImageDataShim;
+    if (!globalThis.Path2D) globalThis.Path2D = Path2DShim as unknown as typeof Path2D;
+  } catch (error) {
+    console.warn("Could not initialize JS DOM/window polyfills for pdf-parse. PDF text extraction may fail.", error);
+  }
 }
 
 async function generateQuestionsBatch(prompt: string): Promise<any[]> {
@@ -158,6 +173,7 @@ Provide a hint and a detailed description/explanation for the answer.${existingQ
         if (!file) return NextResponse.json({ error: "Missing pdf file" }, { status: 400 });
 
         const buffer = Buffer.from(await file.arrayBuffer());
+        await ensurePdfParseRuntimePolyfills();
         const parser = new PDFParse({ data: buffer });
         const data = await parser.getText();
         fullText = sanitizePdfText(data.text);

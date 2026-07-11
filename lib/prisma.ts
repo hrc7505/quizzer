@@ -2,8 +2,13 @@ import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 
+const normalizeDatabaseUrl = (url?: string) => {
+  if (!url) return url;
+  return url.replace(/sslmode=(prefer|require|verify-ca)(?=&|$)/gi, "sslmode=verify-full");
+};
+
 const prismaClientSingleton = () => {
-  const connectionString = process.env.DATABASE_URL;
+  const connectionString = normalizeDatabaseUrl(process.env.DATABASE_URL);
   const pool = new Pool({ connectionString });
   const adapter = new PrismaPg(pool);
   

@@ -177,6 +177,7 @@ export function AdminQuestionsManager({ questions: initial, quizzes }: AdminQues
       "Delete Question",
       `Permanently delete this question? "${q.text.slice(0, 60)}..." This cannot be undone.`,
       async () => {
+        setLoading(true);
         await fetch(`/api/admin/questions/${q.id}`, { method: "DELETE" });
         setQuestions(prev => prev.filter(item => item.id !== q.id));
       }

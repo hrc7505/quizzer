@@ -299,6 +299,7 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
       "Unlink Topic",
       `Unlink "${topicTitle}" from the quiz "${quizTitle}"? The quiz remains; it just won't be associated with this topic.`,
       async () => {
+        setLoading(true);
         const topic = topics.find(t => t.id === topicId);
         if (!topic) return;
         // Set quiz topics to empty for this topic relationship
@@ -313,6 +314,7 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
           })
         });
         await fetchQuizzes();
+        setLoading(false);
       }
     );
   };
@@ -322,9 +324,11 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
       "Delete Quiz",
       `Permanently delete "${quiz.title}"? This will also delete all ${quiz._count.questions} questions and ${quiz._count.attempts} attempt records. This cannot be undone.`,
       async () => {
+        setLoading(true);
         await fetch(`/api/admin/quizzes/${quiz.id}`, { method: "DELETE" });
         setQuizzes(prev => prev.filter(q => q.id !== quiz.id));
         if (selectedQuizId === quiz.id) setSelectedQuizId(null);
+        setLoading(false);
       }
     );
   };

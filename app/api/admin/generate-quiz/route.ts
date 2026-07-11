@@ -2,12 +2,21 @@ import { NextResponse } from "next/server";
 import { ai, GEMINI_MODEL } from "@/lib/gemini";
 import { Type } from "@google/genai";
 import { prisma } from "@/lib/prisma";
-import { PDFParse } from "pdf-parse";
 import DOMMatrixShim from "@thednp/dommatrix";
 import { Path2D as Path2DShim } from "path2d";
 import ImageDataShim from "@canvas/image-data";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+
+// Initialize polyfills BEFORE importing pdf-parse
+if (typeof globalThis !== "undefined") {
+  if (!globalThis.DOMMatrix) globalThis.DOMMatrix = DOMMatrixShim;
+  if (!globalThis.ImageData) globalThis.ImageData = ImageDataShim;
+  if (!globalThis.Path2D) globalThis.Path2D = Path2DShim as unknown as typeof Path2D;
+}
+
+// Now safe to import pdf-parse after polyfills are set
+import { PDFParse } from "pdf-parse";
 
 const AI_TIMEOUT_MS = 25000;
 
@@ -58,22 +67,10 @@ function sanitizePdfText(text: string): string {
     .trim();
 }
 
-async function ensurePdfParseRuntimePolyfills(): Promise<void> {
-  if (globalThis.DOMMatrix && globalThis.ImageData && globalThis.Path2D) return;
-
-  try {
-    if (!globalThis.DOMMatrix) globalThis.DOMMatrix = DOMMatrixShim;
-    if (!globalThis.ImageData) globalThis.ImageData = ImageDataShim;
-    if (!globalThis.Path2D) globalThis.Path2D = Path2DShim as unknown as typeof Path2D;
-  } catch (error) {
-    console.warn("Could not initialize JS DOM/window polyfills for pdf-parse. PDF text extraction may fail.", error);
-  }
-}
-
 async function generateQuestionsBatch(prompt: string): Promise<any[]> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
-  
+
   try {
     const response = await ai.models.generateContent({
       model: GEMINI_MODEL,
@@ -139,13 +136,13 @@ export async function POST(req: Request) {
         include: { quizzes: true, questions: { select: { text: true } } }
       });
       if (!topic) return NextResponse.json({ error: "Topic not found" }, { status: 404 });
-      
+
       topicTitle = topic.title;
       existingQuizzesCount = topic.quizzes.length;
-      
+
       if (topic.questions.length > 0) {
         const recentQuestions = topic.questions.slice(-50);
-        existingQuestionsText = `\n\nCRITICAL: Do NOT generate questions that are similar to these existing ones:\n` + 
+        existingQuestionsText = `\n\nCRITICAL: Do NOT generate questions that are similar to these existing ones:\n` +
           recentQuestions.map((q: any) => `- ${q.text}`).join("\n");
       }
     }
@@ -159,12 +156,12 @@ Provide up to 30 distinct questions covering different aspects of the topic.
 Each question must have exactly 4 options.
 One option must be the correct answer (matching the string exactly).
 Provide a hint and a detailed description/explanation for the answer.${existingQuestionsText}`;
-      
+
       allGeneratedQuestions = await generateQuestionsBatch(prompt);
-      
+
     } else if (mode === "text" || mode === "pdf") {
       let fullText = "";
-      
+
       if (mode === "text") {
         fullText = formData.get("topicText") as string;
         if (!fullText) return NextResponse.json({ error: "Missing topicText" }, { status: 400 });
@@ -173,14 +170,13 @@ Provide a hint and a detailed description/explanation for the answer.${existingQ
         if (!file) return NextResponse.json({ error: "Missing pdf file" }, { status: 400 });
 
         const buffer = Buffer.from(await file.arrayBuffer());
-        await ensurePdfParseRuntimePolyfills();
         const parser = new PDFParse({ data: buffer });
         const data = await parser.getText();
         fullText = sanitizePdfText(data.text);
       }
 
       const textChunks = chunkText(fullText, 15000);
-      
+
       for (let i = 0; i < textChunks.length; i++) {
         const chunk = textChunks[i];
         const prompt = `You are an expert quiz parser and generator.
@@ -195,7 +191,7 @@ Provide a hint and a detailed description/explanation for why the answer is corr
 
 Text content to analyze:
 ${chunk}`;
-        
+
         try {
           const batchQuestions = await generateQuestionsBatch(prompt);
           allGeneratedQuestions = [...allGeneratedQuestions, ...batchQuestions];
@@ -262,9 +258,9 @@ ${chunk}`;
         });
       } catch (txErr) {
         console.error(`Transaction failed for chunk ${currentQuizIndex}:`, txErr);
-        return NextResponse.json({ 
-          error: "Failed to persist quiz data", 
-          detail: txErr instanceof Error ? txErr.message : "Unknown error" 
+        return NextResponse.json({
+          error: "Failed to persist quiz data",
+          detail: txErr instanceof Error ? txErr.message : "Unknown error"
         }, { status: 500 });
       }
 

@@ -75,7 +75,7 @@ export function NavBar() {
               width={120}
               height={32}
               priority
-              style={{ height: "auto", width: "auto", maxHeight: 32 }}
+              style={{ height: 32, width: 120, objectFit: "contain" }}
             />
           </Link>
         </div>
@@ -156,14 +156,14 @@ export function NavBar() {
               />
             }
           >
-            <Image
-              src="/quizzer.svg"
-              alt="Quizzer"
-              width={120}
-              height={32}
-              priority
-              style={{ height: "auto", width: "auto", maxHeight: 32 }}
-            />
+          <Image
+            src="/quizzer.svg"
+            alt="Quizzer"
+            width={120}
+            height={32}
+            priority
+            style={{ height: 32, width: 120, objectFit: "contain" }}
+          />
           </DrawerHeaderTitle>
         </DrawerHeader>
         <DrawerBody>

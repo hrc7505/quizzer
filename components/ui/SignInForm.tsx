@@ -97,7 +97,7 @@ export function SignInForm() {
               required
             />
           </Field>
-          <Button appearance="primary" type="submit" disabled={loading}>
+          <Button appearance="primary" type="submit" disabled={loading} style={{ width: "100%" }}>
             {loading ? <Spinner size="tiny" /> : "Send OTP"}
           </Button>
         </form>
@@ -113,10 +113,10 @@ export function SignInForm() {
               required
             />
           </Field>
-          <Button appearance="primary" type="submit" disabled={loading}>
+          <Button appearance="primary" type="submit" disabled={loading} style={{ width: "100%" }}>
             {loading ? <Spinner size="tiny" /> : "Verify & Login"}
           </Button>
-          <Button appearance="subtle" onClick={() => setStep("phone")} disabled={loading}>
+          <Button appearance="subtle" onClick={() => setStep("phone")} disabled={loading} style={{ width: "100%" }}>
             Back
           </Button>
         </form>

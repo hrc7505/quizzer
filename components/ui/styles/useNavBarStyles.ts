@@ -36,6 +36,9 @@ export const useNavBarStyles = makeStyles({
   brandLink: {
     textDecoration: "none",
     color: "inherit",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   /** Desktop nav links: hidden on mobile, shown on md+ */

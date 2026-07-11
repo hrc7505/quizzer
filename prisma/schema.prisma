@@ -68,9 +68,9 @@ model Topic {
   description String?
   questions   Question[]
   exams       Exam[]     @relation("ExamTopics")
-  Topic_A     Topic[]    @relation("TopicHierarchy")
-  Topic_B     Topic[]    @relation("TopicHierarchy")
-  quizzes     Quiz[]     @relation("TopicQuizzes")
+  parentTopics Topic[]  @relation("TopicHierarchy")
+  subtopics    Topic[]  @relation("TopicHierarchy")
+  quizzes      Quiz[]   @relation("TopicQuizzes")
 }
 
 model Quiz {

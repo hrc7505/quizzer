@@ -26,6 +26,8 @@ export async function GET(req: Request) {
       where,
       include: {
         exams: { select: { id: true, title: true } },
+        parentTopics: { select: { id: true, title: true } },
+        subtopics: { select: { id: true, title: true } },
         quizzes: {
           include: { _count: { select: { questions: true } } }
         },
@@ -43,7 +45,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const { title, description, examId, parentId, subtopicIds } = await req.json();
+    const { title, description, examId, parentId } = await req.json();
     if (!title) return NextResponse.json({ error: "Title is required" }, { status: 400 });
 
     const topic = await prisma.topic.create({
@@ -51,6 +53,7 @@ export async function POST(req: Request) {
         title, 
         description, 
         exams: examId ? { connect: { id: examId } } : undefined,
+        parentTopics: parentId ? { connect: { id: parentId } } : undefined,
       }
     });
     return NextResponse.json(topic);

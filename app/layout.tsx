@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Literata } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { Providers } from "@/components/providers/Providers";
 
@@ -47,19 +48,17 @@ export default function RootLayout({
       <body className="antialiased">
         <Providers>{children}</Providers>
         {/* Service Worker Registration */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js').catch(function(err) {
-                    console.error('SW registration failed:', err);
-                  });
+        <Script id="service-worker-register" strategy="afterInteractive">
+          {`
+            if ('serviceWorker' in navigator) {
+              window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js').catch(function(err) {
+                  console.error('SW registration failed:', err);
                 });
-              }
-            `,
-          }}
-        />
+              });
+            }
+          `}
+        </Script>
       </body>
     </html>
   );

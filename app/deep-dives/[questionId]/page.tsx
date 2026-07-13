@@ -25,8 +25,8 @@ export default async function DeepDiveDetailPage({ params }: { params: Promise<{
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
-      <NavBar />
-      <main style={{ flex: 1, padding: '32px', maxWidth: '900px', margin: '0 auto', width: '100%' }}>
+      <NavBar maxWidth="900px" />
+      <main style={{ flex: 1, padding: '24px 16px', maxWidth: '900px', margin: '0 auto', width: '100%' }}>
         <DeepDiveDetail question={question} />
       </main>
     </div>

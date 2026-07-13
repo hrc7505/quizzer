@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { resolveQuizRoute } from "@/lib/quiz-routing";
 import { notFound, redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -32,17 +33,11 @@ export default async function DirectQuizPlayPage({ params }: DirectQuizPlayPageP
     return notFound();
   }
 
-  const subtopic = quiz.topics[0];
+  const canonicalPath = await resolveQuizRoute(quizId);
 
-  if (!subtopic) {
+  if (!canonicalPath) {
     return notFound();
   }
 
-  const exam = subtopic.exams[0];
-
-  if (exam) {
-    redirect(`/exams/${exam.id}/${subtopic.id}/quiz/${quiz.id}`);
-  } else {
-    redirect(`/topics/${subtopic.id}/quiz/${quiz.id}`);
-  }
+  redirect(canonicalPath);
 }

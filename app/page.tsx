@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { NavBar } from "@/components/ui/NavBar";
 import { prisma } from "@/lib/prisma";
 import {
@@ -7,6 +8,7 @@ import {
 import Link from "next/link";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import { resolveQuizRoute } from "@/lib/quiz-routing";
 
 export const dynamic = "force-dynamic";
 
@@ -81,9 +83,14 @@ export default async function HomePage() {
     lastCompletedAttempt = lcData;
   }
 
+  const inProgressRoutes = await Promise.all(
+    inProgressAttempts.map((attempt) => resolveQuizRoute(attempt.quizId))
+  );
+  const lastCompletedRoute = lastCompletedAttempt ? await resolveQuizRoute(lastCompletedAttempt.quizId) : null;
+
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 text-slate-800 font-sans">
-      <NavBar />
+    <div style={{ "--content-max": "1100px" } as CSSProperties} className="flex flex-col min-h-screen bg-slate-50 text-slate-800 font-sans">
+      <NavBar maxWidth="1100px" />
 
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white py-12 md:py-20 px-4 md:px-6 text-center relative overflow-hidden">
@@ -120,7 +127,7 @@ export default async function HomePage() {
       </section>
 
       {isStudent && (
-        <section className="max-w-[1100px] mx-auto mt-10 mb-5 w-full px-6 relative z-10">
+        <section className="max-w-[1100px] mx-auto mt-10 mb-5 w-full px-4 relative z-10">
           <div className="flex flex-col gap-6">
 
             {/* Dashboard Header */}
@@ -140,7 +147,7 @@ export default async function HomePage() {
                   <span className="text-xl">⏳</span> Continue Where You Left Off
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {inProgressAttempts.map((attempt) => {
+                  {inProgressAttempts.map((attempt, index) => {
                     const totalQuestions = attempt.quiz.questions.length;
                     const answeredCount = attempt.answers.length;
                     const progressPercent = totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0;
@@ -159,7 +166,7 @@ export default async function HomePage() {
                         <div className="flex justify-between items-center">
                           <span className="text-slate-400 text-xs">{progressPercent}% complete · Q{answeredCount + 1} next</span>
                           <Link
-                            href={`/quiz/${attempt.quizId}`}
+                            href={inProgressRoutes[index] ?? `/quiz/${attempt.quizId}`}
                             className="text-xs font-bold text-amber-700 flex items-center gap-1 hover:text-amber-900 transition no-underline"
                           >
                             Resume <ArrowRight16Regular style={{ fontSize: "12px" }} />
@@ -208,7 +215,7 @@ export default async function HomePage() {
                     <Link href={`/quiz/results/${lastCompletedAttempt.id}`} className="text-sm text-indigo-600 font-semibold hover:text-indigo-800 transition no-underline">
                       View Detailed Review
                     </Link>
-                    <Link href={`/quiz/${lastCompletedAttempt.quizId}`} className="text-sm text-emerald-600 font-semibold flex items-center gap-1 hover:text-emerald-800 transition no-underline">
+                    <Link href={lastCompletedRoute ?? `/quiz/${lastCompletedAttempt.quizId}`} className="text-sm text-emerald-600 font-semibold flex items-center gap-1 hover:text-emerald-800 transition no-underline">
                       Play Again <ArrowRight16Regular style={{ fontSize: "12px" }} />
                     </Link>
                   </div>
@@ -239,7 +246,7 @@ export default async function HomePage() {
       )}
 
       {/* Live Statistics */}
-      <section className={`max-w-[1100px] mx-auto mb-16 w-full px-6 relative z-10 ${isStudent ? "mt-6" : "-mt-10"}`}>
+      <section className={`max-w-[1100px] mx-auto mb-16 w-full px-4 relative z-10 ${isStudent ? "mt-6" : "-mt-10"}`}>
         <div className="bg-white rounded-2xl shadow-xs border border-slate-200 grid grid-cols-2 md:grid-cols-4 py-6 px-4 text-center gap-6">
           <div className="flex flex-col">
             <span className="block text-3xl font-extrabold text-indigo-600">{examsCount}</span>
@@ -261,7 +268,7 @@ export default async function HomePage() {
       </section>
 
       {/* Features Grid */}
-      <section className="max-w-[1100px] mx-auto mb-20 w-full px-6">
+      <section className="max-w-[1100px] mx-auto mb-20 w-full px-4">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-slate-900 mb-2">Key Features & Highlights</h2>
           <p className="text-slate-500 text-base">Everything you need to master topics and pass your exams.</p>

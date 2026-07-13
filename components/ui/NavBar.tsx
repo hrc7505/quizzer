@@ -28,7 +28,7 @@ import { useNavBarStyles } from "./styles/useNavBarStyles";
  * - On admin routes: shows the admin NavDrawer via the hamburger
  * - Role-aware: only shows profile/signout for USER role on public routes
  */
-export function NavBar() {
+export function NavBar({ maxWidth = "1200px" }: { maxWidth?: string }) {
   const styles = useNavBarStyles();
   const { data: session } = useSession();
   const pathname = usePathname();
@@ -53,6 +53,7 @@ export function NavBar() {
   return (
     <>
       <nav className={styles.nav}>
+        <div className={styles.navInner} style={{ maxWidth }}>
         {/* Left: hamburger (mobile) + brand */}
         <div className={styles.leftSection}>
           {/* Mobile hamburger */}
@@ -135,6 +136,7 @@ export function NavBar() {
               aria-label="Toggle admin navigation"
             />
           )}
+        </div>
         </div>
       </nav>
 

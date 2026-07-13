@@ -28,7 +28,7 @@ export default async function DeepDivesPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#f0f2f5' }}>
-      <NavBar />
+      <NavBar maxWidth="1100px" />
       <main style={{ flex: 1, overflowY: 'auto', padding: '24px 16px', maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
         <DeepDivesLibrary questions={questions} />
       </main>

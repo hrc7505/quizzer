@@ -20,11 +20,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
   // without a setState-in-effect.
   const isDark = useSyncExternalStore(
     (onChange) => {
+      if (typeof window === "undefined") return () => {};
       const matchMedia = window.matchMedia("(prefers-color-scheme: dark)");
       matchMedia.addEventListener("change", onChange);
       return () => matchMedia.removeEventListener("change", onChange);
     },
-    () => window.matchMedia("(prefers-color-scheme: dark)").matches,
+    () => {
+      if (typeof window === "undefined") return false;
+      return window.matchMedia("(prefers-color-scheme: dark)").matches;
+    },
     () => false
   );
 

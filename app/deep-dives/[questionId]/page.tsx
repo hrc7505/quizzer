@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { DeepDiveDetail } from "@/components/ui/DeepDiveDetail";
-import { NavBar } from "@/components/ui/NavBar";
+import { PageLayout } from "@/components/ui/PageLayout";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -24,11 +24,8 @@ export default async function DeepDiveDetailPage({ params }: { params: Promise<{
   if (!question) return notFound();
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
-      <NavBar maxWidth="900px" />
-      <main style={{ flex: 1, padding: '24px 16px', maxWidth: '900px', margin: '0 auto', width: '100%' }}>
-        <DeepDiveDetail question={question} />
-      </main>
-    </div>
+    <PageLayout variant="deep-dives-detail" navMaxWidth="900px" mainMaxWidth="900px">
+      <DeepDiveDetail question={question} />
+    </PageLayout>
   );
 }

@@ -39,7 +39,8 @@ export async function GET(req: Request) {
       orderBy: { createdAt: 'desc' }
     });
     return NextResponse.json(topics);
-  } catch {
+  } catch (error) {
+    console.error("Failed to fetch topics:", error);
     return NextResponse.json({ error: "Failed to fetch topics" }, { status: 500 });
   }
 }
@@ -58,7 +59,8 @@ export async function POST(req: Request) {
       }
     });
     return NextResponse.json(topic);
-  } catch {
+  } catch (error) {
+    console.error("Failed to create topic:", error);
     return NextResponse.json({ error: "Failed to create topic" }, { status: 500 });
   }
 }

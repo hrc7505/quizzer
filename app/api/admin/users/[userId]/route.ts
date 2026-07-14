@@ -1,15 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { authOptions, SessionUser } from "@/lib/auth";
 
-type AuthUser = {
-  id: string;
-  role: string;
-  name?: string | null;
-  email?: string | null;
-  image?: string | null;
-};
 
 /**
  * Handles DELETE requests to remove a user from the application.
@@ -21,14 +14,14 @@ export async function DELETE(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user || (session.user as unknown as AuthUser).role !== "ADMIN") {
+    if (!session?.user || (session.user as SessionUser).role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { userId } = await params;
 
     // Prevent an admin from deleting their own account
-    if (userId === (session.user as unknown as AuthUser).id) {
+    if (userId === (session.user as SessionUser).id) {
       return NextResponse.json({ error: "Cannot delete your own admin account" }, { status: 400 });
     }
 

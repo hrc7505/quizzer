@@ -1,4 +1,4 @@
-import { NavBar } from "@/components/ui/NavBar";
+import { PageLayout } from "@/components/ui/PageLayout";
 import { prisma } from "@/lib/prisma";
 import { QuizResults } from "@/components/ui/QuizResults";
 import { notFound } from "next/navigation";
@@ -32,8 +32,6 @@ export default async function ResultsPage({ params }: { params: Promise<{ attemp
     return notFound();
   }
 
-  // Fallback: If no questions are directly linked to the Quiz,
-  // load all questions connected to the quiz's parent topics.
   if (attempt.quiz.questions.length === 0) {
     const topicIds = attempt.quiz.topics.map(t => t.id);
     const fallbackQuestions = await prisma.question.findMany({
@@ -52,11 +50,8 @@ export default async function ResultsPage({ params }: { params: Promise<{ attemp
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#f9f9f9' }}>
-      <NavBar maxWidth="900px" />
-      <main style={{ padding: '24px 16px', maxWidth: '900px', margin: '0 auto', width: '100%' }}>
-        <QuizResults attempt={attempt} />
-      </main>
-    </div>
+    <PageLayout navMaxWidth="900px" mainMaxWidth="900px">
+      <QuizResults attempt={attempt} />
+    </PageLayout>
   );
 }

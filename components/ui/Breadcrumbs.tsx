@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Menu, MenuList, MenuPopover, MenuTrigger, Button, MenuItem } from "@fluentui/react-components";
 import { MoreHorizontalRegular, ChevronRight16Regular } from "@fluentui/react-icons";
 import Link from "next/link";
+import { useBreadcrumbsStyles } from "./styles/useBreadcrumbsStyles";
 
 interface BreadcrumbItem {
   label: string;
@@ -27,11 +28,11 @@ const MENU_BUTTON_ESTIMATE = 44; // approximate width of the ellipsis (ECB) butt
  * Uses Fluent UI's Menu/Button for the overflow control.
  */
 export function Breadcrumbs({ items }: BreadcrumbsProps) {
+  const styles = useBreadcrumbsStyles();
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Array<HTMLSpanElement | null>>([]);
   const widthsCache = useRef<number[]>([]);
-  // Number of middle items (indices 1..n-2) shown, counting from the start.
   const [middleVisible, setMiddleVisible] = useState(Math.max(0, items.length - 2));
 
   useLayoutEffect(() => {
@@ -41,7 +42,6 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
     const compute = () => {
       const available = container.clientWidth;
 
-      // Cache widths (hidden items report 0, so reuse last known good width).
       for (let i = 0; i < items.length; i++) {
         const el = itemRefs.current[i];
         if (el && el.offsetWidth > 0) {
@@ -59,7 +59,6 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
       const firstW = w[0] ?? 0;
       const lastW = w[n - 1] ?? 0;
 
-      // Pass 1: do all items fit naturally (no overflow menu needed)?
       let used = firstW + lastW + GAP;
       let allFit = true;
       for (let i = 1; i < n - 1; i++) {
@@ -74,11 +73,9 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
         return;
       }
 
-      // Pass 2: overflow needed -> reserve space for the ECB button + its gap,
-      // then fit as many middle items (from the start) as possible.
       used = firstW + lastW + GAP + (MENU_BUTTON_ESTIMATE + GAP);
       let count = 0;
-      for (let i = 1; i < n - 1; i++) {
+      for (let i = n - 2; i >= 1; i--) {
         const add = GAP + (w[i] ?? 0);
         if (used + add > available) {
           break;
@@ -96,9 +93,9 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
   }, [items.length]);
 
   const n = items.length;
-  const overflowed = items.slice(middleVisible + 1, n - 1); // hidden middle items
+  const overflowed = items.slice(1, n - 1 - middleVisible);
   const showEcb = overflowed.length > 0 && n > 2;
-  const renderMiddleCount = Math.min(middleVisible, Math.max(0, n - 2));
+  const renderMiddleStart = Math.max(1, n - 1 - middleVisible);
 
   const renderItem = (index: number, isLast: boolean) => {
     const item = items[index];
@@ -106,7 +103,7 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
     const content = isLast ? (
       <span style={{ fontWeight: 600, color: "#0f172a", whiteSpace: "nowrap" }}>{item.label}</span>
     ) : item.href ? (
-      <Link href={item.href} style={{ textDecoration: "none", color: "#0078d4", whiteSpace: "nowrap" }}>
+      <Link href={item.href} className={styles.link} style={{ whiteSpace: "nowrap" }}>
         {item.label}
       </Link>
     ) : (
@@ -119,26 +116,17 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
         ref={(el) => {
           itemRefs.current[index] = el;
         }}
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "6px",
-          whiteSpace: "nowrap",
-          flexShrink: 0,
-        }}
+        className={styles.item}
       >
         {content}
-        {!isLast && <ChevronRight16Regular style={{ color: "#cbd5e1", fontSize: "14px" }} />}
+        {!isLast && <ChevronRight16Regular className={styles.chevron} />}
       </span>
     );
   };
 
   return (
     <nav aria-label="Breadcrumb" style={{ marginBottom: "28px", overflow: "hidden" }}>
-      <div
-        ref={containerRef}
-        style={{ display: "flex", alignItems: "center", gap: `${GAP}px`, flexWrap: "nowrap", whiteSpace: "nowrap" }}
-      >
+      <div ref={containerRef} className={styles.container}>
         {n > 0 && renderItem(0, n === 1)}
         {showEcb && (
           <Menu>
@@ -148,7 +136,7 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
                 size="small"
                 icon={<MoreHorizontalRegular />}
                 aria-label="Show more breadcrumb items"
-                style={{ flexShrink: 0 }}
+                className={styles.overflowButton}
               />
             </MenuTrigger>
             <MenuPopover>
@@ -166,7 +154,7 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
             </MenuPopover>
           </Menu>
         )}
-        {Array.from({ length: renderMiddleCount }, (_, k) => renderItem(k + 1, false))}
+        {Array.from({ length: Math.max(0, n - 1 - renderMiddleStart) }, (_, k) => renderItem(renderMiddleStart + k, false))}
         {n > 1 && renderItem(n - 1, true)}
       </div>
     </nav>

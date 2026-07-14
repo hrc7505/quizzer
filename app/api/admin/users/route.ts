@@ -1,15 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { authOptions, SessionUser } from "@/lib/auth";
 
-type AuthUser = {
-  id: string;
-  role: string;
-  name?: string | null;
-  email?: string | null;
-  image?: string | null;
-};
 
 /**
  * Handles GET requests to retrieve all users.
@@ -18,7 +11,7 @@ type AuthUser = {
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user || (session.user as unknown as AuthUser).role !== "ADMIN") {
+    if (!session?.user || (session.user as SessionUser).role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

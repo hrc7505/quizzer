@@ -27,6 +27,10 @@ export function AdminDashboard({ stats }: { stats: Stats }) {
           <Text size={800} weight="bold" style={{ padding: '0 16px 16px' }}>{stats.subtopicsCount}</Text>
         </Card>
         <Card>
+          <CardHeader header={<Text weight="semibold">Quizzes</Text>} />
+          <Text size={800} weight="bold" style={{ padding: '0 16px 16px' }}>{stats.quizzesCount}</Text>
+        </Card>
+        <Card>
           <CardHeader header={<Text weight="semibold">Questions</Text>} />
           <Text size={800} weight="bold" style={{ padding: '0 16px 16px' }}>{stats.questionsCount}</Text>
         </Card>

@@ -1,15 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { authOptions, SessionUser } from "@/lib/auth";
 
-type AuthUser = {
-  id: string;
-  role: string;
-  name?: string | null;
-  email?: string | null;
-  image?: string | null;
-};
 
 /**
  * Handles POST requests to save or update an individual answer in an active attempt.
@@ -37,7 +30,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Quiz attempt not found" }, { status: 404 });
     }
 
-    if (attempt.userId !== (session.user as unknown as AuthUser).id) {
+    if (attempt.userId !== (session.user as SessionUser).id) {
       return NextResponse.json({ error: "Unauthorized access to attempt" }, { status: 403 });
     }
 

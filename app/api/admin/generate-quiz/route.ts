@@ -4,19 +4,12 @@ import { Type } from "@google/genai";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { authOptions, SessionUser } from "@/lib/auth";
 import PDFParser from "pdf2json";
 import fs from "fs";
 import path from "path";
 import os from "os";
 
-type AuthUser = {
-  id: string;
-  role: string;
-  name?: string | null;
-  email?: string | null;
-  image?: string | null;
-};
 
 type GeneratedQuestion = {
   text: string;
@@ -160,7 +153,7 @@ async function generateQuestionsBatch(prompt: string): Promise<GeneratedQuestion
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user || (session.user as unknown as AuthUser).role !== "ADMIN") {
+    if (!session?.user || (session.user as SessionUser).role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

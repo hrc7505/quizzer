@@ -17,7 +17,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       return NextResponse.json({ error: "Quiz not found" }, { status: 404 });
     }
     return NextResponse.json(quiz);
-  } catch {
+  } catch (error) {
+    console.error("Failed to fetch quiz details:", error);
     return NextResponse.json({ error: "Failed to fetch quiz details" }, { status: 500 });
   }
 }
@@ -38,7 +39,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       }
     });
     return NextResponse.json(quiz);
-  } catch {
+  } catch (error) {
+    console.error("Failed to update quiz:", error);
     return NextResponse.json({ error: "Failed to update quiz" }, { status: 500 });
   }
 }
@@ -48,7 +50,8 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     const { id } = await params;
     await prisma.quiz.delete({ where: { id } });
     return NextResponse.json({ success: true });
-  } catch {
+  } catch (error) {
+    console.error("Failed to delete quiz:", error);
     return NextResponse.json({ error: "Failed to delete quiz" }, { status: 500 });
   }
 }

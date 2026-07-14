@@ -1,10 +1,11 @@
-import { NavBar } from "@/components/ui/NavBar";
-import { prisma } from "@/lib/prisma";
-import { DirectoryCardList } from "@/components/ui/DirectoryCardList";
+import { PageLayout } from "@/components/ui/PageLayout";
+import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
-import { notFound } from "next/navigation";
 import { ContentHeader } from "@/components/ui/ContentHeader";
+import { DirectoryCardList } from "@/components/ui/DirectoryCardList";
 import { BookOpen24Regular } from "@/components/ui/ServerIcons";
+import { prisma } from "@/lib/prisma";
+import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -59,23 +60,18 @@ export default async function TopicSubtopicsPage({ params }: SubtopicsPageProps)
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#f9f9f9' }}>
-      <NavBar />
-      <main style={{ padding: '24px 16px', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
-        <Breadcrumbs items={breadcrumbItems} />
+    <PageLayout>
+      <Breadcrumbs items={breadcrumbItems} />
 
-        <ContentHeader
-          icon={<BookOpen24Regular style={{ color: "white" }} />}
-          gradient="linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)"
-          title={topic.title}
-          description={topic.description}
-        />
+      <ContentHeader
+        icon={<BookOpen24Regular />}
+        variant="subtopic"
+        title={topic.title}
+        description={topic.description}
+      />
 
-        <h2 style={{ fontSize: "20px", fontWeight: "bold", color: "#0f172a", marginBottom: "16px", borderBottom: "2px solid #eaeaea", paddingBottom: "8px" }}>
-          Subtopics
-        </h2>
-        <DirectoryCardList items={subtopicItems} itemLabel="subtopics" searchPlaceholder="Search subtopics..." />
-      </main>
-    </div>
+      <SectionHeading>Subtopics</SectionHeading>
+      <DirectoryCardList items={subtopicItems} itemLabel="subtopics" searchPlaceholder="Search subtopics..." />
+    </PageLayout>
   );
 }

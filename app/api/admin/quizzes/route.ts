@@ -11,7 +11,8 @@ export async function GET() {
       orderBy: { quizOrder: "asc" }
     });
     return NextResponse.json(quizzes);
-  } catch {
+  } catch (error) {
+    console.error("Failed to fetch quizzes:", error);
     return NextResponse.json({ error: "Failed to fetch quizzes" }, { status: 500 });
   }
 }
@@ -40,7 +41,8 @@ export async function POST(req: Request) {
       }
     });
     return NextResponse.json(quiz);
-  } catch {
+  } catch (error) {
+    console.error("Failed to create quiz:", error);
     return NextResponse.json({ error: "Failed to create quiz" }, { status: 500 });
   }
 }

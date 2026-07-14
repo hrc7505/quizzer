@@ -1,13 +1,25 @@
 /**
  * Service to handle user-related API requests for admin panel.
  */
+import { Prisma } from "@prisma/client";
+
+export type AdminUser = Prisma.UserGetPayload<{
+  include: {
+    _count: {
+      select: {
+        attempts: true;
+      };
+    };
+  };
+}>;
+
 export const UserService = {
   /**
    * Fetches all users from the admin API.
    * 
    * @returns A promise resolving to a list of users.
    */
-  getAllUsers: async (): Promise<any[]> => {
+  getAllUsers: async (): Promise<AdminUser[]> => {
     const res = await fetch("/api/admin/users");
     const data = await res.json();
     if (!res.ok) {

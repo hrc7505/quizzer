@@ -17,7 +17,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ quizId: 
     }
 
     return NextResponse.json({ quiz });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to fetch quiz" }, { status: 500 });
   }
 }

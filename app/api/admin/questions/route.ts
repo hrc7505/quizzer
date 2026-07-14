@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
  * GET /api/admin/questions
  * Fetches all questions, including parent quiz and topic.
  */
-export async function GET(req: Request) {
+export async function GET() {
   try {
     const questions = await prisma.question.findMany({
       include: {

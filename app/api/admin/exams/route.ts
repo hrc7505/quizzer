@@ -16,7 +16,7 @@ export async function GET() {
       orderBy: { createdAt: 'desc' }
     });
     return NextResponse.json(exams);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to fetch exams" }, { status: 500 });
   }
 }
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(exam);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to create exam" }, { status: 500 });
   }
 }

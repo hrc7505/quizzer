@@ -48,7 +48,6 @@ export default async function ResultsPage({ params }: { params: Promise<{ attemp
         elaboration: true
       }
     });
-    // @ts-ignore
     attempt.quiz.questions = fallbackQuestions;
   }
 

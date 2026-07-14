@@ -33,7 +33,25 @@ interface QuizSummary {
   title: string;
   quizOrder: number;
   difficulty: string;
+  topics?: { id: string }[];
   _count?: { questions: number };
+}
+
+interface QuizQuestionDetail {
+  id: string;
+  text: string;
+  options: string[];
+  correctAnswer: string;
+  hint?: string | null;
+  description?: string | null;
+}
+
+interface QuizDetail {
+  id: string;
+  title: string;
+  difficulty: string;
+  quizOrder: number;
+  questions?: QuizQuestionDetail[];
 }
 
 interface Topic {
@@ -55,7 +73,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
   const [exams, setExams] = useState<Exam[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [flatTopics, setFlatTopics] = useState<FlatTopic[]>([]);
-  const [allQuizzes, setAllQuizzes] = useState<any[]>([]);
+  const [allQuizzes, setAllQuizzes] = useState<QuizSummary[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Creation/Edit Dialog Controls
@@ -91,7 +109,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
   const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
-  const [activeQuizDetail, setActiveQuizDetail] = useState<any | null>(null);
+  const [activeQuizDetail, setActiveQuizDetail] = useState<QuizDetail | null>(null);
   const [activeQuizLoading, setActiveQuizLoading] = useState(false);
 
   // Question Form / Dialog State
@@ -132,10 +150,10 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       validTopics.forEach((t: Topic) => {
         const isSub = t.parentTopics && t.parentTopics.length > 0;
         if (isSub) {
-          const parentNames = t.parentTopics?.map((p: any) => p.title).join(", ") || "Unknown";
+          const parentNames = t.parentTopics?.map((p: Topic) => p.title).join(", ") || "Unknown";
           flattened.push({ ...t, displayType: `Subtopic (of: ${parentNames})` });
         } else {
-          const examNames = t.exams?.map((e: any) => e.title).join(", ") || "Standalone";
+          const examNames = t.exams?.map((e: Exam) => e.title).join(", ") || "Standalone";
           flattened.push({ ...t, displayType: `Main Topic (Exam: ${examNames})` });
         }
       });
@@ -151,8 +169,11 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
   };
 
   useEffect(() => {
-    fetchData();
+    void (async () => {
+      await fetchData();
+    })();
   }, []);
+
 
   const triggerConfirm = (title: string, description: string, onConfirm: () => Promise<void>) => {
     setConfirmDialog({ open: true, title, description, onConfirm });
@@ -174,12 +195,17 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
   };
 
   useEffect(() => {
-    if (selectedQuizId) {
-      loadQuizDetails(selectedQuizId);
-    } else {
-      setActiveQuizDetail(null);
+    if (!selectedQuizId) {
+      return;
     }
+
+
+
+    void (async () => {
+      await loadQuizDetails(selectedQuizId);
+    })();
   }, [selectedQuizId]);
+
 
   const handleOpenAddQuestion = () => {
     setQuestionForm({
@@ -193,7 +219,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
     setQuestionDialogOpen(true);
   };
 
-  const handleOpenEditQuestion = (q: any) => {
+  const handleOpenEditQuestion = (q: QuizQuestionDetail) => {
     setQuestionForm({
       id: q.id,
       text: q.text,
@@ -383,23 +409,6 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       body: JSON.stringify(payload)
     });
     setTopicDialogOpen(false);
-    await fetchData();
-  };
-
-  const handleSaveQuiz = async () => {
-    setLoading(true);
-    const url = quizForm.id ? `/api/admin/quizzes/${quizForm.id}` : "/api/admin/quizzes";
-    const method = quizForm.id ? "PUT" : "POST";
-
-    await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...quizForm,
-        quizOrder: quizForm.quizOrder ? parseInt(quizForm.quizOrder) : null
-      })
-    });
-    setQuizDialogOpen(false);
     await fetchData();
   };
 
@@ -711,7 +720,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
   );
 
   const availableQuizzes = allQuizzes.filter(q => 
-    !linkTopicId || !q.topics?.some((t: any) => t.id === linkTopicId)
+    !linkTopicId || !q.topics?.some((t: { id: string }) => t.id === linkTopicId)
   );
 
   const activeExam = exams.find(e => e.id === selectedExamId);
@@ -739,9 +748,12 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
   // Safety page bounds check
   useEffect(() => {
     if (currentPage > totalPages) {
-      setCurrentPage(1);
+      // Reset pagination when current page is out of bounds.
+      queueMicrotask(() => setCurrentPage(1));
     }
   }, [totalPages, currentPage]);
+
+
 
   const paginatedExams = filteredExams.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const paginatedTopics = filteredTopics.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -1493,7 +1505,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
               </div>
             ) : activeQuizDetail?.questions && activeQuizDetail.questions.length > 0 ? (
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                {activeQuizDetail.questions.map((q: any, idx: number) => (
+                {activeQuizDetail.questions.map((q: QuizQuestionDetail, idx: number) => (
                   <Card key={q.id} style={{
                     display: "flex", flexDirection: "column", gap: "8px", padding: "16px",
                     border: "1px solid #f0f0f0", borderRadius: "8px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)"
@@ -1550,7 +1562,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
               </div>
             ) : (
               <div style={{ padding: "32px", textAlign: "center", backgroundColor: "#fafafa", borderRadius: "8px", border: "1px dashed #d9d9d9" }}>
-                <Text style={{ color: "#9ca3af" }}>No questions linked. Click "Add Question" to build questions manually.</Text>
+                <Text style={{ color: "#9ca3af" }}>No questions linked. Click &quot;Add Question&quot; to build questions manually.</Text>
               </div>
             )}
           </div>

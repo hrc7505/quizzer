@@ -3,6 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 
+type AuthUser = {
+  id: string;
+  role: string;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+};
+
 /**
  * Handles POST requests to finalize a quiz attempt.
  * Computes scores dynamically and updates completion status.
@@ -37,7 +45,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Quiz attempt not found" }, { status: 404 });
     }
 
-    if (attempt.userId !== (session.user as any).id) {
+    if (attempt.userId !== (session.user as unknown as AuthUser).id) {
       return NextResponse.json({ error: "Unauthorized access to attempt" }, { status: 403 });
     }
 

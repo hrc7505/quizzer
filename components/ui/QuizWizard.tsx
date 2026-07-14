@@ -9,7 +9,6 @@ import {
   DataGrid, DataGridHeader, DataGridRow, DataGridHeaderCell,
   DataGridBody, DataGridCell, TableCellLayout, TableColumnDefinition,
   createTableColumn,
-  Menu, MenuTrigger, MenuButton, MenuPopover, MenuList, MenuItem,
 } from "@fluentui/react-components";
 import { useRouter } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
@@ -29,10 +28,43 @@ import { Share24Regular } from "@fluentui/react-icons";
  * 
  * @param props.quiz - The quiz details containing questions.
  */
-export function QuizWizard({ quiz }: { quiz: any }) {
+interface QuizWizardQuestion {
+  id: string;
+  text: string;
+  hint?: string | null;
+  description?: string | null;
+  options: string[];
+  correctAnswer: string;
+}
+
+interface QuizWizardAnswer {
+  questionId: string;
+  selectedAnswer: string;
+  isCorrect: boolean;
+}
+
+interface QuizWizardQuiz {
+  id: string;
+  title: string;
+  difficulty: string;
+  questions: QuizWizardQuestion[];
+}
+
+// Use backend leaderboard entry type directly for strict compatibility.
+interface QuizWizardAttempt {
+  attemptId: string;
+  quizId: string;
+  answers: QuizWizardAnswer[];
+  timeTakenSec: number;
+}
+
+export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
+  type AttemptLeaderboardEntry = import("@/lib/services/attempt.service").LeaderboardEntry;
+
+
   const styles = useQuizWizardStyles();
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const saveControllerRef = useRef<AbortController | null>(null);
   const lastSaveSequenceRef = useRef(0);
   const pendingSavePromiseRef = useRef<Promise<void> | null>(null);
@@ -40,18 +72,16 @@ export function QuizWizard({ quiz }: { quiz: any }) {
   const [loading, setLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [authWarning, setAuthWarning] = useState<string | null>(null);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [activeAttempt, setActiveAttempt] = useState<any | null>(null);
+  const [activeAttempt, setActiveAttempt] = useState<QuizWizardAttempt | null>(null);
   const [attemptId, setAttemptId] = useState<string>("");
-  const [leaderboard, setLeaderboard] = useState<any[]>([]);
-
-
+  const [leaderboard, setLeaderboard] = useState<AttemptLeaderboardEntry[]>([]);
 
   // Gameplay State
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [showHint, setShowHint] = useState(false);
-  const [answers, setAnswers] = useState<any[]>([]);
+  const [answers, setAnswers] = useState<QuizWizardAnswer[]>([]);
+
   const [timeTaken, setTimeTaken] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -129,11 +159,12 @@ export function QuizWizard({ quiz }: { quiz: any }) {
       // If we already have the attempt data from the initial load, use it directly
       if (!forceNew && resumeAttemptId && activeAttempt) {
         setAttemptId(resumeAttemptId);
-        const formattedAnswers = activeAttempt.answers.map((ans: any) => ({
+        const formattedAnswers: QuizWizardAnswer[] = activeAttempt.answers.map((ans) => ({
           questionId: ans.questionId,
           selectedAnswer: ans.selectedAnswer,
           isCorrect: ans.isCorrect,
         }));
+
         setAnswers(formattedAnswers);
         setTimeTaken(activeAttempt.timeTakenSec || 0);
         setCurrentIndex(formattedAnswers.length);
@@ -155,11 +186,12 @@ export function QuizWizard({ quiz }: { quiz: any }) {
         
         if (!forceNew && data.answers && data.answers.length > 0) {
           // Resuming an attempt: populate answers and restore state
-          const formattedAnswers = data.answers.map((ans: any) => ({
+          const formattedAnswers: QuizWizardAnswer[] = data.answers.map((ans: QuizWizardAnswer) => ({
             questionId: ans.questionId,
             selectedAnswer: ans.selectedAnswer,
             isCorrect: ans.isCorrect
           }));
+
           setAnswers(formattedAnswers);
           setTimeTaken(data.timeTakenSec);
           setCurrentIndex(formattedAnswers.length);
@@ -176,7 +208,7 @@ export function QuizWizard({ quiz }: { quiz: any }) {
       } else {
         alert("Failed to initialize quiz attempt.");
       }
-    } catch (err) {
+    } catch {
       alert("An unexpected error occurred.");
     } finally {
       setLoading(false);
@@ -194,7 +226,6 @@ export function QuizWizard({ quiz }: { quiz: any }) {
     isCorrect: boolean;
   }) => {
     lastSaveSequenceRef.current += 1;
-    const currentSaveId = lastSaveSequenceRef.current;
 
     if (saveControllerRef.current) {
       saveControllerRef.current.abort();
@@ -217,7 +248,6 @@ export function QuizWizard({ quiz }: { quiz: any }) {
           return;
         }
         console.error("Failed to save answer progress:", error);
-        setSaveError("Failed to save progress. Your latest answer may not be persisted.");
       });
 
     pendingSavePromiseRef.current = savePromise;
@@ -254,7 +284,7 @@ export function QuizWizard({ quiz }: { quiz: any }) {
         } else {
           alert("Failed to submit attempt");
         }
-      } catch (err) {
+      } catch {
         alert("An error occurred while finalizing quiz.");
       } finally {
         setIsSubmitting(false);
@@ -270,6 +300,7 @@ export function QuizWizard({ quiz }: { quiz: any }) {
 
   const resolveShareUrl = async () => {
     const origin = window.location.origin;
+
     let shareUrl = `${origin}/quiz/${quiz.id}`;
 
     try {
@@ -289,8 +320,10 @@ export function QuizWizard({ quiz }: { quiz: any }) {
 
 
   /** DataGrid column definitions for the leaderboard */
-  const leaderboardColumns: TableColumnDefinition<any>[] = [
-    createTableColumn<any>({
+const leaderboardColumns: TableColumnDefinition<AttemptLeaderboardEntry>[] = [
+
+
+createTableColumn<AttemptLeaderboardEntry>({
       columnId: "rank",
       renderHeaderCell: () => "Rank",
       renderCell: (item) => {
@@ -299,44 +332,44 @@ export function QuizWizard({ quiz }: { quiz: any }) {
           2: "#94a3b8", // silver
           3: "#cd7f32", // bronze
         };
-        const bg = badgeStyle[item.rank] || "#e2e8f0";
+        const bg = badgeStyle[item.rank ?? 0] || "#e2e8f0";
         return (
           <TableCellLayout>
-            <span className={`${styles.rankBadge} ${styles.rankSpan}`} style={{ backgroundColor: bg, color: item.rank <= 3 ? "#fff" : "#475569" }}>
+            <span className={`${styles.rankBadge} ${styles.rankSpan}`} style={{ backgroundColor: bg, color: (item.rank ?? 0) <= 3 ? "#fff" : "#475569" }}>
               {item.rank}
             </span>
           </TableCellLayout>
         );
       },
     }),
-    createTableColumn<any>({
+    createTableColumn<AttemptLeaderboardEntry>({
       columnId: "player",
       renderHeaderCell: () => "Player",
       renderCell: (item) => (
         <TableCellLayout
           media={<Avatar size={24} name={item.name} image={{ src: item.image || undefined }} />}
         >
-          <Text weight={item.rank <= 3 ? "semibold" : "regular"}>{item.name}</Text>
+          <Text weight={(item.rank ?? 0) <= 3 ? "semibold" : "regular"}>{item.name}</Text>
         </TableCellLayout>
       ),
     }),
-    createTableColumn<any>({
+    createTableColumn<AttemptLeaderboardEntry>({
       columnId: "score",
       renderHeaderCell: () => "Score",
       renderCell: (item) => (
         <TableCellLayout>
-          <Text className={styles.scoreText} style={{ color: item.scorePercentage >= 80 ? "#10b981" : item.scorePercentage >= 50 ? "#f59e0b" : "#ef4444" }}>
-            {Math.round(item.scorePercentage)}%
+          <Text className={styles.scoreText} style={{ color: (item.scorePercentage ?? 0) >= 80 ? "#10b981" : (item.scorePercentage ?? 0) >= 50 ? "#f59e0b" : "#ef4444" }}>
+            {Math.round(item.scorePercentage ?? 0)}%
           </Text>
         </TableCellLayout>
       ),
     }),
-    createTableColumn<any>({
+    createTableColumn<AttemptLeaderboardEntry>({
       columnId: "time",
       renderHeaderCell: () => "Time",
       renderCell: (item) => (
         <TableCellLayout>
-          <Text>{formatTime(item.timeTakenSec)}</Text>
+          <Text>{formatTime(item.timeTakenSec ?? 0)}</Text>
         </TableCellLayout>
       ),
     }),
@@ -431,7 +464,8 @@ export function QuizWizard({ quiz }: { quiz: any }) {
             </Text>
           ) : (
             <DataGrid
-              items={leaderboard.map((entry: any, index: number) => ({ ...entry, rank: index + 1 }))}
+              items={leaderboard.map((entry, index) => ({ ...entry, rank: index + 1 }))}
+
               columns={leaderboardColumns}
               getRowId={(item) => item.userId}
               focusMode="none"

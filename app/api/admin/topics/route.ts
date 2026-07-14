@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 export async function GET(req: Request) {
   try {
@@ -8,7 +9,7 @@ export async function GET(req: Request) {
     const parentId = searchParams.get("parentId");
     const all = searchParams.get("all") === "true";
     
-    const where: any = {
+    const where: Prisma.TopicWhereInput = {
       // Always exclude the hidden sentinel topic used as a FK anchor for standalone-generated questions
       NOT: { title: "__internal__" }
     };
@@ -38,7 +39,7 @@ export async function GET(req: Request) {
       orderBy: { createdAt: 'desc' }
     });
     return NextResponse.json(topics);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to fetch topics" }, { status: 500 });
   }
 }
@@ -57,7 +58,7 @@ export async function POST(req: Request) {
       }
     });
     return NextResponse.json(topic);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to create topic" }, { status: 500 });
   }
 }

@@ -53,7 +53,7 @@ export function SignInForm() {
     try {
       // If a non-admin user is currently logged in, sign them out first
       // so their session doesn't conflict with the admin credentials login
-      if (session && (session.user as any)?.role !== "ADMIN") {
+      if (session && (session.user as unknown as { role?: string })?.role !== "ADMIN") {
         await signOut({ redirect: false });
       }
 

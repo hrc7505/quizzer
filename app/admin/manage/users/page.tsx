@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { AdminUsersManager } from "@/components/ui/AdminUsersManager";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { authOptions, SessionUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
  */
 export default async function ManageUsersPage() {
   const session = await getServerSession(authOptions);
-  if (!session?.user || (session.user as any).role !== "ADMIN") {
+  if (!session?.user || (session.user as SessionUser).role !== "ADMIN") {
     redirect("/");
   }
 

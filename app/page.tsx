@@ -7,8 +7,22 @@ import {
 } from "@/components/ui/ServerIcons";
 import Link from "next/link";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { authOptions, SessionUser } from "@/lib/auth";
 import { resolveQuizRoute } from "@/lib/quiz-routing";
+import { Prisma } from "@prisma/client";
+
+type InProgressAttempt = Prisma.QuizAttemptGetPayload<{
+  include: {
+    quiz: { include: { questions: true } };
+    answers: true;
+  };
+}>;
+
+type CompletedAttempt = Prisma.QuizAttemptGetPayload<{
+  include: {
+    quiz: { include: { questions: true } };
+  };
+}>;
 
 export const dynamic = "force-dynamic";
 
@@ -35,12 +49,12 @@ export default async function HomePage() {
   ]);
 
   // Fetch Student Dashboard data if logged in as a student
-  const isStudent = session?.user && (session.user as any).role === "USER";
-  let inProgressAttempts: any[] = [];
-  let lastCompletedAttempt: any = null;
+  const isStudent = session?.user && (session.user as SessionUser).role === "USER";
+  let inProgressAttempts: InProgressAttempt[] = [];
+  let lastCompletedAttempt: CompletedAttempt | null = null;
 
   if (isStudent) {
-    const userId = (session.user as any).id;
+    const userId = (session.user as SessionUser).id;
     const [ipData, lcData] = await Promise.all([
       prisma.quizAttempt.findMany({
         where: {
@@ -133,7 +147,7 @@ export default async function HomePage() {
             {/* Dashboard Header */}
             <div className="flex justify-between items-center">
               <h2 className="text-3xl font-extrabold text-slate-900 m-0 tracking-tight">
-                Welcome back, {session.user?.name || session.user?.email?.split("@")[0] || (session.user as any)?.phoneNumber || "User"}!
+                 Welcome back, {session.user?.name || session.user?.email?.split("@")[0] || (session.user as SessionUser)?.phoneNumber || "User"}!
               </h2>
               <span className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-full text-xs font-semibold">
                 Student Dashboard

@@ -98,8 +98,10 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
       const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
       if (fileInput) fileInput.value = "";
       onSuccess?.(data);
-    } catch (err: any) {
-      setError(err.message || "An unexpected error occurred while communicating with Gemini API.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : undefined;
+      setError(message || "An unexpected error occurred while communicating with Gemini API.");
+
     } finally {
       setLoading(false);
     }

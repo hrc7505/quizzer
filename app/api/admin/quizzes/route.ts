@@ -11,7 +11,7 @@ export async function GET() {
       orderBy: { quizOrder: "asc" }
     });
     return NextResponse.json(quizzes);
-  } catch (e) {
+  } catch {
     return NextResponse.json({ error: "Failed to fetch quizzes" }, { status: 500 });
   }
 }
@@ -40,7 +40,7 @@ export async function POST(req: Request) {
       }
     });
     return NextResponse.json(quiz);
-  } catch (e) {
+  } catch {
     return NextResponse.json({ error: "Failed to create quiz" }, { status: 500 });
   }
 }

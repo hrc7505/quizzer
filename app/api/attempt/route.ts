@@ -3,6 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 
+type AuthUser = {
+  id: string;
+  role: string;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+};
+
 /**
  * Handles POST requests to start or retrieve an in-progress quiz attempt.
  * Supports `forceNew` parameter to discard previous attempt and start over.
@@ -14,7 +22,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const userId = (session.user as any).id;
+    const userId = (session.user as unknown as AuthUser).id;
     const { quizId, forceNew, createOnNotFound = true } = await req.json();
 
     if (!quizId) {

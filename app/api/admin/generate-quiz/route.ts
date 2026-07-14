@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ai, GEMINI_MODEL } from "@/lib/gemini";
 import { Type } from "@google/genai";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import PDFParser from "pdf2json";
@@ -9,9 +10,29 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 
+type AuthUser = {
+  id: string;
+  role: string;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+};
+
+type GeneratedQuestion = {
+  text: string;
+  options: string[];
+  correctAnswer: string;
+  hint: string;
+  description: string;
+};
+
+type TopicWithQuestions = Prisma.TopicGetPayload<{
+  include: { quizzes: true; questions: { select: { text: true } } };
+}>;
+
 const AI_TIMEOUT_MS = 240000;
 
-function extractJson(text: string): any {
+function extractJson(text: string): unknown {
   const trimmed = text.trim();
   const fenceMatch = trimmed.match(/^```(?:json)?\s*([\s\S]*?)```$/);
   if (fenceMatch) {
@@ -67,8 +88,8 @@ async function parsePdfBuffer(buffer: Buffer): Promise<string> {
     return new Promise((resolve, reject) => {
       const pdfParser = new PDFParser(null, true);
 
-      pdfParser.on("pdfParser_dataError", (errData: any) => {
-        reject(new Error(`PDF parsing error: ${errData}`));
+      pdfParser.on("pdfParser_dataError", (errData: unknown) => {
+        reject(new Error(`PDF parsing error: ${String(errData)}`));
       });
 
       pdfParser.on("pdfParser_dataReady", () => {
@@ -89,7 +110,7 @@ async function parsePdfBuffer(buffer: Buffer): Promise<string> {
   }
 }
 
-async function generateQuestionsBatch(prompt: string): Promise<any[]> {
+async function generateQuestionsBatch(prompt: string): Promise<GeneratedQuestion[]> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
 
@@ -125,7 +146,7 @@ async function generateQuestionsBatch(prompt: string): Promise<any[]> {
       throw new Error("Failed to generate content");
     }
 
-    return extractJson(resultText);
+    return extractJson(resultText) as GeneratedQuestion[];
   } catch (err) {
     if (controller.signal.aborted) {
       throw new Error("AI content generation timed out. Try again with smaller input or a longer timeout.");
@@ -139,7 +160,7 @@ async function generateQuestionsBatch(prompt: string): Promise<any[]> {
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user || (session.user as any).role !== "ADMIN") {
+    if (!session?.user || (session.user as unknown as AuthUser).role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -155,7 +176,7 @@ export async function POST(req: Request) {
 
     let existingQuestionsText = "";
     let existingQuizzesCount = 0;
-    let topic: any = null;
+    let topic: TopicWithQuestions | null = null;
 
     if (existingTopicId) {
       topic = await prisma.topic.findUnique({
@@ -170,11 +191,11 @@ export async function POST(req: Request) {
       if (topic.questions.length > 0) {
         const recentQuestions = topic.questions.slice(-50);
         existingQuestionsText = `\n\nCRITICAL: Do NOT generate questions that are similar to these existing ones:\n` +
-          recentQuestions.map((q: any) => `- ${q.text}`).join("\n");
+          recentQuestions.map((q) => `- ${q.text}`).join("\n");
       }
     }
 
-    let allGeneratedQuestions: any[] = [];
+    let allGeneratedQuestions: GeneratedQuestion[] = [];
 
     if (mode === "title") {
       const prompt = `Generate a comprehensive multiple-choice quiz about the following topic: "${topicTitle}".
@@ -241,11 +262,13 @@ ${chunk}`;
       questionTopicId = topic.id;
     } else {
       let sentinel = await prisma.topic.findFirst({
-        where: { title: "__internal__" }
+        where: { title: "__internal__" },
+        include: { quizzes: true, questions: { select: { text: true } } }
       });
       if (!sentinel) {
         sentinel = await prisma.topic.create({
-          data: { title: "__internal__" }
+          data: { title: "__internal__" },
+          include: { quizzes: true, questions: { select: { text: true } } }
         });
       }
       topic = sentinel;
@@ -260,7 +283,7 @@ ${chunk}`;
       const chunk = allGeneratedQuestions.slice(i, i + chunkSize);
 
       try {
-        await prisma.$transaction(async (tx: any) => {
+        await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
           const quiz = await tx.quiz.create({
             data: {
               ...(existingTopicId ? { topics: { connect: { id: existingTopicId } } } : {}),
@@ -271,7 +294,7 @@ ${chunk}`;
           });
 
           await tx.question.createMany({
-            data: chunk.map((q: any) => ({
+            data: chunk.map((q) => ({
               topicId: questionTopicId,
               quizId: quiz.id,
               text: q.text,

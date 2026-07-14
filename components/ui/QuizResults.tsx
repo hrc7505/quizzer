@@ -33,13 +33,13 @@ import {
 } from "@fluentui/react-components";
 import { Dismiss20Regular, MoreHorizontal24Regular } from "@fluentui/react-icons";
 import { useRef, useState, useEffect } from "react";
-import { useSession, signIn } from "next-auth/react";
+import { useSession } from "next-auth/react";
 
 import { jsPDF } from "jspdf";
 import Link from "next/link";
-import { AttemptService } from "@/lib/services/attempt.service";
+import { AttemptService, LeaderboardEntry } from "@/lib/services/attempt.service";
 import ReactMarkdown from "react-markdown";
-import { QuizResultsProps } from "./interfaces/QuizResults.interface";
+import { QuizResultsProps, QuestionData, UserAnswerData } from "./interfaces/QuizResults.interface";
 import { useQuizResultsStyles } from "./styles/useQuizResultsStyles";
 import { ShareButton } from "./ShareButton";
 import { Share24Regular } from "@fluentui/react-icons";
@@ -62,13 +62,13 @@ const MenuItemLink = MenuItem as unknown as React.ComponentType<{
 export function QuizResults({ attempt }: QuizResultsProps) {
   const styles = useQuizResultsStyles();
   const resultRef = useRef<HTMLDivElement>(null);
-  const { status } = useSession();
+  useSession();
 
   const [downloading, setDownloading] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
   const [isReviewOpen, setIsReviewOpen] = useState(false);
-  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
 
   useEffect(() => {
@@ -87,7 +87,7 @@ export function QuizResults({ attempt }: QuizResultsProps) {
 
   // Pre-seed in-memory cache from DB-persisted elaborations
   const initialElaborations: Record<string, { loading: boolean; data?: string; error?: string }> = {};
-  attempt.quiz.questions.forEach((q: any) => {
+  attempt.quiz.questions.forEach((q: QuestionData) => {
     if (q.elaboration) {
       initialElaborations[q.id] = { loading: false, data: q.elaboration };
     }
@@ -114,7 +114,7 @@ export function QuizResults({ attempt }: QuizResultsProps) {
       pdf.setFontSize(12);
       pdf.setFont("helvetica", "normal");
 
-      attempt.quiz.questions.forEach((q: any, i: number) => {
+      attempt.quiz.questions.forEach((q: QuestionData, i: number) => {
         const qText = `${i + 1}. ${q.text}`;
         const splitText = pdf.splitTextToSize(qText, pageWidth - 2 * margin);
         
@@ -156,7 +156,7 @@ export function QuizResults({ attempt }: QuizResultsProps) {
       pdf.setFontSize(12);
       pdf.setFont("helvetica", "normal");
       
-      attempt.quiz.questions.forEach((q: any, i: number) => {
+      attempt.quiz.questions.forEach((q: QuestionData, i: number) => {
         const letters = ["A", "B", "C", "D"];
         const correctIndex = q.options.indexOf(q.correctAnswer);
         const correctLetter = correctIndex >= 0 ? letters[correctIndex] : "";
@@ -201,7 +201,7 @@ export function QuizResults({ attempt }: QuizResultsProps) {
       } else {
         setElaborations(prev => ({ ...prev, [questionId]: { loading: false, error: json.error } }));
       }
-    } catch (e) {
+    } catch {
       setElaborations(prev => ({ ...prev, [questionId]: { loading: false, error: "Failed to load" } }));
     }
   };
@@ -370,12 +370,12 @@ export function QuizResults({ attempt }: QuizResultsProps) {
                         </div>
                       </td>
                       <td className={`${styles.leaderboardCell} ${styles.leaderboardCellScore}`}>
-                        <Text style={{ color: rank.scorePercentage >= 80 ? "#10b981" : rank.scorePercentage >= 50 ? "#f59e0b" : "#ef4444" }}>
-                          {Math.round(rank.scorePercentage)}%
+                        <Text style={{ color: (rank.scorePercentage ?? 0) >= 80 ? "#10b981" : (rank.scorePercentage ?? 0) >= 50 ? "#f59e0b" : "#ef4444" }}>
+                          {Math.round(rank.scorePercentage ?? 0)}%
                         </Text>
                       </td>
                       <td className={`${styles.leaderboardCell} ${styles.leaderboardCellTime}`}>
-                        {formatTime(rank.timeTakenSec)}
+                        {formatTime(rank.timeTakenSec ?? 0)}
                       </td>
                     </tr>
                   );
@@ -396,8 +396,8 @@ export function QuizResults({ attempt }: QuizResultsProps) {
             </DialogTitle>
             <DialogContent className={styles.dialogContent}>
               <Accordion multiple collapsible>
-                {attempt.quiz.questions.map((question: any, index: number) => {
-                  const answer = attempt.answers.find((a: any) => a.questionId === question.id);
+                {attempt.quiz.questions.map((question: QuestionData, index: number) => {
+                  const answer = attempt.answers.find((a: UserAnswerData) => a.questionId === question.id);
                   const isCorrect = answer?.isCorrect;
                   
                   return (

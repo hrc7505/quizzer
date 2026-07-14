@@ -38,7 +38,7 @@ export function NavBar({ maxWidth = "1200px" }: { maxWidth?: string }) {
   const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false);
 
   const isAdminRoute = pathname.startsWith("/admin");
-  const role = (session?.user as any)?.role;
+  const role = (session?.user as { role?: string } | null | undefined)?.role;
   const isAdminUser = role === "ADMIN";
   const isStudentUser = session?.user && !isAdminUser;
 
@@ -72,8 +72,8 @@ export function NavBar({ maxWidth = "1200px" }: { maxWidth?: string }) {
             <Image
               src="/quizzer.svg"
               alt="Quizzer"
-              width={120}
-              height={32}
+              width={833}
+              height={280}
               priority
               className={styles.brandImage}
             />

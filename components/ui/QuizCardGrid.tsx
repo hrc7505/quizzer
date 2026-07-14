@@ -165,7 +165,8 @@ export function QuizCardGrid({ quizzes, subtopicTitle, basePath }: QuizCardGridP
     return matchesSearch && matchesDifficulty;
   });
 
-  const paginated = filtered.slice(0, visibleCount);
+  const numbered = filtered.map((quiz, index) => ({ quiz, number: index + 1 }));
+  const paginated = numbered.slice(0, visibleCount);
   const hasMore = filtered.length > visibleCount;
 
   // Reset pagination count on search or filter change
@@ -227,11 +228,11 @@ export function QuizCardGrid({ quizzes, subtopicTitle, basePath }: QuizCardGridP
       {/* Grid of Quizzes */}
       {paginated.length > 0 ? (
         <div className={styles.grid}>
-          {paginated.map(quiz => (
+          {paginated.map(({ quiz, number }) => (
             <Card key={quiz.id} className={styles.card}>
               <div>
                 <Text size={100} className={styles.quizNo}>
-                  Quiz #{quiz.quizOrder}
+                  Quiz #{number}
                 </Text>
                 <Text size={400} weight="bold" className={styles.title}>
                   {quiz.title}

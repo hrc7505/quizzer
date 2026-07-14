@@ -1,4 +1,3 @@
-import type { CSSProperties } from "react";
 import { NavBar } from "@/components/ui/NavBar";
 
 export default function AdminLayout({

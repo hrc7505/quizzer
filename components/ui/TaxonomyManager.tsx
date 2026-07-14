@@ -19,7 +19,7 @@ import {
 } from "@fluentui/react-icons";
 import { TableColumnDefinition, createTableColumn, DataGrid, DataGridHeader, DataGridHeaderCell, DataGridRow, DataGridBody, DataGridCell } from "@fluentui/react-components";
 import { GenerateQuizForm } from "./GenerateQuizForm";
-import { useRouter } from "next/navigation";
+import { LinkButton } from "./LinkButton";
 
 interface Exam {
   id: string;
@@ -52,7 +52,6 @@ interface FlatTopic extends Topic {
 }
 
 export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "subtopics" }) {
-  const router = useRouter();
   const [exams, setExams] = useState<Exam[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [flatTopics, setFlatTopics] = useState<FlatTopic[]>([]);
@@ -1405,13 +1404,13 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
                     <Card key={q.id} style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', border: '1px solid #f0f0f0', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         <Tooltip content="Click to view questions" relationship="label">
-                          <Button
+                          <LinkButton
                             appearance="transparent"
                             style={{ padding: 0, height: 'auto', fontWeight: 'bold', color: '#0078d4', textAlign: 'left', justifyContent: 'flex-start', minWidth: 'auto' }}
-                            onClick={() => router.push(`/admin/manage/quizzes/${q.id}/questions`)}
+                            href={`/admin/manage/quizzes/${q.id}/questions`}
                           >
                             {q.title}
-                          </Button>
+                          </LinkButton>
                         </Tooltip>
                         <Text size={100} style={{ color: '#616161' }}>Order: #{q.quizOrder} • {q._count?.questions || 0} Questions</Text>
                       </div>

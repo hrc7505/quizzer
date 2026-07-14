@@ -6,16 +6,23 @@ import { makeStyles, shorthands, tokens } from "@fluentui/react-components";
  */
 export const useNavBarStyles = makeStyles({
   nav: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    ...shorthands.padding("8px", "16px"),
     backgroundColor: "#fff",
     borderBottom: "1px solid #e0e0e0",
     boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
     position: "sticky",
     top: "0",
     zIndex: "100",
+  },
+
+  /** Inner wrapper keeps the header items aligned with the centered page content. */
+  navInner: {
+    width: "100%",
+    maxWidth: "1200px",
+    margin: "0 auto",
+    ...shorthands.padding("8px", "16px"),
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
     minHeight: "56px",
   },
 

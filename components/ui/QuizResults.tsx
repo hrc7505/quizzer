@@ -25,8 +25,13 @@ import {
   DialogActions,
   DialogTrigger,
   Avatar,
+  Menu,
+  MenuTrigger,
+  MenuPopover,
+  MenuList,
+  MenuItem,
 } from "@fluentui/react-components";
-import { Dismiss20Regular } from "@fluentui/react-icons";
+import { Dismiss20Regular, MoreHorizontal24Regular } from "@fluentui/react-icons";
 import { useRef, useState, useEffect } from "react";
 import { useSession, signIn } from "next-auth/react";
 
@@ -36,7 +41,18 @@ import { AttemptService } from "@/lib/services/attempt.service";
 import ReactMarkdown from "react-markdown";
 import { QuizResultsProps } from "./interfaces/QuizResults.interface";
 import { useQuizResultsStyles } from "./styles/useQuizResultsStyles";
-import { WhatsAppIcon, FacebookIcon, TelegramIcon } from "./socialIcons";
+import { ShareButton } from "./ShareButton";
+import { Share24Regular } from "@fluentui/react-icons";
+
+// MenuItem's `as` is narrowly typed; this alias lets it render as next/link
+// so the "Return Home" entry prefetches like a normal <Link>.
+const MenuItemLink = MenuItem as unknown as React.ComponentType<{
+  as?: React.ElementType;
+  href?: string;
+  onClick?: () => void;
+  icon?: React.ReactNode;
+  children?: React.ReactNode;
+}>;
 
 /**
  * QuizResults component renders the results screen after quiz completion,
@@ -49,7 +65,7 @@ export function QuizResults({ attempt }: QuizResultsProps) {
   const { status } = useSession();
 
   const [downloading, setDownloading] = useState(false);
-  const [shareOpen, setShareOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
@@ -193,68 +209,79 @@ export function QuizResults({ attempt }: QuizResultsProps) {
   const scoreColor = attempt.scorePercentage >= 80 ? "success" : attempt.scorePercentage >= 50 ? "warning" : "error";
   const progressColor = attempt.scorePercentage >= 80 ? "green" : attempt.scorePercentage >= 50 ? "orange" : "red";
 
-  const handleShare = (platform: "whatsapp" | "facebook" | "telegram") => {
-    if (status === "unauthenticated") {
-      signIn(undefined, { callbackUrl: window.location.href });
-      return;
+  const handleShareUrl = async () => {
+    const origin = window.location.origin;
+    let shareUrl = `${origin}/quiz/${attempt.quizId}`;
+
+    try {
+      const res = await fetch(`/api/results/${attempt.id}/share-url`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json?.url) shareUrl = `${origin}${json.url}`;
+      }
+    } catch {
+      // keep fallback
     }
 
-    const origin = window.location.origin;
-    const shareUrl = `${origin}/quiz/${attempt.quizId}`;
-    const shareText = `${attempt.quiz.title} — I scored ${Math.round(attempt.scorePercentage)}% on Quizzer!`;
-
-    const encodedText = encodeURIComponent(shareText);
-    const encodedUrl = encodeURIComponent(shareUrl);
-
-    const urlByPlatform: Record<typeof platform, string> = {
-      whatsapp: `https://wa.me/?text=${encodedText}%20${encodedUrl}`,
-      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedText}`,
-      telegram: `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`,
-    };
-
-    window.open(urlByPlatform[platform], "_blank", "noopener,noreferrer");
+    return shareUrl;
   };
 
-
+  const handleMobileShare = async () => {
+    const shareUrl = await handleShareUrl();
+    const text = `${attempt.quiz.title} — I scored ${Math.round(attempt.scorePercentage)}% on Quizzer!`;
+    setMenuOpen(false);
+    try {
+      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+        await navigator.share({ title: text, text, url: shareUrl });
+      }
+    } catch {
+      // user cancelled or unsupported — ignored
+    }
+  };
   return (
     <div className={styles.container}>
       
       <div className={styles.header}>
-        <Text size={700} weight="bold">Quiz Results</Text>
-        <div className={styles.buttonGroup}>
-          <div
-            className={styles.shareWrap}
-            onMouseEnter={() => setShareOpen(true)}
-            onMouseLeave={() => setShareOpen(false)}
-          >
-            <Button appearance="subtle" className={styles.shareTrigger} aria-label="Share">
-              Share
-            </Button>
-            {shareOpen && (
-              <div className={styles.shareMenu} role="menu" aria-label="Share quiz">
-                <Button icon={<WhatsAppIcon />} appearance="subtle" className={styles.shareBtn} onClick={() => handleShare("whatsapp")}>
-                  WhatsApp
-                </Button>
-                <Button icon={<FacebookIcon />} appearance="subtle" className={styles.shareBtn} onClick={() => handleShare("facebook")}>
-                  Facebook
-                </Button>
-                <Button icon={<TelegramIcon />} appearance="subtle" className={styles.shareBtn} onClick={() => handleShare("telegram")}>
-                  Telegram
-                </Button>
-              </div>
-            )}
-          </div>
+        <Text size={700} weight="bold" className={styles.headerTitle}>Quiz Results</Text>
+        <div className={styles.desktopActions}>
+          <ShareButton
+            icon={<Share24Regular />}
+            buttonAppearance="subtle"
+            buttonSize="medium"
+            shareText={`${attempt.quiz.title} — I scored ${Math.round(attempt.scorePercentage)}% on Quizzer!`}
+            defaultUrl={`${typeof window !== "undefined" ? window.location.origin : ""}/quiz/${attempt.quizId}`}
+            resolveUrl={handleShareUrl}
+          />
 
-          <Button appearance="secondary" onClick={() => setIsReviewOpen(true)}>
+          <Button appearance="secondary" className={styles.actionBtn} onClick={() => setIsReviewOpen(true)}>
             Detailed Review
           </Button>
-          <Button appearance="secondary" onClick={handleDownloadPDF} disabled={downloading}>
+          <Button appearance="secondary" className={styles.actionBtn} onClick={handleDownloadPDF} disabled={downloading}>
             {downloading ? <Spinner size="tiny" /> : "Download PDF"}
           </Button>
-          <Link href="/" className={styles.link}>
-            <Button appearance="primary">Return Home</Button>
+          <Link href="/" className={`${styles.link} ${styles.actionLink}`}>
+            <Button appearance="primary" className={styles.actionBtn}>Return Home</Button>
           </Link>
         </div>
+
+        <Menu open={menuOpen} onOpenChange={(_, data) => setMenuOpen(data.open)} positioning="below-end">
+          <MenuTrigger disableButtonEnhancement>
+            <Button
+              appearance="subtle"
+              icon={<MoreHorizontal24Regular />}
+              aria-label="More actions"
+              className={styles.moreActionsBtn}
+            />
+          </MenuTrigger>
+          <MenuPopover>
+            <MenuList>
+              <MenuItem icon={<Share24Regular />} onClick={handleMobileShare}>Share</MenuItem>
+              <MenuItem onClick={() => { setMenuOpen(false); setIsReviewOpen(true); }}>Detailed Review</MenuItem>
+              <MenuItem onClick={() => { setMenuOpen(false); handleDownloadPDF(); }}>Download PDF</MenuItem>
+              <MenuItemLink as={Link} href="/" onClick={() => setMenuOpen(false)}>Return Home</MenuItemLink>
+            </MenuList>
+          </MenuPopover>
+        </Menu>
       </div>
 
       <div ref={resultRef} className={styles.contentContainer}>
@@ -306,6 +333,7 @@ export function QuizResults({ attempt }: QuizResultsProps) {
               No rankings available yet.
             </Text>
           ) : (
+            <div className={styles.leaderboardTableWrap}>
             <table className={styles.leaderboardTable}>
               <thead>
                 <tr className={styles.leaderboardRow}>
@@ -338,7 +366,7 @@ export function QuizResults({ attempt }: QuizResultsProps) {
                       <td className={styles.leaderboardCell}>
                         <div className={styles.playerGroup}>
                           <Avatar size={20} name={rank.name} image={{ src: rank.image || undefined }} />
-                          <Text weight={index < 3 ? "semibold" : "regular"}>{rank.name}</Text>
+                          <Text weight={index < 3 ? "semibold" : "regular"} className={styles.playerName}>{rank.name}</Text>
                         </div>
                       </td>
                       <td className={`${styles.leaderboardCell} ${styles.leaderboardCellScore}`}>
@@ -354,6 +382,7 @@ export function QuizResults({ attempt }: QuizResultsProps) {
                 })}
               </tbody>
             </table>
+            </div>
           )}
         </Card>
       </div>

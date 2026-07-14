@@ -54,7 +54,7 @@ export default async function ResultsPage({ params }: { params: Promise<{ attemp
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#f9f9f9' }}>
-      <NavBar />
+      <NavBar maxWidth="900px" />
       <main style={{ padding: '24px 16px', maxWidth: '900px', margin: '0 auto', width: '100%' }}>
         <QuizResults attempt={attempt} />
       </main>

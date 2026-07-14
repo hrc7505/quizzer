@@ -8,10 +8,7 @@ export const useQuizResultsStyles = makeStyles({
     display: 'flex',
     flexDirection: 'column',
     ...shorthands.gap('24px'),
-    maxWidth: '900px',
-    margin: '0 auto',
     width: '100%',
-    padding: '0 16px',
     "@media (max-width: 480px)": {
       ...shorthands.gap('16px'),
     },
@@ -20,12 +17,41 @@ export const useQuizResultsStyles = makeStyles({
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: '12px',
   },
-  buttonGroup: {
+  headerTitle: {
+    fontSize: "28px",
+    "@media (max-width: 640px)": {
+      fontSize: "20px",
+    },
+  },
+  desktopActions: {
     display: 'flex',
     ...shorthands.gap('12px'),
     alignItems: 'center',
     position: 'relative',
+    "@media (max-width: 640px)": {
+      display: 'none',
+    },
+  },
+  moreActionsBtn: {
+    display: 'none',
+    "@media (max-width: 640px)": {
+      display: 'inline-flex',
+    },
+  },
+  actionBtn: {
+    "@media (max-width: 640px)": {
+      ...shorthands.flex(1, 1, 'auto'),
+      width: '100%',
+    },
+  },
+  actionLink: {
+    "@media (max-width: 640px)": {
+      ...shorthands.flex(1, 1, 'auto'),
+      width: '100%',
+      display: 'block',
+    },
   },
   shareWrap: {
     position: 'relative',
@@ -49,21 +75,12 @@ export const useQuizResultsStyles = makeStyles({
     flexDirection: 'column',
     gap: '6px',
     minWidth: '160px',
-    // Transparent bridge across the 8px gap so the pointer never leaves
-    // the wrapper when moving from the trigger to the menu.
-    '::before': {
-      content: '""',
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      top: '-8px',
-      height: '8px',
-    },
   },
   shareBtn: {
     width: '100%',
     justifyContent: 'flex-start',
   },
+
 
   link: {
     textDecoration: 'none',
@@ -72,8 +89,9 @@ export const useQuizResultsStyles = makeStyles({
     display: 'flex',
     flexDirection: 'column',
     ...shorthands.gap('24px'),
-    backgroundColor: '#f9f9f9',
-    ...shorthands.padding('16px'),
+    "@media (max-width: 480px)": {
+      ...shorthands.gap('16px'),
+    },
   },
   scoreDetails: {
     display: 'flex',
@@ -81,6 +99,10 @@ export const useQuizResultsStyles = makeStyles({
     alignItems: 'center',
     ...shorthands.padding('32px'),
     ...shorthands.gap('16px'),
+    "@media (max-width: 480px)": {
+      ...shorthands.padding('20px', '16px'),
+      ...shorthands.gap('12px'),
+    },
   },
   scoreNumber: {
     textAlign: 'center',
@@ -139,6 +161,10 @@ export const useQuizResultsStyles = makeStyles({
     ...shorthands.padding('24px'),
     maxWidth: '800px',
     width: '90vw',
+    "@media (max-width: 480px)": {
+      ...shorthands.padding('16px'),
+      width: '95vw',
+    },
   },
   dialogContent: {
     overflowY: 'auto',
@@ -161,6 +187,10 @@ export const useQuizResultsStyles = makeStyles({
     padding: "24px",
     borderRadius: "12px",
     boxShadow: "0 4px 12px rgba(0,0,0,0.03)",
+    "@media (max-width: 480px)": {
+      ...shorthands.padding('16px'),
+      marginTop: "16px",
+    },
   },
   leaderboardTitleRow: {
     display: "flex",
@@ -171,10 +201,21 @@ export const useQuizResultsStyles = makeStyles({
   leaderboardIcon: {
     fontSize: "20px",
   },
+  leaderboardTableWrap: {
+    width: '100%',
+    overflowX: 'auto',
+    WebkitOverflowScrolling: 'touch',
+    ...shorthands.borderRadius('8px'),
+  },
   leaderboardTable: {
     width: "100%",
+    minWidth: "480px",
     borderCollapse: "collapse",
     marginTop: "8px",
+    "@media (max-width: 480px)": {
+      minWidth: "0",
+      tableLayout: "fixed",
+    },
   },
   leaderboardRow: {
     borderBottom: "1px solid #f1f5f9",
@@ -185,20 +226,33 @@ export const useQuizResultsStyles = makeStyles({
     fontSize: "12px",
     color: "#64748b",
     fontWeight: "600",
+    "@media (max-width: 480px)": {
+      padding: "6px 4px",
+      fontSize: "11px",
+    },
   },
   leaderboardHeaderColRank: {
     width: "60px",
+    "@media (max-width: 480px)": {
+      width: "34px",
+    },
   },
   leaderboardHeaderColScore: {
+    width: "56px",
     textAlign: "center",
   },
   leaderboardHeaderColTime: {
+    width: "56px",
     textAlign: "right",
   },
   leaderboardCell: {
     padding: "10px 8px",
     fontSize: "14px",
     color: "#334155",
+    "@media (max-width: 480px)": {
+      padding: "6px 4px",
+      fontSize: "12px",
+    },
   },
   leaderboardCellScore: {
     textAlign: "center",
@@ -226,6 +280,13 @@ export const useQuizResultsStyles = makeStyles({
     display: "flex",
     alignItems: "center",
     gap: "8px",
+    minWidth: "0",
+  },
+  playerName: {
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    minWidth: "0",
   },
   loadingContainer: {
     display: "flex",

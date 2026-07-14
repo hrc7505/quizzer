@@ -20,7 +20,8 @@ import {
 
 import { AttemptService } from "@/lib/services/attempt.service";
 import { useQuizWizardStyles } from "./styles/useQuizWizardStyles";
-import { WhatsAppIcon, FacebookIcon, TelegramIcon } from "./socialIcons";
+import { ShareButton } from "./ShareButton";
+import { Share24Regular } from "@fluentui/react-icons";
 
 /**
  * QuizWizard Component. Coordinates quiz play state, fetches leaderboards, 
@@ -267,21 +268,21 @@ export function QuizWizard({ quiz }: { quiz: any }) {
     return `${m}:${s}`;
   };
 
-  const handleShare = (platform: "whatsapp" | "facebook" | "telegram") => {
+  const resolveShareUrl = async () => {
     const origin = window.location.origin;
-    const shareUrl = `${origin}/quiz/${quiz.id}`;
-    const shareText = `Check out this quiz: ${quiz.title} on Quizzer!`;
+    let shareUrl = `${origin}/quiz/${quiz.id}`;
 
-    const encodedText = encodeURIComponent(shareText);
-    const encodedUrl = encodeURIComponent(shareUrl);
+    try {
+      const res = await fetch(`/api/quiz/${quiz.id}/share-url`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json?.url) shareUrl = `${origin}${json.url}`;
+      }
+    } catch {
+      // keep fallback
+    }
 
-    const urlByPlatform: Record<typeof platform, string> = {
-      whatsapp: `https://wa.me/?text=${encodedText}%20${encodedUrl}`,
-      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedText}`,
-      telegram: `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`,
-    };
-
-    window.open(urlByPlatform[platform], "_blank", "noopener,noreferrer");
+    return shareUrl;
   };
 
 
@@ -403,29 +404,15 @@ export function QuizWizard({ quiz }: { quiz: any }) {
                 >
                   Start Quiz
                 </Button>
-                <Menu>
-                  <MenuTrigger disableButtonEnhancement>
-                    <MenuButton
-                      appearance="primary"
-                      size="large"
-                      aria-label="Share this quiz"
-                      className={styles.splitChevron}
-                    />
-                  </MenuTrigger>
-                  <MenuPopover>
-                    <MenuList>
-                      <MenuItem icon={<WhatsAppIcon />} onClick={() => handleShare("whatsapp")}>
-                        Share on WhatsApp
-                      </MenuItem>
-                      <MenuItem icon={<FacebookIcon />} onClick={() => handleShare("facebook")}>
-                        Share on Facebook
-                      </MenuItem>
-                      <MenuItem icon={<TelegramIcon />} onClick={() => handleShare("telegram")}>
-                        Share on Telegram
-                      </MenuItem>
-                    </MenuList>
-                  </MenuPopover>
-                </Menu>
+                <ShareButton
+                  icon={<Share24Regular />}
+                  buttonAppearance="outline"
+                  buttonSize="large"
+                  shareText={`Check out this quiz: ${quiz.title} on Quizzer!`}
+                  defaultUrl={`${typeof window !== "undefined" ? window.location.origin : ""}/quiz/${quiz.id}`}
+                  resolveUrl={resolveShareUrl}
+                  buttonClassName={styles.splitChevron}
+                />
               </div>
             )}
           </div>

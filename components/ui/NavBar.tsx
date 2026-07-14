@@ -18,7 +18,7 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import { signOut, useSession } from "next-auth/react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useNavBarStyles } from "./styles/useNavBarStyles";
 
 /**
@@ -28,11 +28,10 @@ import { useNavBarStyles } from "./styles/useNavBarStyles";
  * - On admin routes: shows the admin NavDrawer via the hamburger
  * - Role-aware: only shows profile/signout for USER role on public routes
  */
-export function NavBar() {
+export function NavBar({ maxWidth = "1200px" }: { maxWidth?: string }) {
   const styles = useNavBarStyles();
   const { data: session } = useSession();
   const pathname = usePathname();
-  const router = useRouter();
 
   const [isAdminDrawerOpen, setIsAdminDrawerOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -53,6 +52,7 @@ export function NavBar() {
   return (
     <>
       <nav className={styles.nav}>
+        <div className={styles.navInner} style={{ maxWidth }}>
         {/* Left: hamburger (mobile) + brand */}
         <div className={styles.leftSection}>
           {/* Mobile hamburger */}
@@ -135,6 +135,7 @@ export function NavBar() {
               aria-label="Toggle admin navigation"
             />
           )}
+        </div>
         </div>
       </nav>
 
@@ -230,40 +231,42 @@ export function NavBar() {
           </NavDrawerHeader>
           <NavDrawerBody>
             <NavItem
+              as={Link as unknown as "a"}
               href="/admin" value="/admin" icon={<Board24Regular />}
-              onClick={(e) => { e.preventDefault(); router.push("/admin"); setIsAdminDrawerOpen(false); }}
+              onClick={() => setIsAdminDrawerOpen(false)}
             >Dashboard</NavItem>
 
             <NavItem
+              as={Link as unknown as "a"}
               href="/admin/generate" value="/admin/generate" icon={<Add24Regular />}
-              onClick={(e) => { e.preventDefault(); router.push("/admin/generate"); setIsAdminDrawerOpen(false); }}
+              onClick={() => setIsAdminDrawerOpen(false)}
             >Generate Quiz</NavItem>
 
             <NavCategory value="taxonomy">
               <NavCategoryItem icon={<Options24Regular />}>Taxonomy</NavCategoryItem>
               <NavSubItemGroup>
-                <NavSubItem href="/admin/manage/exams" value="/admin/manage/exams"
-                  onClick={(e) => { e.preventDefault(); router.push("/admin/manage/exams"); setIsAdminDrawerOpen(false); }}
+                <NavSubItem as={Link as unknown as "a"} href="/admin/manage/exams" value="/admin/manage/exams"
+                  onClick={() => setIsAdminDrawerOpen(false)}
                 >Exams</NavSubItem>
-                <NavSubItem href="/admin/manage/topics" value="/admin/manage/topics"
-                  onClick={(e) => { e.preventDefault(); router.push("/admin/manage/topics"); setIsAdminDrawerOpen(false); }}
+                <NavSubItem as={Link as unknown as "a"} href="/admin/manage/topics" value="/admin/manage/topics"
+                  onClick={() => setIsAdminDrawerOpen(false)}
                 >Main Topics</NavSubItem>
-                <NavSubItem href="/admin/manage/subtopics" value="/admin/manage/subtopics"
-                  onClick={(e) => { e.preventDefault(); router.push("/admin/manage/subtopics"); setIsAdminDrawerOpen(false); }}
+                <NavSubItem as={Link as unknown as "a"} href="/admin/manage/subtopics" value="/admin/manage/subtopics"
+                  onClick={() => setIsAdminDrawerOpen(false)}
                 >Sub Topics</NavSubItem>
               </NavSubItemGroup>
             </NavCategory>
 
-            <NavItem href="/admin/manage/quizzes" value="/admin/manage/quizzes" icon={<DocumentDatabase24Regular />}
-              onClick={(e) => { e.preventDefault(); router.push("/admin/manage/quizzes"); setIsAdminDrawerOpen(false); }}
+            <NavItem as={Link as unknown as "a"} href="/admin/manage/quizzes" value="/admin/manage/quizzes" icon={<DocumentDatabase24Regular />}
+              onClick={() => setIsAdminDrawerOpen(false)}
             >Quizzes</NavItem>
 
-            <NavItem href="/admin/manage/users" value="/admin/manage/users" icon={<People24Regular />}
-              onClick={(e) => { e.preventDefault(); router.push("/admin/manage/users"); setIsAdminDrawerOpen(false); }}
+            <NavItem as={Link as unknown as "a"} href="/admin/manage/users" value="/admin/manage/users" icon={<People24Regular />}
+              onClick={() => setIsAdminDrawerOpen(false)}
             >Users</NavItem>
 
-            <NavItem href="/admin/manage/deep-dives" value="/admin/manage/deep-dives" icon={<Brain24Regular />}
-              onClick={(e) => { e.preventDefault(); router.push("/admin/manage/deep-dives"); setIsAdminDrawerOpen(false); }}
+            <NavItem as={Link as unknown as "a"} href="/admin/manage/deep-dives" value="/admin/manage/deep-dives" icon={<Brain24Regular />}
+              onClick={() => setIsAdminDrawerOpen(false)}
             >Deep Dives</NavItem>
           </NavDrawerBody>
 

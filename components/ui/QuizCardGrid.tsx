@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Card, Text, Button, Badge, Input, Select, Spinner } from "@fluentui/react-components";
+import { Card, Text, Badge, Input, Select, Spinner, makeStyles } from "@fluentui/react-components";
 import { Search24Regular, ArrowRight16Regular, Sparkle24Regular } from "@fluentui/react-icons";
 import Link from "next/link";
+import { ShareButton } from "./ShareButton";
+import { Share24Regular } from "@fluentui/react-icons";
 
 interface QuizItem {
   id: string;
@@ -22,11 +24,135 @@ interface QuizCardGridProps {
   basePath: string;
 }
 
+const useStyles = makeStyles({
+  wrap: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "24px",
+  },
+  toolbar: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "12px",
+    backgroundColor: "#ffffff",
+    padding: "14px 20px",
+    borderRadius: "14px",
+    border: "1px solid #e2e8f0",
+    boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
+  },
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+    gap: "16px",
+    "@media (min-width: 640px)": {
+      gap: "20px",
+    },
+  },
+  card: {
+    borderRadius: "16px",
+    border: "1px solid #e2e8f0",
+    boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
+    padding: "22px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "14px",
+    backgroundColor: "#ffffff",
+    transitionProperty: "transform, box-shadow, border-color",
+    transitionDuration: "0.2s",
+    ":hover": {
+      transform: "translateY(-3px)",
+      boxShadow: "0 14px 30px rgba(15, 23, 42, 0.10)",
+    },
+    "@media (max-width: 480px)": {
+      padding: "18px",
+      gap: "12px",
+    },
+  },
+  quizNo: {
+    color: "#64748b",
+    fontWeight: 600,
+    display: "block",
+    marginBottom: "4px",
+    textTransform: "uppercase",
+    letterSpacing: "0.04em",
+    fontSize: "12px",
+  },
+  title: {
+    color: "#0f172a",
+    lineHeight: 1.3,
+    display: "block",
+  },
+  badgeRow: {
+    display: "flex",
+    gap: "8px",
+    flexWrap: "wrap",
+    marginTop: "auto",
+  },
+  actionRow: {
+    display: "flex",
+    gap: "10px",
+    marginTop: "8px",
+    alignItems: "center",
+  },
+  startBtn: {
+    flex: 1,
+    height: "40px",
+    textDecoration: "none",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "8px",
+    backgroundColor: "#4f46e5",
+    color: "#ffffff",
+    borderRadius: "10px",
+    fontWeight: 600,
+    fontSize: "14px",
+    padding: "0 14px",
+    boxShadow: "0 2px 4px rgba(79, 70, 229, 0.18)",
+    transitionProperty: "background-color",
+    transitionDuration: "0.2s",
+    ":hover": {
+      backgroundColor: "#4338ca",
+    },
+  },
+  shareBtn: {
+    height: "40px",
+    width: "40px",
+    borderRadius: "10px",
+    border: "1px solid #cbd5e1",
+    backgroundColor: "#ffffff",
+    padding: "0",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyState: {
+    textAlign: "center",
+    padding: "64px 24px",
+    backgroundColor: "#ffffff",
+    borderRadius: "16px",
+    border: "1px dashed #cbd5e1",
+  },
+  emptyTitle: {
+    color: "#1e293b",
+    marginBottom: "6px",
+  },
+  emptyText: {
+    color: "#64748b",
+  },
+  loadMore: {
+    display: "flex",
+    justifyContent: "center",
+    padding: "16px 0",
+  },
+});
+
 /**
  * Reusable Card Grid component for Quizzes.
  * Features search filtering, difficulty filtering, and infinite scroll paging.
  */
 export function QuizCardGrid({ quizzes, subtopicTitle, basePath }: QuizCardGridProps) {
+  const styles = useStyles();
   const [searchQuery, setSearchQuery] = useState("");
   const [difficultyFilter, setDifficultyFilter] = useState("");
   const [visibleCount, setVisibleCount] = useState(12);
@@ -44,6 +170,7 @@ export function QuizCardGrid({ quizzes, subtopicTitle, basePath }: QuizCardGridP
 
   // Reset pagination count on search or filter change
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setVisibleCount(12);
   }, [searchQuery, difficultyFilter]);
 
@@ -74,13 +201,9 @@ export function QuizCardGrid({ quizzes, subtopicTitle, basePath }: QuizCardGridP
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+    <div className={styles.wrap}>
       {/* Filtering Toolbar */}
-      <div style={{
-        display: "flex", flexWrap: "wrap", gap: "12px", backgroundColor: "white",
-        padding: "14px 20px", borderRadius: "12px", border: "1px solid #e2e8f0",
-        boxShadow: "0 2px 4px rgba(0,0,0,0.02)"
-      }}>
+      <div className={styles.toolbar}>
         <Input
           contentBefore={<Search24Regular style={{ fontSize: "18px", color: "#64748b" }} />}
           placeholder="Search quizzes by title..."
@@ -103,33 +226,19 @@ export function QuizCardGrid({ quizzes, subtopicTitle, basePath }: QuizCardGridP
 
       {/* Grid of Quizzes */}
       {paginated.length > 0 ? (
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-          gap: "16px"
-        }}>
+        <div className={styles.grid}>
           {paginated.map(quiz => (
-            <Card key={quiz.id} style={{
-              borderRadius: '16px',
-              border: '1px solid #e2e8f0',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
-              padding: '24px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-              backgroundColor: 'white',
-              transition: 'transform 0.2s, box-shadow 0.2s',
-            }}>
+            <Card key={quiz.id} className={styles.card}>
               <div>
-                <Text size={100} style={{ color: "#64748b", fontWeight: "semibold", display: "block", marginBottom: "4px" }}>
+                <Text size={100} className={styles.quizNo}>
                   Quiz #{quiz.quizOrder}
                 </Text>
-                <Text size={400} weight="bold" style={{ color: "#0f172a", lineHeight: "1.3", display: "block" }}>
+                <Text size={400} weight="bold" className={styles.title}>
                   {quiz.title}
                 </Text>
               </div>
 
-              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "auto" }}>
+              <div className={styles.badgeRow}>
                 <Badge color={getDifficultyColor(quiz.difficulty)} style={{ borderRadius: '6px' }}>
                   {quiz.difficulty}
                 </Badge>
@@ -138,48 +247,53 @@ export function QuizCardGrid({ quizzes, subtopicTitle, basePath }: QuizCardGridP
                 </Badge>
               </div>
 
-              <Link 
-                href={`${basePath}/quiz/${quiz.id}`} 
-                style={{ 
-                  textDecoration: "none", 
-                  marginTop: "8px",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "8px",
-                  backgroundColor: "#0078d4",
-                  color: "white",
-                  borderRadius: "8px",
-                  height: "38px",
-                  fontWeight: "600",
-                  fontSize: "14px",
-                  boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
-                  transition: "background-color 0.2s"
-                }}
-              >
-                Start Quiz
-                <ArrowRight16Regular />
-              </Link>
+              <div className={styles.actionRow}>
+                <Link
+                  href={`${basePath}/quiz/${quiz.id}`}
+                  className={styles.startBtn}
+                >
+                  Start Quiz
+                  <ArrowRight16Regular />
+                </Link>
+
+                {/* Sharing button (mobile-safe: no hover) */}
+                <ShareButton
+                  icon={<Share24Regular />}
+                  buttonAppearance="outline"
+                  buttonSize="large"
+                  buttonClassName={styles.shareBtn}
+                  shareText={`${quiz.title} — Take this quiz on Quizzer!`}
+                  defaultUrl={`${typeof window !== "undefined" ? window.location.origin : ""}${basePath}/quiz/${quiz.id}`}
+                  resolveUrl={async () => {
+                    try {
+                      const res = await fetch(`/api/quiz/${quiz.id}/share-url`);
+                      if (res.ok) {
+                        const json = await res.json();
+                        return json?.url ? `${window.location.origin}${json.url}` : undefined;
+                      }
+                    } catch {
+                      return undefined;
+                    }
+                    return undefined;
+                  }}
+                />
+              </div>
             </Card>
           ))}
         </div>
       ) : (
-        <div style={{
-          textAlign: "center", padding: "64px 24px",
-          backgroundColor: "white", borderRadius: "16px",
-          border: "1px dashed #cbd5e1"
-        }}>
+        <div className={styles.emptyState}>
           <Sparkle24Regular style={{ fontSize: "36px", color: "#94a3b8", marginBottom: "12px" }} />
-          <Text size={500} weight="bold" block style={{ color: "#1e293b", marginBottom: "6px" }}>
-            No quizzes found in "{subtopicTitle}"
+          <Text size={500} weight="bold" block className={styles.emptyTitle}>
+            No quizzes found in &quot;{subtopicTitle}&quot;
           </Text>
-          <Text size={200} style={{ color: "#64748b" }}>Adjust your filters or query to locate linked quizzes.</Text>
+          <Text size={200} className={styles.emptyText}>Adjust your filters or query to locate linked quizzes.</Text>
         </div>
       )}
 
       {/* Infinite Scroll Spinner */}
       {hasMore && (
-        <div ref={sentinelRef} style={{ display: "flex", justifyContent: "center", padding: "16px 0" }}>
+        <div ref={sentinelRef} className={styles.loadMore}>
           <Spinner label="Loading more quizzes..." />
         </div>
       )}

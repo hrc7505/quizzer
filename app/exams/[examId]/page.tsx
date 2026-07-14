@@ -1,9 +1,11 @@
-import { NavBar } from "@/components/ui/NavBar";
-import { prisma } from "@/lib/prisma";
-import { DirectoryCardList } from "@/components/ui/DirectoryCardList";
+import { PageLayout } from "@/components/ui/PageLayout";
+import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
-import { notFound } from "next/navigation";
+import { ContentHeader } from "@/components/ui/ContentHeader";
+import { DirectoryCardList } from "@/components/ui/DirectoryCardList";
 import { BookOpen24Regular } from "@/components/ui/ServerIcons";
+import { prisma } from "@/lib/prisma";
+import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +33,7 @@ export default async function ExamTopicsPage({ params }: ExamPageProps) {
     include: {
       topics: {
         include: {
-          _count: { select: { quizzes: true } }
+          _count: { select: { quizzes: true, subtopics: true } }
         },
         orderBy: { createdAt: "desc" }
       }
@@ -47,7 +49,7 @@ export default async function ExamTopicsPage({ params }: ExamPageProps) {
     title: t.title,
     description: t.description,
     href: `/exams/${examId}/${t.id}`,
-    meta: `${t._count.quizzes} Quizzes`
+    meta: `${t._count.subtopics} Sub Topics`
   }));
 
   const breadcrumbItems = [
@@ -56,34 +58,18 @@ export default async function ExamTopicsPage({ params }: ExamPageProps) {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#f9f9f9' }}>
-      <NavBar />
-      <main style={{ padding: '24px 16px', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
-        <Breadcrumbs items={breadcrumbItems} />
+    <PageLayout>
+      <Breadcrumbs items={breadcrumbItems} />
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
-          <div style={{
-            width: "44px", height: "44px", borderRadius: "10px",
-            background: "linear-gradient(135deg, #4f46e5 0%, #818cf8 100%)",
-            display: "flex", alignItems: "center", justifyContent: "center"
-          }}>
-            <BookOpen24Regular style={{ color: "white" }} />
-          </div>
-          <div>
-            <h1 style={{ fontSize: "28px", fontWeight: "bold", color: "#242424", margin: 0 }}>{exam.title}</h1>
-            {exam.description && (
-              <p style={{ color: "#616161", fontSize: "14px", margin: "4px 0 0 0" }}>
-                {exam.description}
-              </p>
-            )}
-          </div>
-        </div>
+      <ContentHeader
+        icon={<BookOpen24Regular />}
+        variant="topic"
+        title={exam.title}
+        description={exam.description}
+      />
 
-        <h2 style={{ fontSize: "20px", fontWeight: "bold", color: "#0f172a", marginBottom: "16px", borderBottom: "2px solid #eaeaea", paddingBottom: "8px" }}>
-          Main Topics
-        </h2>
-        <DirectoryCardList items={topicItems} itemLabel="main topics" searchPlaceholder="Search main topics..." />
-      </main>
-    </div>
+      <SectionHeading>Main Topics</SectionHeading>
+      <DirectoryCardList items={topicItems} itemLabel="main topics" searchPlaceholder="Search main topics..." />
+    </PageLayout>
   );
 }

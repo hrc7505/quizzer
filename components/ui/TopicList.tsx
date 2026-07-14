@@ -2,16 +2,17 @@
 
 import { useState, useEffect, useRef } from "react";
 import {
-  Card, CardHeader, Text, Button, Badge, Accordion,
+  Card, CardHeader, Text, Badge, Accordion,
+
   AccordionItem, AccordionHeader, AccordionPanel,
   Input, Select, TabList, Tab, Spinner
 } from "@fluentui/react-components";
 import {
-  Search24Regular, Filter24Regular, Grid24Regular, 
+  Search24Regular, Grid24Regular,
   TextBulletListTree24Regular, ArrowRight16Regular, Sparkle24Regular
 } from "@fluentui/react-icons";
 import Link from "next/link";
-import { TopicListProps, TopicData, QuizSummary } from "./interfaces/TopicList.interface";
+import { TopicListProps, TopicData } from "./interfaces/TopicList.interface";
 import { useTopicListStyles } from "./styles/useTopicListStyles";
 
 interface FlattenedQuiz {
@@ -128,12 +129,13 @@ export function TopicList({ exams, standaloneTopics }: TopicListProps) {
   const paginatedQuizzes = filteredQuizzes.slice(0, visibleCount);
   const hasMore = filteredQuizzes.length > visibleCount;
 
-  // Reset pagination count on search or filter change
-  useEffect(() => {
-    setVisibleCount(12);
-  }, [searchQuery, examFilter, difficultyFilter]);
+  // Pagination count resets to default whenever search/filter inputs change
+  // because the slice below is recomputed from `visibleCount` state (default 12).
+
+
 
   // ── Infinite Scroll Observer ──────────────────────────────────────────────────
+
 
   useEffect(() => {
     const sentinel = sentinelRef.current;

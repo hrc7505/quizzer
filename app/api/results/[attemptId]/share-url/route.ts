@@ -35,7 +35,8 @@ export async function GET(
     }
 
     return NextResponse.json({ url });
-  } catch {
+  } catch (error) {
+    console.error("Failed to resolve share url:", error);
     return NextResponse.json({ error: "Failed to resolve share url" }, { status: 500 });
   }
 }

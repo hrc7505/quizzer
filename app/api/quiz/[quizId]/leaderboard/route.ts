@@ -5,6 +5,16 @@ import { prisma } from "@/lib/prisma";
  * Handles GET requests to fetch the top 10 unique rankers for a quiz.
  * Ranks by score percentage (descending), then time taken (ascending), then date (ascending).
  */
+type LeaderboardEntry = {
+  userId: string;
+  name: string;
+  email: string | null | undefined;
+  image: string | null | undefined;
+  scorePercentage: number | null;
+  timeTakenSec: number | null;
+  createdAt: Date;
+};
+
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ quizId: string }> }
@@ -41,7 +51,7 @@ export async function GET(
     });
 
     // Filter to retain only the best unique attempt per user
-    const leaderboard: any[] = [];
+    const leaderboard: LeaderboardEntry[] = [];
     const seenUsers = new Set<string>();
 
     for (const att of attempts) {

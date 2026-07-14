@@ -4,6 +4,26 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "./prisma";
 
+export type UserRole = "USER" | "ADMIN";
+
+export interface SessionUser {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+  role: UserRole;
+  phoneNumber?: string | null;
+}
+
+export interface AuthUser {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+  role: UserRole;
+  phoneNumber?: string | null;
+}
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
@@ -113,9 +133,9 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.phoneNumber = (user as any).phoneNumber;
-        
-        let role = (user as any).role || "USER";
+        token.phoneNumber = (user as unknown as AuthUser).phoneNumber;
+
+        let role = (user as unknown as AuthUser).role || "USER";
         const adminEmail = (process.env.ADMIN_EMAIL || "admin@quizzer.com").trim().toLowerCase();
         if (user.email && user.email.toLowerCase() === adminEmail) {
           role = "ADMIN";
@@ -131,9 +151,9 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as any).id = token.id;
-        (session.user as any).role = token.role;
-        (session.user as any).phoneNumber = token.phoneNumber;
+        (session.user as SessionUser).id = token.id as string;
+        (session.user as SessionUser).role = token.role as UserRole;
+        (session.user as SessionUser).phoneNumber = token.phoneNumber as string | null | undefined;
       }
       return session;
     },

@@ -3,6 +3,7 @@
 import { SignInForm } from "@/components/ui/SignInForm";
 import { Card, CardHeader, Text, MessageBar, MessageBarBody } from "@fluentui/react-components";
 import { useSession } from "next-auth/react";
+import { SessionUser } from "@/lib/auth";
 
 /**
  * Admin Login Page. Uses Phone/OTP credentials flow and features a dark background.
@@ -10,7 +11,7 @@ import { useSession } from "next-auth/react";
  */
 export default function AdminSignInPage() {
   const { data: session } = useSession();
-  const isUserLoggedIn = session && (session.user as any)?.role !== "ADMIN";
+  const isUserLoggedIn = session && (session.user as SessionUser)?.role !== "ADMIN";
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', minHeight: '100vh', backgroundColor: '#0f172a' }}>

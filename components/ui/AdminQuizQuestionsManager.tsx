@@ -9,7 +9,6 @@ import {
   Add20Regular, Edit20Regular, Delete20Regular, ArrowLeft20Regular, Dismiss20Regular
 } from "@fluentui/react-icons";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 
 interface Question {
   id: string;
@@ -222,7 +221,7 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
         }}>
           <Text size={500} weight="bold" style={{ color: "#374151" }}>No Questions Yet</Text>
           <Text size={300} style={{ color: "#6b7280", maxWidth: "460px" }}>
-            This quiz has no questions. Click "Add Question" below to add a question manually.
+            This quiz has no questions. Click &quot;Add Question&quot; below to add a question manually.
           </Text>
           <Button appearance="primary" icon={<Add20Regular />} onClick={handleOpenAdd}>
             Add First Question

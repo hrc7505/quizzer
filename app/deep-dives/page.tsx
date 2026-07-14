@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { DeepDivesLibrary } from "@/components/ui/DeepDivesLibrary";
-import { NavBar } from "@/components/ui/NavBar";
+import { PageLayout } from "@/components/ui/PageLayout";
 
 export const dynamic = "force-dynamic";
 
@@ -27,11 +27,8 @@ export default async function DeepDivesPage() {
   });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#f0f2f5' }}>
-      <NavBar maxWidth="1100px" />
-      <main style={{ flex: 1, overflowY: 'auto', padding: '24px 16px', maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
-        <DeepDivesLibrary questions={questions} />
-      </main>
-    </div>
+    <PageLayout variant="deep-dives" navMaxWidth="1100px" mainMaxWidth="1100px">
+      <DeepDivesLibrary questions={questions} />
+    </PageLayout>
   );
 }

@@ -1,30 +1,41 @@
 "use client";
 
 import { FluentProvider as UIProvider, webLightTheme, webDarkTheme } from "@fluentui/react-components";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { SessionProvider } from "next-auth/react";
 
-export function Providers({ children }: { children: React.ReactNode }) {
-  const [mounted, setMounted] = useState(false);
-  const [isDark, setIsDark] = useState(false);
+const emptySubscribe = () => () => {};
 
-  useEffect(() => {
-    setMounted(true);
-    // Simple dark mode detection
-    if (typeof window !== 'undefined') {
-      const matchMedia = window.matchMedia('(prefers-color-scheme: dark)');
-      setIsDark(matchMedia.matches);
-      
-      const listener = (e: MediaQueryListEvent) => setIsDark(e.matches);
-      matchMedia.addEventListener('change', listener);
-      return () => matchMedia.removeEventListener('change', listener);
-    }
-  }, []);
+export function Providers({ children }: { children: React.ReactNode }) {
+  // False during SSR and the initial client render (matches server HTML),
+  // true after hydration — avoids a visibility hydration mismatch.
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
+
+  // Resolve the preferred color scheme on the client only. Server and initial
+  // client render both use the light theme, then this syncs to the real value
+  // without a setState-in-effect.
+  const isDark = useSyncExternalStore(
+    (onChange) => {
+      if (typeof window === "undefined") return () => {};
+      const matchMedia = window.matchMedia("(prefers-color-scheme: dark)");
+      matchMedia.addEventListener("change", onChange);
+      return () => matchMedia.removeEventListener("change", onChange);
+    },
+    () => {
+      if (typeof window === "undefined") return false;
+      return window.matchMedia("(prefers-color-scheme: dark)").matches;
+    },
+    () => false
+  );
 
   return (
     <SessionProvider>
-      <UIProvider theme={isDark ? webDarkTheme : webLightTheme} style={{ height: "100vh", backgroundColor: isDark ? "#000" : "#f5f5f5" }}>
-        <div style={{ visibility: !mounted ? "hidden" : "visible" }}>{children}</div>
+      <UIProvider theme={isDark ? webDarkTheme : webLightTheme}>
+        <div className="providers-shell" data-mounted={mounted ? "true" : undefined}>{children}</div>
       </UIProvider>
     </SessionProvider>
   );

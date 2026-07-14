@@ -1,4 +1,4 @@
-import { makeStyles, shorthands, tokens } from "@fluentui/react-components";
+import { makeStyles, shorthands } from "@fluentui/react-components";
 
 /**
  * Styles hook for the NavBar component.
@@ -201,8 +201,10 @@ export const useNavBarStyles = makeStyles({
   },
   brandImage: {
     height: "32px",
-    width: "120px",
-    objectFit: "contain",
+    width: "auto",
+    "@media (min-width: 768px)": {
+      height: "40px",
+    },
   },
   iconSmall: {
     fontSize: "18px",

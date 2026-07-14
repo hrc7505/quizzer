@@ -1,6 +1,25 @@
 /**
  * Service to handle quiz attempt-related API requests.
  */
+import { UserAnswer } from "@prisma/client";
+
+export interface StartAttemptResult {
+  attemptId: string;
+  answers: UserAnswer[];
+  timeTakenSec: number;
+}
+
+export interface LeaderboardEntry {
+  userId: string;
+  name: string;
+  email: string | null | undefined;
+  image: string | null | undefined;
+  scorePercentage: number | null;
+  timeTakenSec: number | null;
+  createdAt: Date;
+  rank?: number;
+}
+
 export const AttemptService = {
   /**
    * Starts a new attempt or retrieves an active one for a quiz.
@@ -8,7 +27,7 @@ export const AttemptService = {
    * @param quizId - The ID of the quiz to play.
    * @returns A promise resolving to the attempt metadata.
    */
-  startAttempt: async (quizId: string): Promise<{ attemptId: string; answers: any[]; timeTakenSec: number }> => {
+  startAttempt: async (quizId: string): Promise<StartAttemptResult> => {
     const res = await fetch("/api/attempt", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -84,7 +103,7 @@ export const AttemptService = {
    * @param quizId - The quiz ID.
    * @returns A promise resolving to the leaderboard rankings.
    */
-  getLeaderboard: async (quizId: string): Promise<any[]> => {
+  getLeaderboard: async (quizId: string): Promise<LeaderboardEntry[]> => {
     const res = await fetch(`/api/quiz/${quizId}/leaderboard`);
     const data = await res.json();
     if (!res.ok) {

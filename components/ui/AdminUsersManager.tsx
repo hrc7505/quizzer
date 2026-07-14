@@ -33,7 +33,8 @@ export function AdminUsersManager({ initialUsers }: AdminUsersManagerProps) {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<UserData | null>(null);
 
-  const currentUserId = (session?.user as any)?.id;
+  const currentUserId = (session?.user as { id?: string | null } | null)?.id;
+
 
   /** Filter users based on search query */
   const filteredUsers = users.filter((user) => {
@@ -59,8 +60,10 @@ export function AdminUsersManager({ initialUsers }: AdminUsersManagerProps) {
     try {
       await UserService.deleteUser(userToDelete.id);
       setUsers((prev) => prev.filter((u) => u.id !== userToDelete.id));
-    } catch (err: any) {
-      setError(err.message || "Failed to delete user");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : undefined;
+      setError(message || "Failed to delete user");
+
     } finally {
       setLoading(false);
       setUserToDelete(null);
@@ -100,7 +103,13 @@ export function AdminUsersManager({ initialUsers }: AdminUsersManagerProps) {
       renderHeaderCell: () => "Phone Number",
       renderCell: (user) => (
         <TableCellLayout>
-          <Text>{(user as any).phoneNumber || "N/A"}</Text>
+              <Text>
+                {("phoneNumber" in user && typeof (user as { phoneNumber?: string }).phoneNumber === "string")
+                  ? (user as { phoneNumber?: string }).phoneNumber
+                  : "N/A"}
+              </Text>
+
+
         </TableCellLayout>
       ),
     }),

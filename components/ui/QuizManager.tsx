@@ -13,7 +13,7 @@ import {
 import {
   Add20Regular, Edit20Regular, Delete20Regular, Link20Regular, LinkDismiss20Regular,
   Filter20Regular, Dismiss20Regular, MoreHorizontal20Regular,
-  DocumentDatabase24Regular, Warning48Regular, BookOpen20Regular,
+  Warning48Regular, BookOpen20Regular,
   Sparkle20Regular
 } from "@fluentui/react-icons";
 import { createTableColumn, TableColumnDefinition } from "@fluentui/react-components";
@@ -67,7 +67,25 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
 
   // Detail drawer state
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
-  const [activeQuizDetail, setActiveQuizDetail] = useState<any | null>(null);
+  type QuizQuestionDetail = {
+    id: string;
+    text: string;
+    options: string[];
+    correctAnswer: string;
+    hint?: string | null;
+    description?: string | null;
+  };
+
+  type QuizDetail = {
+    id: string;
+    title: string;
+    difficulty: string;
+    quizOrder: number;
+    questions?: QuizQuestionDetail[];
+  };
+
+  const [activeQuizDetail, setActiveQuizDetail] = useState<QuizDetail | null>(null);
+
   const [activeQuizLoading, setActiveQuizLoading] = useState(false);
 
   // Question Form / Dialog State
@@ -102,12 +120,18 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
   };
 
   useEffect(() => {
-    if (selectedQuizId) {
-      loadQuizDetails(selectedQuizId);
-    } else {
-      setActiveQuizDetail(null);
+    if (!selectedQuizId) {
+      return;
     }
+
+
+
+    // Defer async state updates to the async function itself.
+    void (async () => {
+      await loadQuizDetails(selectedQuizId);
+    })();
   }, [selectedQuizId]);
+
 
   const handleOpenAddQuestion = () => {
     setQuestionForm({
@@ -121,7 +145,8 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
     setQuestionDialogOpen(true);
   };
 
-  const handleOpenEditQuestion = (q: any) => {
+  const handleOpenEditQuestion = (q: QuizQuestionDetail) => {
+
     setQuestionForm({
       id: q.id,
       text: q.text,
@@ -698,7 +723,7 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
               </div>
             ) : (
               <div style={{ padding: "32px", textAlign: "center", backgroundColor: "#fafafa", borderRadius: "8px", border: "1px dashed #d9d9d9" }}>
-                <Text style={{ color: "#9ca3af" }}>No topics linked. Click "Link Topics" to associate this quiz with subtopics.</Text>
+                <Text style={{ color: "#9ca3af" }}>No topics linked. Click &quot;Link Topics&quot; to associate this quiz with subtopics.</Text>
               </div>
             )}
           </div>
@@ -722,7 +747,7 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
               </div>
             ) : activeQuizDetail?.questions && activeQuizDetail.questions.length > 0 ? (
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                {activeQuizDetail.questions.map((q: any, idx: number) => (
+                {activeQuizDetail.questions.map((q, idx: number) => (
                   <Card key={q.id} style={{
                     display: "flex", flexDirection: "column", gap: "8px", padding: "16px",
                     border: "1px solid #f0f0f0", borderRadius: "8px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)"
@@ -779,7 +804,7 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
               </div>
             ) : (
               <div style={{ padding: "32px", textAlign: "center", backgroundColor: "#fafafa", borderRadius: "8px", border: "1px dashed #d9d9d9" }}>
-                <Text style={{ color: "#9ca3af" }}>No questions linked. Click "Add Question" to build questions manually.</Text>
+                <Text style={{ color: "#9ca3af" }}>No questions linked. Click &quot;Add Question&quot; to build questions manually.</Text>
               </div>
             )}
           </div>

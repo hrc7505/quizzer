@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { authOptions, SessionUser } from "@/lib/auth";
+
 
 /**
  * Handles POST requests to finalize a quiz attempt.
@@ -37,7 +38,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Quiz attempt not found" }, { status: 404 });
     }
 
-    if (attempt.userId !== (session.user as any).id) {
+    if (attempt.userId !== (session.user as SessionUser).id) {
       return NextResponse.json({ error: "Unauthorized access to attempt" }, { status: 403 });
     }
 

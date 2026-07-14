@@ -23,6 +23,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ attemptI
 
     return NextResponse.json({ attempt });
   } catch (error) {
+    console.error("Failed to fetch attempt:", error);
     return NextResponse.json({ error: "Failed to fetch attempt" }, { status: 500 });
   }
 }

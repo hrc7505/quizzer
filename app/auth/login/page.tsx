@@ -43,7 +43,7 @@ function LoginContent() {
       } else {
         window.location.href = callbackUrl;
       }
-    } catch (err) {
+    } catch {
       setError("An unexpected error occurred.");
     } finally {
       setLoading(false);

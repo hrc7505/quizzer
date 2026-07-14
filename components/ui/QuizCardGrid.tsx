@@ -227,12 +227,12 @@ export function QuizCardGrid({ quizzes, subtopicTitle, basePath }: QuizCardGridP
       {/* Grid of Quizzes */}
       {paginated.length > 0 ? (
         <div className={styles.grid}>
-          {paginated.map(quiz => (
-            <Card key={quiz.id} className={styles.card}>
-              <div>
-                <Text size={100} className={styles.quizNo}>
-                  Quiz #{quiz.quizOrder}
-                </Text>
+           {paginated.map((quiz) => (
+             <Card key={quiz.id} className={styles.card}>
+               <div>
+                 <Text size={100} className={styles.quizNo}>
+                   Quiz #{quiz.quizOrder}
+                 </Text>
                 <Text size={400} weight="bold" className={styles.title}>
                   {quiz.title}
                 </Text>

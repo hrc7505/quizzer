@@ -8,7 +8,7 @@ import {
 } from "@fluentui/react-components";
 import {
   Add20Regular, Edit20Regular, Delete20Regular, Filter20Regular, Dismiss20Regular,
-  Warning48Regular, BookOpen24Regular, Sparkle20Regular
+  BookOpen24Regular
 } from "@fluentui/react-icons";
 
 interface QuizRef {

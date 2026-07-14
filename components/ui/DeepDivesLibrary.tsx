@@ -100,7 +100,7 @@ export function DeepDivesLibrary({ questions }: DeepDivesLibraryProps) {
             No Deep Dives Yet
           </Text>
           <Text size={300} style={{ color: "#6b7280" }}>
-            Complete a quiz and click "🤖 AI Deep Dive" on any question to generate and save your first elaboration.
+            Complete a quiz and click &quot;🤖 AI Deep Dive&quot; on any question to generate and save your first elaboration.
           </Text>
         </div>
       )}

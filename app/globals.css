@@ -13,7 +13,7 @@ html {
 
 body {
   overflow-x: hidden;
-  font-family: var(--font-reading);
+  font-family: var(--font-literata);
 }
 
 :root {
@@ -39,10 +39,16 @@ body {
   }
 }
 
-/* Base reading font for body and markdown */
-body {
-  overflow-x: hidden;
-  font-family: var(--font-literata);
+/* Mount guard: keep content hidden until the client has mounted to avoid
+   theme/SSR hydration mismatches. Server and client initial render both
+   omit [data-mounted], so the HTML matches. */
+.providers-shell {
+  visibility: hidden;
+  height: 100vh;
+  background-color: var(--background);
+}
+.providers-shell[data-mounted="true"] {
+  visibility: visible;
 }
 
 .max-w-safe {

@@ -25,6 +25,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     });
     return NextResponse.json(topic);
   } catch (error) {
+    console.error("Failed to update topic:", error);
     return NextResponse.json({ error: "Failed to update topic" }, { status: 500 });
   }
 }
@@ -35,6 +36,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     await prisma.topic.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error) {
+    console.error("Failed to delete topic:", error);
     return NextResponse.json({ error: "Failed to delete topic" }, { status: 500 });
   }
 }

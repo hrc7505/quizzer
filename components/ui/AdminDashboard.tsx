@@ -5,6 +5,7 @@ import { LinkButton } from "./LinkButton";
 
 interface Stats {
   topicsCount: number;
+  subtopicsCount: number;
   quizzesCount: number;
   questionsCount: number;
   attemptsCount: number;
@@ -20,6 +21,10 @@ export function AdminDashboard({ stats }: { stats: Stats }) {
         <Card>
           <CardHeader header={<Text weight="semibold">Topics</Text>} />
           <Text size={800} weight="bold" style={{ padding: '0 16px 16px' }}>{stats.topicsCount}</Text>
+        </Card>
+        <Card>
+          <CardHeader header={<Text weight="semibold">Sub Topics</Text>} />
+          <Text size={800} weight="bold" style={{ padding: '0 16px 16px' }}>{stats.subtopicsCount}</Text>
         </Card>
         <Card>
           <CardHeader header={<Text weight="semibold">Quizzes</Text>} />

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Literata } from "next/font/google";
 import Script from "next/script";
+import NextTopLoader from "nextjs-toploader";
 import "./globals.css";
 import { Providers } from "@/components/providers/Providers";
 
@@ -46,7 +47,16 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className="antialiased">
-        <Providers>{children}</Providers>
+        <Providers>
+          <NextTopLoader
+            color="#4f46e5"
+            height={3}
+            showSpinner={false}
+            shadow={false}
+            zIndex={3000}
+          />
+          {children}
+        </Providers>
         {/* Service Worker Registration */}
         <Script id="service-worker-register" strategy="afterInteractive">
           {`

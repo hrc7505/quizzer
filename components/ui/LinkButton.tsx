@@ -23,7 +23,7 @@ export type LinkButtonProps = ButtonProps & {
  * <a>, invalid markup) and over `router.push()` (no prefetch).
  */
 export const LinkButton = forwardRef<HTMLAnchorElement, LinkButtonProps>(
-  function LinkButton({ href, prefetch, ...props }, ref) {
+  function LinkButton({ href, prefetch = true, ...props }, ref) {
     const ButtonAsLink = Button as unknown as React.ElementType;
     return (
       <ButtonAsLink

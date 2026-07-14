@@ -18,7 +18,7 @@ import {
 } from "@fluentui/react-icons";
 import { createTableColumn, TableColumnDefinition } from "@fluentui/react-components";
 import { GenerateQuizForm } from "./GenerateQuizForm";
-import { useRouter } from "next/navigation";
+import { LinkButton } from "./LinkButton";
 
 interface TopicRef {
   id: string;
@@ -49,7 +49,6 @@ const DIFFICULTIES = ["Easy", "Medium", "Hard"];
  * Supports create, edit, delete, link/unlink subtopics, search, filter, paginate.
  */
 export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
-  const router = useRouter();
   const [quizzes, setQuizzes] = useState<Quiz[]>(initial);
   const [loading, setLoading] = useState(false);
 
@@ -357,13 +356,13 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
       renderHeaderCell: () => "Quiz Title",
       renderCell: (item) => (
         <Tooltip content="Click to view questions" relationship="label">
-          <Button
+          <LinkButton
             appearance="transparent"
             style={{ padding: 0, height: "auto", fontWeight: "bold", color: "#0078d4", textAlign: "left", justifyContent: "flex-start", minWidth: "auto" }}
-            onClick={() => router.push(`/admin/manage/quizzes/${item.id}/questions`)}
+            href={`/admin/manage/quizzes/${item.id}/questions`}
           >
             {item.title}
-          </Button>
+          </LinkButton>
         </Tooltip>
       )
     }),

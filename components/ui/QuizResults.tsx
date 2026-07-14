@@ -33,7 +33,6 @@ import {
 } from "@fluentui/react-components";
 import { Dismiss20Regular, MoreHorizontal24Regular } from "@fluentui/react-icons";
 import { useRef, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
 
 import { jsPDF } from "jspdf";
@@ -45,6 +44,16 @@ import { useQuizResultsStyles } from "./styles/useQuizResultsStyles";
 import { ShareButton } from "./ShareButton";
 import { Share24Regular } from "@fluentui/react-icons";
 
+// MenuItem's `as` is narrowly typed; this alias lets it render as next/link
+// so the "Return Home" entry prefetches like a normal <Link>.
+const MenuItemLink = MenuItem as unknown as React.ComponentType<{
+  as?: React.ElementType;
+  href?: string;
+  onClick?: () => void;
+  icon?: React.ReactNode;
+  children?: React.ReactNode;
+}>;
+
 /**
  * QuizResults component renders the results screen after quiz completion,
  * including score overview, option to download a PDF report, and
@@ -54,7 +63,6 @@ export function QuizResults({ attempt }: QuizResultsProps) {
   const styles = useQuizResultsStyles();
   const resultRef = useRef<HTMLDivElement>(null);
   const { status } = useSession();
-  const router = useRouter();
 
   const [downloading, setDownloading] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -270,7 +278,7 @@ export function QuizResults({ attempt }: QuizResultsProps) {
               <MenuItem icon={<Share24Regular />} onClick={handleMobileShare}>Share</MenuItem>
               <MenuItem onClick={() => { setMenuOpen(false); setIsReviewOpen(true); }}>Detailed Review</MenuItem>
               <MenuItem onClick={() => { setMenuOpen(false); handleDownloadPDF(); }}>Download PDF</MenuItem>
-              <MenuItem onClick={() => { setMenuOpen(false); router.push("/"); }}>Return Home</MenuItem>
+              <MenuItemLink as={Link} href="/" onClick={() => setMenuOpen(false)}>Return Home</MenuItemLink>
             </MenuList>
           </MenuPopover>
         </Menu>

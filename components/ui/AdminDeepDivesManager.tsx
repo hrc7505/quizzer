@@ -14,7 +14,7 @@ import {
   Filter20Regular, Dismiss20Regular, Warning48Regular
 } from "@fluentui/react-icons";
 import { createTableColumn, TableColumnDefinition } from "@fluentui/react-components";
-import Link from "next/link";
+import { LinkButton } from "./LinkButton";
 
 interface QuestionRecord {
   id: string;
@@ -163,9 +163,7 @@ export function AdminDeepDivesManager({ questions: initialQuestions }: AdminDeep
       renderCell: (item) => (
         <div style={{ display: "flex", gap: "6px" }}>
           <Tooltip content="View full page" relationship="label">
-            <Link href={`/deep-dives/${item.id}`} style={{ textDecoration: "none" }}>
-              <Button size="small" appearance="outline" icon={<Eye20Regular />} />
-            </Link>
+            <LinkButton href={`/deep-dives/${item.id}`} size="small" appearance="outline" icon={<Eye20Regular />} />
           </Tooltip>
           <Tooltip content="Regenerate with AI" relationship="label">
             <Button
@@ -254,11 +252,9 @@ export function AdminDeepDivesManager({ questions: initialQuestions }: AdminDeep
             </Button>
           )}
 
-          <Link href="/deep-dives" style={{ textDecoration: "none" }}>
-            <Button size="small" appearance="primary" icon={<Eye20Regular />}>
-              View Public Library
-            </Button>
-          </Link>
+          <LinkButton href="/deep-dives" size="small" appearance="primary" icon={<Eye20Regular />}>
+            View Public Library
+          </LinkButton>
         </div>
       </div>
 

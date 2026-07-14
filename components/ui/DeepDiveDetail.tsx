@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Text, Button, Badge, Card, Spinner, MessageBar, MessageBarBody } from "@fluentui/react-components";
 import { ArrowLeft20Regular, ArrowSync20Regular, Brain20Regular, BookOpen20Regular } from "@fluentui/react-icons";
-import Link from "next/link";
+import { LinkButton } from "./LinkButton";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 
@@ -60,11 +60,9 @@ export function DeepDiveDetail({ question }: DeepDiveDetailProps) {
     <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
 
       {/* Back navigation */}
-      <Link href="/deep-dives" style={{ textDecoration: "none", width: "fit-content" }}>
-        <Button appearance="subtle" icon={<ArrowLeft20Regular />} size="small" style={{ color: "#667eea" }}>
-          Back to Library
-        </Button>
-      </Link>
+      <LinkButton href="/deep-dives" appearance="subtle" icon={<ArrowLeft20Regular />} size="small" style={{ color: "#667eea", width: "fit-content" }}>
+        Back to Library
+      </LinkButton>
 
       {/* Header card */}
       <Card style={{

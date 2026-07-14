@@ -1,7 +1,7 @@
 "use client";
 
-import { Card, CardHeader, Text, Button } from "@fluentui/react-components";
-import Link from "next/link";
+import { Card, CardHeader, Text } from "@fluentui/react-components";
+import { LinkButton } from "./LinkButton";
 
 interface Stats {
   topicsCount: number;
@@ -40,12 +40,8 @@ export function AdminDashboard({ stats }: { stats: Stats }) {
       </div>
 
       <div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
-        <Link href="/admin/generate" style={{ textDecoration: 'none' }}>
-          <Button appearance="primary" size="large">Generate New Quiz</Button>
-        </Link>
-        <Link href="/admin/manage" style={{ textDecoration: 'none' }}>
-          <Button appearance="secondary" size="large">Manage Taxonomy</Button>
-        </Link>
+        <LinkButton href="/admin/generate" appearance="primary" size="large">Generate New Quiz</LinkButton>
+        <LinkButton href="/admin/manage" appearance="secondary" size="large">Manage Taxonomy</LinkButton>
       </div>
     </div>
   );

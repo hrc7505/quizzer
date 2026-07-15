@@ -5,7 +5,7 @@ import { DirectoryCardList } from "@/components/ui/DirectoryCardList";
 import { BookOpen24Regular } from "@/components/ui/ServerIcons";
 import { prisma } from "@/lib/prisma";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata = {
   title: "Exams Directory · Quizzer",

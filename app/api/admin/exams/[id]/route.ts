@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -17,6 +18,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         } : undefined
       }
     });
+
+    revalidatePath("/exams");
+    revalidatePath(`/exams/${id}`);
+
     return NextResponse.json(exam);
   } catch (error) {
     console.error("Failed to update exam:", error);
@@ -28,6 +33,10 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   try {
     const { id } = await params;
     await prisma.exam.delete({ where: { id } });
+
+    revalidatePath("/exams");
+    revalidatePath(`/exams/${id}`);
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Failed to delete exam:", error);

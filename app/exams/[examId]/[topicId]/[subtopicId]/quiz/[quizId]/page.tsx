@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { QuizWizard } from "@/components/ui/QuizWizard";
 import { notFound } from "next/navigation";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 interface QuizPageProps {
   params: Promise<{

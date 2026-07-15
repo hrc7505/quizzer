@@ -7,7 +7,16 @@ import { BookOpen24Regular } from "@/components/ui/ServerIcons";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
+
+interface ExamPageProps {
+  params: Promise<{ examId: string }>;
+}
+
+export async function generateStaticParams() {
+  const exams = await prisma.exam.findMany({ select: { id: true } });
+  return exams.map(e => ({ examId: e.id }));
+}
 
 interface ExamPageProps {
   params: Promise<{ examId: string }>;

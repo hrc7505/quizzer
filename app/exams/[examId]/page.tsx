@@ -13,6 +13,11 @@ interface ExamPageProps {
   params: Promise<{ examId: string }>;
 }
 
+export async function generateStaticParams() {
+  const exams = await prisma.exam.findMany({ select: { id: true } });
+  return exams.map(e => ({ examId: e.id }));
+}
+
 export async function generateMetadata({ params }: ExamPageProps) {
   const { examId } = await params;
   const exam = await prisma.exam.findUnique({ where: { id: examId } });

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { getServerSession } from "next-auth/next";
 import { authOptions, SessionUser } from "@/lib/auth";
+import { revalidatePath } from "next/cache";
 import PDFParser from "pdf2json";
 import { INTERNAL_TOPIC_TITLE } from "@/lib/constants";
 import fs from "fs";
@@ -367,6 +368,17 @@ ${chunk}`;
       }
 
       currentQuizIndex++;
+    }
+
+    revalidatePath("/exams");
+    revalidatePath("/topics");
+    if (existingTopicId) {
+      revalidatePath(`/topics/${existingTopicId}`);
+      const topicData = await prisma.topic.findUnique({
+        where: { id: existingTopicId },
+        include: { exams: { select: { id: true } } }
+      });
+      topicData?.exams.forEach(e => revalidatePath(`/exams/${e.id}`));
     }
 
     return NextResponse.json({

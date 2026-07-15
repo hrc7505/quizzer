@@ -13,6 +13,16 @@ interface SubtopicsPageProps {
   params: Promise<{ examId: string; topicId: string }>;
 }
 
+export async function generateStaticParams() {
+  const topics = await prisma.topic.findMany({
+    where: { exams: { some: {} } },
+    include: { exams: { select: { id: true } } }
+  });
+  return topics.flatMap(topic =>
+    topic.exams.map(exam => ({ examId: exam.id, topicId: topic.id }))
+  );
+}
+
 export async function generateMetadata({ params }: SubtopicsPageProps) {
   const { topicId } = await params;
   const topic = await prisma.topic.findUnique({ where: { id: topicId } });

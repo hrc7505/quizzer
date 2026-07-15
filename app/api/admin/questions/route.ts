@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
 
 /**
  * GET /api/admin/questions
@@ -44,7 +45,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Quiz not found" }, { status: 404 });
     }
 
-    // Resolve a required Topic ID for the Question schema constraint
     let topicId = quiz.topics[0]?.id;
     if (!topicId) {
       let fallbackTopic = await prisma.topic.findFirst({
@@ -69,6 +69,16 @@ export async function POST(req: Request) {
         description: description || ""
       }
     });
+
+    if (quiz.topics[0]) {
+      revalidatePath(`/topics/${quiz.topics[0].id}`);
+      const topic = await prisma.topic.findUnique({
+        where: { id: quiz.topics[0].id },
+        include: { exams: { select: { id: true } } }
+      });
+      topic?.exams.forEach(e => revalidatePath(`/exams/${e.id}`));
+    }
+    revalidatePath("/exams");
 
     return NextResponse.json(question);
   } catch (e) {

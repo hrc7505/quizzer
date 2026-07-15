@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { INTERNAL_TOPIC_TITLE } from "@/lib/constants";
+import { revalidatePath } from "next/cache";
 
 export async function GET(req: Request) {
   try {
@@ -59,6 +60,12 @@ export async function POST(req: Request) {
         parentTopics: parentId ? { connect: { id: parentId } } : undefined,
       }
     });
+
+    revalidatePath("/topics");
+    if (examId) revalidatePath(`/exams/${examId}`);
+    if (parentId) revalidatePath(`/topics/${parentId}`);
+    revalidatePath("/exams");
+
     return NextResponse.json(topic);
   } catch (error) {
     console.error("Failed to create topic:", error);

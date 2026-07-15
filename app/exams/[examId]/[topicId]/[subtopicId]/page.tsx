@@ -8,6 +8,24 @@ interface QuizzesPageProps {
   params: Promise<{ examId: string; topicId: string; subtopicId: string }>;
 }
 
+export async function generateStaticParams() {
+  const subtopics = await prisma.topic.findMany({
+    where: { parentTopics: { some: {} }, exams: { some: {} } },
+    include: {
+      parentTopics: { include: { exams: { select: { id: true } } } }
+    }
+  });
+  return subtopics.map(sub => {
+    const parent = sub.parentTopics[0];
+    const exam = parent?.exams[0];
+    return {
+      examId: exam?.id ?? "",
+      topicId: parent?.id ?? "",
+      subtopicId: sub.id
+    };
+  });
+}
+
 export async function generateMetadata({ params }: QuizzesPageProps) {
   const { subtopicId } = await params;
   const subtopic = await prisma.topic.findUnique({ where: { id: subtopicId } });

@@ -13,6 +13,17 @@ interface StandaloneQuizzesPageProps {
   params: Promise<{ topicId: string; subtopicId: string }>;
 }
 
+export async function generateStaticParams() {
+  const subtopics = await prisma.topic.findMany({
+    where: { parentTopics: { some: {} }, exams: { none: {} } },
+    include: { parentTopics: { select: { id: true } } }
+  });
+  return subtopics.map(sub => ({
+    topicId: sub.parentTopics[0]?.id ?? "",
+    subtopicId: sub.id
+  }));
+}
+
 export async function generateMetadata({ params }: StandaloneQuizzesPageProps) {
   const { subtopicId } = await params;
   const subtopic = await prisma.topic.findUnique({ where: { id: subtopicId } });

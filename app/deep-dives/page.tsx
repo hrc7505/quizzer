@@ -3,7 +3,7 @@ import { INTERNAL_TOPIC_TITLE } from "@/lib/constants";
 import { DeepDivesLibrary } from "@/components/ui/DeepDivesLibrary";
 import { PageLayout } from "@/components/ui/PageLayout";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata = {
   title: "AI Deep Dives Library",

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions, SessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { INTERNAL_TOPIC_TITLE } from "@/lib/constants";
+import { revalidatePath } from "next/cache";
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
@@ -48,6 +49,9 @@ export async function DELETE() {
       where: { elaboration: { not: null } },
       data: { elaboration: null }
     });
+
+    revalidatePath("/deep-dives");
+
     return NextResponse.json({ success: true, count: result.count });
   } catch (error) {
     console.error("Bulk delete elaborations error:", error);

@@ -1,9 +1,7 @@
 "use client";
 
 import { type ReactNode } from "react";
-import dynamic from "next/dynamic";
-
-const NavBar = dynamic(() => import("@/components/ui/NavBar"), { ssr: false }) as React.ComponentType<{ maxWidth?: string }>;
+import NavBar from "@/components/ui/NavBar";
 
 interface PageLayoutProps {
   children: ReactNode;

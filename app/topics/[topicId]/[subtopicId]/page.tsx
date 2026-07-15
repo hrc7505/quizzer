@@ -3,7 +3,7 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { ContentHeader } from "@/components/ui/ContentHeader";
 import { QuizCardGrid } from "@/components/ui/QuizCardGrid";
-import { BookOpen24Regular } from "@fluentui/react-icons";
+import { BookOpen24Regular } from "@/components/ui/Icons";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 

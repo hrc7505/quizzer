@@ -4,7 +4,7 @@ import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { Card, CardHeader, Text, Button, Input, Field, Spinner, MessageBar, MessageBarBody } from "@fluentui/react-components";
-import { Sparkle24Regular } from "@fluentui/react-icons";
+import { Sparkle24Regular } from "@/components/ui/Icons";
 
 /**
  * User login page contents that accesses query parameters safely within a Suspense block.

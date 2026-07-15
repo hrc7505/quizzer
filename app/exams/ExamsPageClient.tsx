@@ -4,7 +4,7 @@ import { PageLayout } from "@/components/ui/PageLayout";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { ContentHeader } from "@/components/ui/ContentHeader";
 import { DirectoryCardList } from "@/components/ui/DirectoryCardList";
-import { BookOpen24Regular } from "@fluentui/react-icons";
+import { BookOpen24Regular } from "@/components/ui/Icons";
 
 interface ExamsPageClientProps {
   examItems: Array<{

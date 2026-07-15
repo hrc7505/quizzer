@@ -1,5 +1,5 @@
 // Quizzer Service Worker – caches the app shell for offline use
-const CACHE_NAME = "quizzer-v1";
+const CACHE_NAME = "quizzer-v2";
 const SHELL_ASSETS = [
   "/",
   "/manifest.json",
@@ -37,13 +37,30 @@ self.addEventListener("fetch", (event) => {
   }
 
   event.respondWith(
-    fetch(event.request)
-      .then((res) => {
-        // Cache a clone of successful responses
-        const clone = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+    (async () => {
+      try {
+        const res = await fetch(event.request);
+        // Cache a clone of successful responses only
+        if (res && res.ok && res.type === "basic") {
+          const clone = res.clone();
+          const cache = await caches.open(CACHE_NAME);
+          cache.put(event.request, clone).catch(() => {});
+        }
         return res;
-      })
-      .catch(() => caches.match(event.request))
+      } catch {
+        const cached = await caches.match(event.request);
+        if (cached) return cached;
+        // Offline fallback for navigations
+        if (event.request.mode === "navigate") {
+          const fallback = await caches.match("/");
+          if (fallback) return fallback;
+        }
+        // Never resolve to undefined — return a real Response
+        return new Response("Network request failed and no cached response is available.", {
+          status: 408,
+          headers: { "Content-Type": "text/plain" },
+        });
+      }
+    })()
   );
 });

@@ -3,8 +3,7 @@
 import { type ReactNode } from "react";
 import dynamic from "next/dynamic";
 
-// @ts-expect-error - ssr: false in client component
-const NavBar = dynamic(() => import("@/components/ui/NavBar"), { ssr: false }) as React.ComponentType<{ maxWidth?: string }>;
+const NavBar = dynamic(() => import("@/components/ui/NavBar").then((m) => m.NavBar), { ssr: false }) as React.ComponentType<{ maxWidth?: string }>;
 
 interface PageLayoutProps {
   children: ReactNode;

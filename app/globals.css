@@ -20,6 +20,7 @@ body {
   --background: #ffffff;
   --foreground: #171717;
   --font-literata: "Literata", Georgia, "Times New Roman", serif;
+  --font-winky: "Winky Sans", sans-serif;
   /* Shared content width so page mains align with the NavBar edges */
   --content-max: 1200px;
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
 
 /**
  * PUT /api/admin/questions/[id]
@@ -11,6 +12,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const body = await req.json();
     const { text, options, correctAnswer, hint, description } = body;
 
+    const existing = await prisma.question.findUnique({
+      where: { id },
+      include: { quiz: { include: { topics: { include: { exams: { select: { id: true } } } } } } }
+    });
+
     const question = await prisma.question.update({
       where: { id },
       data: {
@@ -21,6 +27,12 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         description
       }
     });
+
+    if (existing?.quiz?.topics[0]) {
+      revalidatePath(`/topics/${existing.quiz.topics[0].id}`, "page");
+      existing.quiz.topics[0].exams.forEach(e => revalidatePath(`/exams/${e.id}`, "page"));
+    }
+    revalidatePath("/exams", "page");
 
     return NextResponse.json(question);
   } catch (e) {
@@ -36,9 +48,22 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
+
+    const existing = await prisma.question.findUnique({
+      where: { id },
+      include: { quiz: { include: { topics: { include: { exams: { select: { id: true } } } } } } }
+    });
+
     await prisma.question.delete({
       where: { id }
     });
+
+    if (existing?.quiz?.topics[0]) {
+      revalidatePath(`/topics/${existing.quiz.topics[0].id}`, "page");
+      existing.quiz.topics[0].exams.forEach(e => revalidatePath(`/exams/${e.id}`, "page"));
+    }
+    revalidatePath("/exams", "page");
+
     return NextResponse.json({ success: true });
   } catch (e) {
     console.error("Error deleting question:", e);

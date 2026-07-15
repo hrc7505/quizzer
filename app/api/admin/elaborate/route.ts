@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { ai, GEMINI_MODEL } from "@/lib/gemini";
 import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
 
 /**
  * POST /api/admin/elaborate
@@ -56,6 +57,9 @@ Your response should include:
       data: { elaboration: markdown }
     });
 
+    revalidatePath("/deep-dives");
+    revalidatePath(`/deep-dives/${questionId}`);
+
     return NextResponse.json({ success: true, markdown, cached: false });
   } catch (error) {
     console.error("Elaborate error:", error);
@@ -78,6 +82,10 @@ export async function DELETE(req: Request) {
       where: { id: questionId },
       data: { elaboration: null }
     });
+
+    revalidatePath("/deep-dives");
+    revalidatePath(`/deep-dives/${questionId}`);
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Delete elaboration error:", error);

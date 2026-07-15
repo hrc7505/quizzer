@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
 
 /**
  * GET /api/admin/elaborate/all
@@ -38,6 +39,9 @@ export async function DELETE() {
       where: { elaboration: { not: null } },
       data: { elaboration: null }
     });
+
+    revalidatePath("/deep-dives");
+
     return NextResponse.json({ success: true, count: result.count });
   } catch (error) {
     console.error("Bulk delete elaborations error:", error);

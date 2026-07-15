@@ -3,7 +3,15 @@ import { DeepDiveDetail } from "@/components/ui/DeepDiveDetail";
 import { PageLayout } from "@/components/ui/PageLayout";
 import { notFound } from "next/navigation";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
+
+export async function generateStaticParams() {
+  const questions = await prisma.question.findMany({
+    where: { elaboration: { not: null } },
+    select: { id: true }
+  });
+  return questions.map(q => ({ questionId: q.id }));
+}
 
 /**
  * Individual Deep Dive detail page.

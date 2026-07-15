@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -29,6 +30,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const body = await req.json();
     const { title, quizOrder, topicId, difficulty } = body;
     
+    const existing = await prisma.quiz.findUnique({
+      where: { id },
+      include: { topics: { select: { id: true } } }
+    });
+
     const quiz = await prisma.quiz.update({
       where: { id },
       data: {
@@ -38,6 +44,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         topics: topicId !== undefined ? (topicId ? { set: [{ id: topicId }] } : { set: [] }) : undefined
       }
     });
+
+    revalidatePath("/exams");
+    existing?.topics.forEach(t => revalidatePath(`/topics/${t.id}`));
+
     return NextResponse.json(quiz);
   } catch (error) {
     console.error("Failed to update quiz:", error);
@@ -48,7 +58,17 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
+
+    const existing = await prisma.quiz.findUnique({
+      where: { id },
+      include: { topics: { select: { id: true } } }
+    });
+
     await prisma.quiz.delete({ where: { id } });
+
+    revalidatePath("/exams");
+    existing?.topics.forEach(t => revalidatePath(`/topics/${t.id}`));
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Failed to delete quiz:", error);

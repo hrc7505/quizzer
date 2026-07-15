@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { resolveQuizRoute } from "@/lib/quiz-routing";
 import { notFound, redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 interface DirectQuizPlayPageProps {
   params: Promise<{

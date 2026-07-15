@@ -7,7 +7,21 @@ import { BookOpen24Regular } from "@/components/ui/ServerIcons";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
+
+interface SubtopicsPageProps {
+  params: Promise<{ examId: string; topicId: string }>;
+}
+
+export async function generateStaticParams() {
+  const topics = await prisma.topic.findMany({
+    where: { exams: { some: {} } },
+    include: { exams: { select: { id: true } } }
+  });
+  return topics.flatMap(topic =>
+    topic.exams.map(exam => ({ examId: exam.id, topicId: topic.id }))
+  );
+}
 
 interface SubtopicsPageProps {
   params: Promise<{ examId: string; topicId: string }>;

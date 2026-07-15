@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
 
 export async function GET() {
   try {
@@ -40,6 +41,10 @@ export async function POST(req: Request) {
         topics: topicId ? { connect: { id: topicId } } : undefined
       }
     });
+
+    revalidatePath("/exams");
+    if (topicId) revalidatePath(`/topics/${topicId}`);
+
     return NextResponse.json(quiz);
   } catch (error) {
     console.error("Failed to create quiz:", error);

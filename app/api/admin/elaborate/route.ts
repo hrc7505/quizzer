@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ai, GEMINI_MODEL } from "@/lib/gemini";
+import { ai, GEMINI_MODEL, describeAiError } from "@/lib/gemini";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -30,11 +30,25 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, markdown: question.elaboration, cached: true });
     }
 
+    const sanitize = (text: string) =>
+      text
+        .replace(/!\[.*?\]\(.*?\)/g, "")
+        .replace(/\[.*?\]\(.*?\.(png|jpg|jpeg|gif|bmp|webp|svg).*?\)/gi, "")
+        .replace(/data:image\/[a-zA-Z]+;base64,[a-zA-Z0-9+/=\s]+/gi, "")
+        .replace(/\b(image|img|figure|photo|picture)\d*\s*(\.\s*(png|jpg|jpeg|gif|bmp|webp|svg))?\b/gi, "")
+        .replace(/\b(image|img|figure|photo|picture)\s*(file|png|jpg|jpeg|gif|bmp|webp|svg)\b/gi, "")
+        .replace(/\b\d+\.(png|jpg|jpeg|gif|bmp|webp|svg)\b/gi, "")
+        .replace(/\b(image|img|figure|photo|picture)\b/gi, "")
+        .replace(/\(\s*(png|jpg|jpeg|gif|bmp|webp|svg)\s*\)/gi, "")
+        .replace(/\[\s*(png|jpg|jpeg|gif|bmp|webp|svg)\s*\]/gi, "")
+        .replace(/\b(image|img|figure|photo|picture)\d*\b/gi, "")
+        .trim();
+
     const prompt = `You are an expert tutor. Provide a detailed markdown explanation for the following question and its correct answer. 
 Topic: ${question.topic.title}
-Question: ${question.text}
-Correct Answer: ${question.correctAnswer}
-Options were: ${question.options.join(", ")}
+Question: ${sanitize(question.text)}
+Correct Answer: ${sanitize(question.correctAnswer)}
+Options were: ${question.options.map(sanitize).join(", ")}
 
 Your response should include:
 1. A deep dive into the core concept.
@@ -43,9 +57,11 @@ Your response should include:
 4. Suggested search-intent keywords for video tutorials and online web links (e.g. "Search YouTube for: [keyword]").
 `;
 
+    const safePrompt = sanitize(prompt);
+
     const response = await ai.models.generateContent({
       model: GEMINI_MODEL,
-      contents: prompt,
+      contents: safePrompt,
     });
 
     const markdown = response.text;
@@ -59,7 +75,7 @@ Your response should include:
     return NextResponse.json({ success: true, markdown, cached: false });
   } catch (error) {
     console.error("Elaborate error:", error);
-    return NextResponse.json({ error: "Failed to generate elaboration" }, { status: 500 });
+    return NextResponse.json({ error: describeAiError(error) }, { status: 500 });
   }
 }
 

@@ -1,21 +1,14 @@
-import { PageLayout } from "@/components/ui/PageLayout";
-import { SectionHeading } from "@/components/ui/SectionHeading";
-import { ContentHeader } from "@/components/ui/ContentHeader";
-import { DirectoryCardList } from "@/components/ui/DirectoryCardList";
-import { BookOpen24Regular } from "@/components/ui/ServerIcons";
+import { ExamsPageClient } from "./ExamsPageClient";
+import { INTERNAL_TOPIC_TITLE } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
-
-export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Exams Directory · Quizzer",
   description: "Select an exam or standalone topic to begin practicing."
 };
 
-/**
- * Public Exams list view.
- * Lists available Exams and Standalone Main Topics.
- */
+export const revalidate = 60;
+
 export default async function ExamsPage() {
   const [exams, standaloneTopics] = await Promise.all([
     prisma.exam.findMany({
@@ -26,7 +19,7 @@ export default async function ExamsPage() {
       where: {
         exams: { none: {} },
         parentTopics: { none: {} },
-        title: { not: "__internal__" }
+        title: { not: INTERNAL_TOPIC_TITLE }
       },
       include: {
         _count: { select: { quizzes: true } }
@@ -51,28 +44,5 @@ export default async function ExamsPage() {
     meta: `${t._count.quizzes} Quizzes`
   }));
 
-  return (
-    <PageLayout>
-      <ContentHeader
-        icon={<BookOpen24Regular />}
-        variant="exam"
-        title="Exams Directory"
-        description="Select an exam structure or standalone topic category to begin."
-      />
-
-      <div style={{ display: "flex", flexDirection: "column", gap: "40px" }}>
-        <div>
-          <SectionHeading>Exam Curriculums</SectionHeading>
-          <DirectoryCardList items={examItems} itemLabel="exams" searchPlaceholder="Search exams..." />
-        </div>
-
-        {standaloneItems.length > 0 && (
-          <div>
-            <SectionHeading>Standalone Topics</SectionHeading>
-            <DirectoryCardList items={standaloneItems} itemLabel="standalone topics" searchPlaceholder="Search standalone topics..." />
-          </div>
-        )}
-      </div>
-    </PageLayout>
-  );
+  return <ExamsPageClient examItems={examItems} standaloneItems={standaloneItems} />;
 }

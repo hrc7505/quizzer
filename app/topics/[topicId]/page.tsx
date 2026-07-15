@@ -3,11 +3,11 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { ContentHeader } from "@/components/ui/ContentHeader";
 import { DirectoryCardList } from "@/components/ui/DirectoryCardList";
-import { BookOpen24Regular } from "@/components/ui/ServerIcons";
+import { BookOpen24Regular } from "@fluentui/react-icons";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 interface StandaloneSubtopicsPageProps {
   params: Promise<{ topicId: string }>;
@@ -22,12 +22,7 @@ export async function generateMetadata({ params }: StandaloneSubtopicsPageProps)
   };
 }
 
-/**
- * Public Standalone Main Topic Subtopics list view.
- * Lists all subtopics nested under a standalone main topic.
- */
-export default async function StandaloneTopicSubtopicsPage({ params }: StandaloneSubtopicsPageProps) {
-  const { topicId } = await params;
+async function getPageData(topicId: string) {
   const topic = await prisma.topic.findUnique({
     where: { id: topicId },
     include: {
@@ -37,9 +32,15 @@ export default async function StandaloneTopicSubtopicsPage({ params }: Standalon
       }
     }
   });
+  return topic;
+}
 
+function StandaloneSubtopicsPageClient({ topicId, topic }: {
+  topicId: string;
+  topic: Awaited<ReturnType<typeof getPageData>>;
+}) {
   if (!topic) {
-    notFound();
+    return null;
   }
 
   const subtopicItems = topic.subtopics.map(sub => ({
@@ -58,16 +59,25 @@ export default async function StandaloneTopicSubtopicsPage({ params }: Standalon
   return (
     <PageLayout>
       <Breadcrumbs items={breadcrumbItems} />
-
       <ContentHeader
         icon={<BookOpen24Regular />}
         variant="topic"
         title={topic.title}
         description={topic.description}
       />
-
       <SectionHeading>Subtopics</SectionHeading>
       <DirectoryCardList items={subtopicItems} itemLabel="subtopics" searchPlaceholder="Search subtopics..." />
     </PageLayout>
   );
+}
+
+export default async function StandaloneTopicSubtopicsPage({ params }: StandaloneSubtopicsPageProps) {
+  const { topicId } = await params;
+  const topic = await getPageData(topicId);
+
+  if (!topic) {
+    notFound();
+  }
+
+  return <StandaloneSubtopicsPageClient topicId={topicId} topic={topic} />;
 }

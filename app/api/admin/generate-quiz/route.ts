@@ -1,14 +1,21 @@
 import { NextResponse } from "next/server";
-import { ai, GEMINI_MODEL } from "@/lib/gemini";
+import { ai, GEMINI_MODEL, describeAiError } from "@/lib/gemini";
 import { Type } from "@google/genai";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { getServerSession } from "next-auth/next";
 import { authOptions, SessionUser } from "@/lib/auth";
 import PDFParser from "pdf2json";
+import { INTERNAL_TOPIC_TITLE } from "@/lib/constants";
 import fs from "fs";
 import path from "path";
 import os from "os";
+
+function isPdfFile(file: File): boolean {
+  const name = file.name?.toLowerCase() ?? "";
+  const type = file.type?.toLowerCase() ?? "";
+  return name.endsWith(".pdf") || type === "application/pdf";
+}
 
 
 type GeneratedQuestion = {
@@ -61,14 +68,49 @@ function chunkText(text: string, maxLength: number): string[] {
 }
 
 function sanitizePdfText(text: string): string {
+  const lines = text.split("\n");
+  const filtered = lines.filter(line => {
+    const lower = line.toLowerCase().trim();
+    if (!lower) return true;
+    if (/!\[.*?\]\(.*?\)/.test(line)) return false;
+    if (/\[.*?\]\(.*?\.(png|jpg|jpeg|gif|bmp|webp|svg).*?\)/i.test(line)) return false;
+    if (/data:image\/[a-zA-Z]+;base64,[a-zA-Z0-9+/=\s]+/i.test(line)) return false;
+    if (/\b(image|img|figure|photo|picture)\d*\s*(\.\s*(png|jpg|jpeg|gif|bmp|webp|svg))?\b/i.test(lower)) return false;
+    if (/\b(image|img|figure|photo|picture)\b/i.test(lower) && /\.(png|jpg|jpeg|gif|bmp|webp|svg)\b/i.test(lower)) return false;
+    if (/\b\d+\.(png|jpg|jpeg|gif|bmp|webp|svg)\b/i.test(lower)) return false;
+    if (/\((png|jpg|jpeg|gif|bmp|webp|svg)\)/i.test(line)) return false;
+    if (/\[(png|jpg|jpeg|gif|bmp|webp|svg)\]/i.test(line)) return false;
+    if (/^(image|img|figure|photo|picture)\d*$/i.test(lower)) return false;
+    if (/\b(image|img|figure|photo|picture)\d*\b/i.test(lower)) return false;
+    if (/\.(png|jpg|jpeg|gif|bmp|webp|svg)\b/i.test(lower) && /image|img|figure|photo|picture/i.test(lower)) return false;
+    return true;
+  }).map(line => {
+    return line
+      .replace(/!\[.*?\]\(.*?\)/g, "")
+      .replace(/\[.*?\]\(.*?\.(png|jpg|jpeg|gif|bmp|webp|svg).*?\)/gi, "")
+      .replace(/data:image\/[a-zA-Z]+;base64,[a-zA-Z0-9+/=\s]+/gi, "")
+      .replace(/\b(image|img|figure|photo|picture)\d*\s*(\.\s*(png|jpg|jpeg|gif|bmp|webp|svg))?\b/gi, "")
+      .replace(/\b(image|img|figure|photo|picture)\s*(file|png|jpg|jpeg|gif|bmp|webp|svg)\b/gi, "")
+      .replace(/\b\d+\.(png|jpg|jpeg|gif|bmp|webp|svg)\b/gi, "")
+      .replace(/\b(image|img|figure|photo|picture)\d*\b/gi, "")
+      .replace(/\(\s*(png|jpg|jpeg|gif|bmp|webp|svg)\s*\)/gi, "")
+      .replace(/\[\s*(png|jpg|jpeg|gif|bmp|webp|svg)\s*\]/gi, "")
+      .trim();
+  }).filter(line => line !== "");
+  return filtered.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+function sanitizePrompt(text: string): string {
   return text
     .replace(/!\[.*?\]\(.*?\)/g, "")
     .replace(/\[.*?\]\(.*?\.(png|jpg|jpeg|gif|bmp|webp|svg).*?\)/gi, "")
     .replace(/data:image\/[a-zA-Z]+;base64,[a-zA-Z0-9+/=\s]+/gi, "")
-    .replace(/\[image.*?\]/gi, "")
-    .replace(/\[img.*?\]/gi, "")
-    .replace(/\b(image|img|figure|photo|picture)\.(png|jpg|jpeg|gif|bmp|webp|svg)\b/gi, "")
-    .replace(/\n{3,}/g, "\n\n")
+    .replace(/\b(image|img|figure|photo|picture)\d*\s*(\.\s*(png|jpg|jpeg|gif|bmp|webp|svg))?\b/gi, "")
+    .replace(/\b(image|img|figure|photo|picture)\s*(file|png|jpg|jpeg|gif|bmp|webp|svg)\b/gi, "")
+    .replace(/\b\d+\.(png|jpg|jpeg|gif|bmp|webp|svg)\b/gi, "")
+    .replace(/\b(image|img|figure|photo|picture)\d*\b/gi, "")
+    .replace(/\(\s*(png|jpg|jpeg|gif|bmp|webp|svg)\s*\)/gi, "")
+    .replace(/\[\s*(png|jpg|jpeg|gif|bmp|webp|svg)\s*\]/gi, "")
     .trim();
 }
 
@@ -107,10 +149,16 @@ async function generateQuestionsBatch(prompt: string): Promise<GeneratedQuestion
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
 
+  const safePrompt = prompt
+    .replace(/\b(image|img|figure|photo|picture)\d*\s*(\.\s*(png|jpg|jpeg|gif|bmp|webp|svg))?\b/gi, "")
+    .replace(/\b(image|img|figure|photo|picture)\s*(file|png|jpg|jpeg|gif|bmp|webp|svg)\b/gi, "")
+    .replace(/\b\d+\.(png|jpg|jpeg|gif|bmp|webp|svg)\b/gi, "")
+    .replace(/\b(image|img|figure|photo|picture)\b/gi, "");
+
   try {
     const response = await ai.models.generateContent({
       model: GEMINI_MODEL,
-      contents: prompt,
+      contents: safePrompt,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -198,7 +246,7 @@ Each question must have exactly 4 options.
 One option must be the correct answer (matching the string exactly).
 Provide a hint and a detailed description/explanation for the answer.${existingQuestionsText}`;
 
-      allGeneratedQuestions = await generateQuestionsBatch(prompt);
+      allGeneratedQuestions = await generateQuestionsBatch(sanitizePrompt(prompt));
 
     } else if (mode === "text" || mode === "pdf") {
       let fullText = "";
@@ -210,8 +258,20 @@ Provide a hint and a detailed description/explanation for the answer.${existingQ
         const file = formData.get("file") as File;
         if (!file) return NextResponse.json({ error: "Missing pdf file" }, { status: 400 });
 
+        if (!isPdfFile(file)) {
+          return NextResponse.json({ error: "Only PDF files are supported for upload." }, { status: 400 });
+        }
+
         const buffer = Buffer.from(await file.arrayBuffer());
+
+        if (!buffer.subarray(0, 5).toString("latin1").startsWith("%PDF")) {
+          return NextResponse.json({ error: "The uploaded file is not a valid PDF." }, { status: 400 });
+        }
+
         const text = await parsePdfBuffer(buffer);
+        if (!text.trim()) {
+          return NextResponse.json({ error: "Could not extract text from the PDF. Ensure it contains readable text (not just scanned images)." }, { status: 400 });
+        }
         fullText = sanitizePdfText(text);
       }
 
@@ -233,7 +293,7 @@ Text content to analyze:
 ${chunk}`;
 
         try {
-          const batchQuestions = await generateQuestionsBatch(prompt);
+          const batchQuestions = await generateQuestionsBatch(sanitizePrompt(prompt));
           allGeneratedQuestions = [...allGeneratedQuestions, ...batchQuestions];
         } catch (err) {
           console.warn(`Failed to process chunk ${i + 1}/${textChunks.length}`, err);
@@ -255,12 +315,12 @@ ${chunk}`;
       questionTopicId = topic.id;
     } else {
       let sentinel = await prisma.topic.findFirst({
-        where: { title: "__internal__" },
+        where: { title: INTERNAL_TOPIC_TITLE },
         include: { quizzes: true, questions: { select: { text: true } } }
       });
       if (!sentinel) {
         sentinel = await prisma.topic.create({
-          data: { title: "__internal__" },
+          data: { title: INTERNAL_TOPIC_TITLE },
           include: { quizzes: true, questions: { select: { text: true } } }
         });
       }
@@ -317,7 +377,6 @@ ${chunk}`;
     });
   } catch (error) {
     console.error("Quiz generation error:", error);
-    const message = error instanceof Error ? error.message : "Failed to generate quiz";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: describeAiError(error) }, { status: 500 });
   }
 }

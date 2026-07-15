@@ -1,9 +1,8 @@
-import { PageLayout } from "@/components/ui/PageLayout";
+import { QuizClient } from "./QuizClient";
 import { prisma } from "@/lib/prisma";
-import { QuizWizard } from "@/components/ui/QuizWizard";
 import { notFound } from "next/navigation";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 interface StandaloneQuizPageProps {
   params: Promise<{
@@ -13,12 +12,7 @@ interface StandaloneQuizPageProps {
   }>;
 }
 
-/**
- * Standalone Topic Quiz play page.
- * Loads the quiz and executes the wizard. Supports topic question fallback.
- */
-export default async function StandaloneQuizPage({ params }: StandaloneQuizPageProps) {
-  const { subtopicId, quizId } = await params;
+async function getQuizData(quizId: string, subtopicId: string) {
   const quiz = await prisma.quiz.findUnique({
     where: { id: quizId },
     include: {
@@ -28,7 +22,7 @@ export default async function StandaloneQuizPage({ params }: StandaloneQuizPageP
   });
 
   if (!quiz) {
-    return notFound();
+    return null;
   }
 
   let questions = quiz.questions;
@@ -38,14 +32,19 @@ export default async function StandaloneQuizPage({ params }: StandaloneQuizPageP
     });
   }
 
-  const quizWithQuestions = {
+  return {
     ...quiz,
     questions
   };
+}
 
-  return (
-    <PageLayout variant="admin" navMaxWidth="1200px" mainMaxWidth="1200px">
-      <QuizWizard quiz={quizWithQuestions} />
-    </PageLayout>
-  );
+export default async function StandaloneQuizPage({ params }: StandaloneQuizPageProps) {
+  const { subtopicId, quizId } = await params;
+  const quiz = await getQuizData(quizId, subtopicId);
+
+  if (!quiz) {
+    notFound();
+  }
+
+  return <QuizClient quiz={quiz} />;
 }

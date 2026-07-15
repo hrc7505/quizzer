@@ -14,10 +14,12 @@ import { useRouter } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
 import { 
   Play24Filled, ArrowClockwise24Regular, Sparkle24Regular,
-  Trophy24Regular, Timer24Regular, BookOpen24Regular
+  Trophy24Regular, Timer24Regular, BookOpen24Regular, Lightbulb24Regular,
+  Checkmark24Regular
 } from "@fluentui/react-icons";
 
 import { AttemptService } from "@/lib/services/attempt.service";
+import { splitSentences, formatTime } from "@/lib/text";
 import { useQuizWizardStyles } from "./styles/useQuizWizardStyles";
 import { ShareButton } from "./ShareButton";
 import { Share24Regular } from "@fluentui/react-icons";
@@ -292,12 +294,6 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
     }
   };
 
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60).toString().padStart(2, "0");
-    const s = (seconds % 60).toString().padStart(2, "0");
-    return `${m}:${s}`;
-  };
-
   const resolveShareUrl = async () => {
     const origin = window.location.origin;
 
@@ -522,24 +518,9 @@ createTableColumn<AttemptLeaderboardEntry>({
       {currentQuestion && (
         <Card className={styles.questionCard}>
           <div className={styles.questionTextRow}>
-            <Text size={500} weight="semibold" className={styles.questionText}>
+            <Text size={400} weight="semibold" className={styles.quizPlayFont} style={{ fontFamily: "var(--font-winky)", fontSize: "18px" }}>
               {currentQuestion.text}
             </Text>
-            {currentQuestion.hint && (
-              <TeachingPopover open={showHint} onOpenChange={(e, data) => setShowHint(data.open)}>
-                <TeachingPopoverTrigger>
-                  <Button appearance="subtle">Hint</Button>
-                </TeachingPopoverTrigger>
-                <TeachingPopoverSurface>
-                  <TeachingPopoverHeader>
-                    <TeachingPopoverTitle>Hint</TeachingPopoverTitle>
-                  </TeachingPopoverHeader>
-                  <TeachingPopoverBody>
-                    {currentQuestion.hint}
-                  </TeachingPopoverBody>
-                </TeachingPopoverSurface>
-              </TeachingPopover>
-            )}
           </div>
 
           {/* Answer Options */}
@@ -564,7 +545,7 @@ createTableColumn<AttemptLeaderboardEntry>({
                   onClick={() => handleOptionClick(opt)}
                   className={`${styles.optionItem} ${optionStateClass}`}
                 >
-                  <Text size={300} weight={selectedOption && isCorrectAnswer ? "bold" : "regular"}>
+                  <Text size={200} weight={selectedOption && isCorrectAnswer ? "bold" : "regular"} className={styles.quizPlayFont} style={{ fontFamily: "var(--font-winky)", fontSize: "12px" }}>
                     {opt}
                   </Text>
                 </div>
@@ -573,20 +554,50 @@ createTableColumn<AttemptLeaderboardEntry>({
           </div>
 
           {/* Explanation Box shown post answering */}
-          {selectedOption && (
+          {selectedOption && currentQuestion.description && (
             <div className={styles.explanationBox}>
               <div className={styles.explanationHeaderRow}>
                 <Sparkle24Regular className={styles.explanationIcon} />
                 <Text weight="bold" className={styles.explanationTitle}>Answer Explanation:</Text>
               </div>
-              <Text size={300} className={styles.explanationText}>
-                {currentQuestion.description}
-              </Text>
+              <div className={styles.explanationText}>
+                {currentQuestion.description.split("\n").flatMap((line: string) =>
+                  splitSentences(line).map((part: string, idx: number) => (
+                    <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: "8px", marginBottom: "6px" }}>
+                      <Checkmark24Regular style={{ color: "#10b981", marginTop: "2px", flexShrink: 0, fontSize: "16px" }} />
+                      <Text size={300} className={styles.quizPlayFont}>{part}</Text>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           )}
 
           {/* Navigation Controls */}
           <div className={styles.actionsRow}>
+            {currentQuestion.hint ? (
+              <TeachingPopover open={showHint} onOpenChange={(e, data) => setShowHint(data.open)}>
+                <TeachingPopoverTrigger>
+                  <Button
+                    appearance="subtle"
+                    icon={<Lightbulb24Regular />}
+                    aria-label="Hint"
+                    size="large"
+                  />
+                </TeachingPopoverTrigger>
+                <TeachingPopoverSurface>
+                  <TeachingPopoverHeader>
+                    <TeachingPopoverTitle>Hint</TeachingPopoverTitle>
+                  </TeachingPopoverHeader>
+                  <TeachingPopoverBody>
+                    <div className={styles.quizPlayFont}>{currentQuestion.hint}</div>
+                  </TeachingPopoverBody>
+                </TeachingPopoverSurface>
+              </TeachingPopover>
+            ) : (
+              <span />
+            )}
+
             <Button 
               appearance="primary" 
               size="large" 

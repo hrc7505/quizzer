@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { INTERNAL_TOPIC_TITLE } from "@/lib/constants";
 import { DeepDiveDetail } from "@/components/ui/DeepDiveDetail";
 import { PageLayout } from "@/components/ui/PageLayout";
 import { notFound } from "next/navigation";
@@ -21,7 +22,7 @@ export default async function DeepDiveDetailPage({ params }: { params: Promise<{
     }
   });
 
-  if (!question) return notFound();
+  if (!question || question.topic.title === INTERNAL_TOPIC_TITLE) return notFound();
 
   return (
     <PageLayout variant="deep-dives-detail" navMaxWidth="900px" mainMaxWidth="900px">

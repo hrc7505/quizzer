@@ -51,6 +51,24 @@ body {
   visibility: visible;
 }
 
+.page-watermark {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60vmin;
+  height: 60vmin;
+  max-width: 600px;
+  max-height: 600px;
+  background-image: url("/quizzer.svg");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  opacity: 0.04;
+  pointer-events: none;
+  z-index: 0;
+}
+
 .max-w-safe {
   max-width: 100%;
   overflow-x: hidden;
@@ -68,10 +86,11 @@ img, video, canvas, svg {
   -webkit-overflow-scrolling: touch;
 }
 
-/* Markdown Formatting */
+ /* Markdown Formatting */
 .markdown-body {
   line-height: 1.6;
   font-size: 15px;
+  font-family: var(--font-winky);
 }
 .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4, .markdown-body h5, .markdown-body h6 {
   font-weight: 700;

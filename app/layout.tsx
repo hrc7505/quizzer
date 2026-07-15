@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Literata } from "next/font/google";
+import { Literata, Winky_Sans } from "next/font/google";
 import Script from "next/script";
 import NextTopLoader from "nextjs-toploader";
 import "./globals.css";
@@ -11,17 +11,48 @@ const literata = Literata({
   variable: "--font-literata",
 });
 
+const winkySans = Winky_Sans({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-winky",
+  weight: "400",
+});
+
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
   themeColor: "#4f46e5",
 };
 
 export const metadata: Metadata = {
-  title: "Quizzer",
+  title: {
+    default: "Quizzer",
+    template: "%s | Quizzer",
+  },
   description: "Generate interactive quizzes and detailed AI explanations instantly. Study smarter with AI-powered multiple-choice quizzes.",
   manifest: "/manifest.json",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://quizzer.vercel.app",
+    siteName: "Quizzer",
+    title: "Quizzer - AI-Powered Interactive Quizzes",
+    description: "Generate interactive quizzes and detailed AI explanations instantly. Study smarter with AI-powered multiple-choice quizzes.",
+    images: [
+      {
+        url: "/quizzer.svg",
+        width: 833,
+        height: 280,
+        alt: "Quizzer Logo",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Quizzer - AI-Powered Interactive Quizzes",
+    description: "Generate interactive quizzes and detailed AI explanations instantly.",
+    images: ["/quizzer.svg"],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -42,7 +73,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={literata.variable}>
+    <html lang="en" className={`${literata.variable} ${winkySans.variable}`}>
       <head>
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
@@ -57,6 +88,7 @@ export default function RootLayout({
           />
           {children}
         </Providers>
+        <div className="page-watermark" aria-hidden="true" />
         {/* Service Worker Registration */}
         <Script id="service-worker-register" strategy="afterInteractive">
           {`

@@ -57,7 +57,14 @@ export function DeepDiveDetail({ question }: DeepDiveDetailProps) {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "28px",
+        fontFamily: "var(--font-winky)",
+      }}
+    >
 
       {/* Back navigation */}
       <LinkButton href="/deep-dives" appearance="subtle" icon={<ArrowLeft20Regular />} size="small" style={{ color: "#667eea", width: "fit-content" }}>

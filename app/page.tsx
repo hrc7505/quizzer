@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import {
   Brain24Regular, BookOpen24Regular,
   Sparkle24Regular, ArrowRight16Regular
-} from "@/components/ui/ServerIcons";
+} from "@fluentui/react-icons";
 import Link from "next/link";
 import { getServerSession } from "next-auth/next";
 import { authOptions, SessionUser } from "@/lib/auth";

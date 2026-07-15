@@ -1,13 +1,8 @@
-import { PageLayout } from "@/components/ui/PageLayout";
-import { SectionHeading } from "@/components/ui/SectionHeading";
-import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
-import { ContentHeader } from "@/components/ui/ContentHeader";
-import { QuizCardGrid } from "@/components/ui/QuizCardGrid";
-import { BookOpen24Regular } from "@/components/ui/ServerIcons";
+import { QuizzesPageClient } from "./QuizzesPageClient";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 interface QuizzesPageProps {
   params: Promise<{ examId: string; topicId: string; subtopicId: string }>;
@@ -22,13 +17,7 @@ export async function generateMetadata({ params }: QuizzesPageProps) {
   };
 }
 
-/**
- * Public Subtopic Quizzes list view.
- * Lists all quizzes linked under a specific subtopic.
- * Integrates filtering and infinite scroll pagination.
- */
-export default async function TopicQuizzesPage({ params }: QuizzesPageProps) {
-  const { examId, topicId, subtopicId } = await params;
+async function getPageData(examId: string, topicId: string, subtopicId: string) {
   const [exam, topic, subtopic] = await Promise.all([
     prisma.exam.findUnique({ where: { id: examId } }),
     prisma.topic.findUnique({ where: { id: topicId } }),
@@ -43,31 +32,16 @@ export default async function TopicQuizzesPage({ params }: QuizzesPageProps) {
       }
     })
   ]);
+  return { exam, topic, subtopic };
+}
+
+export default async function TopicQuizzesPage({ params }: QuizzesPageProps) {
+  const { examId, topicId, subtopicId } = await params;
+  const { exam, topic, subtopic } = await getPageData(examId, topicId, subtopicId);
 
   if (!exam || !topic || !subtopic) {
     notFound();
   }
 
-  const breadcrumbItems = [
-    { label: "Exams", href: "/exams" },
-    { label: exam.title, href: `/exams/${examId}` },
-    { label: topic.title, href: `/exams/${examId}/${topicId}` },
-    { label: subtopic.title }
-  ];
-
-  return (
-    <PageLayout>
-      <Breadcrumbs items={breadcrumbItems} />
-
-      <ContentHeader
-        icon={<BookOpen24Regular />}
-        variant="quiz"
-        title={subtopic.title}
-        description={subtopic.description}
-      />
-
-      <SectionHeading>Quizzes</SectionHeading>
-      <QuizCardGrid quizzes={subtopic.quizzes} subtopicTitle={subtopic.title} basePath={`/exams/${examId}/${topicId}/${subtopicId}`} />
-    </PageLayout>
-  );
+  return <QuizzesPageClient examId={examId} topicId={topicId} subtopicId={subtopicId} exam={exam} topic={topic} subtopic={subtopic} />;
 }

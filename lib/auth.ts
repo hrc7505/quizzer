@@ -15,14 +15,9 @@ export interface SessionUser {
   phoneNumber?: string | null;
 }
 
-export interface AuthUser {
-  id: string;
-  name?: string | null;
-  email?: string | null;
-  image?: string | null;
-  role: UserRole;
-  phoneNumber?: string | null;
-}
+export const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || "admin@quizzer.com").trim().toLowerCase();
+export const MASTER_OTP = process.env.MASTER_OTP || "123456";
+export const IS_PRODUCTION = process.env.NODE_ENV === "production";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -42,8 +37,7 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         // 1. Phone / OTP Authentication (Admin Login Page)
         if (credentials?.phoneNumber && credentials?.otp) {
-          const masterOtp = process.env.MASTER_OTP || "123456";
-          let isValid = credentials.otp === masterOtp;
+          let isValid = credentials.otp === MASTER_OTP;
 
           if (!isValid) {
             const storedToken = await prisma.verificationToken.findFirst({
@@ -91,12 +85,11 @@ export const authOptions: NextAuthOptions = {
         }
 
         // 2. Email / Developer Bypass (User Login / Testing)
-        if (credentials?.email) {
+        if (credentials?.email && !IS_PRODUCTION) {
           const email = credentials.email.trim().toLowerCase();
           let role = "USER";
 
-          const adminEmail = (process.env.ADMIN_EMAIL || "admin@quizzer.com").trim().toLowerCase();
-          if (email === adminEmail || email === "admin@quizzer.com") {
+          if (email === ADMIN_EMAIL) {
             role = "ADMIN";
           }
 
@@ -133,13 +126,11 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.phoneNumber = (user as unknown as AuthUser).phoneNumber;
+        token.phoneNumber = (user as unknown as SessionUser).phoneNumber;
 
-        let role = (user as unknown as AuthUser).role || "USER";
-        const adminEmail = (process.env.ADMIN_EMAIL || "admin@quizzer.com").trim().toLowerCase();
-        if (user.email && user.email.toLowerCase() === adminEmail) {
+        let role = (user as unknown as SessionUser).role || "USER";
+        if (user.email && user.email.toLowerCase() === ADMIN_EMAIL) {
           role = "ADMIN";
-          // Sync role in database to admin
           await prisma.user.update({
             where: { id: user.id },
             data: { role: "ADMIN" }

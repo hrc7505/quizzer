@@ -4,7 +4,7 @@
 //  - Static assets (JS/CSS/images): left to the browser's own HTTP cache so we
 //    never serve a stale hashed bundle after a redeploy.
 //  - API / auth requests: never intercepted.
-const CACHE_NAME = "quizzer-v2";
+const CACHE_NAME = "quizzer-v3";
 const SHELL_ASSETS = [
   "/",
   "/manifest.json",

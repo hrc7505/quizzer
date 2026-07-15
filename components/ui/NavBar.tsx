@@ -323,3 +323,5 @@ export function NavBar({ maxWidth = "1200px" }: { maxWidth?: string }) {
     </>
   );
 }
+
+export default NavBar;

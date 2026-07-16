@@ -1,22 +1,15 @@
 import type { Metadata, Viewport } from "next";
-import { Literata, Winky_Sans } from "next/font/google";
+import { Winky_Sans } from "next/font/google";
 import Script from "next/script";
 import NextTopLoader from "nextjs-toploader";
 import "./globals.css";
 import { Providers } from "@/components/providers/Providers";
 
-const literata = Literata({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-literata",
-});
-
 const winkySans = Winky_Sans({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-winky",
-  weight: "400",
-  fallback: ["system-ui", "sans-serif"],
+  adjustFontFallback: false,
 });
 
 export const viewport: Viewport = {
@@ -74,7 +67,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${literata.variable} ${winkySans.variable}`}>
+    <html lang="en" className={`${winkySans.variable}`}>
       <head>
         <meta name="mobile-web-app-capable" content="yes" />
       </head>

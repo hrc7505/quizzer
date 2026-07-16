@@ -36,7 +36,9 @@ export function DeepDiveBody({ question }: DeepDiveBodyProps) {
         <div className={styles.metaRow}>
           <div className={styles.metaLeft}>
             <BookOpen20Regular className={styles.metaIcon} />
-            <Text size={300} weight="semibold" className={styles.metaTopic}>{question.topic.title}</Text>
+            <Text size={300} weight="semibold" className={styles.metaTopic}>
+              {question.topic.title === "__internal__" ? "General" : question.topic.title}
+            </Text>
             {question.quiz && (
               <>
                 <Text size={200} className={styles.metaSeparator}>·</Text>

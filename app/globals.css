@@ -13,13 +13,12 @@ html {
 
 body {
   overflow-x: hidden;
-  font-family: var(--font-literata);
+  font-family: var(--font-winky);
 }
 
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  --font-literata: "Literata", Georgia, "Times New Roman", serif;
   --font-winky: "Winky Sans", sans-serif;
   /* Shared content width so page mains align with the NavBar edges */
   --content-max: 1200px;
@@ -28,8 +27,8 @@ body {
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-literata);
-  --font-serif: var(--font-literata);
+  --font-sans: var(--font-winky);
+  --font-serif: var(--font-winky);
   --font-mono: var(--font-geist-mono);
 }
 

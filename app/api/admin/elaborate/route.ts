@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { ai, GEMINI_MODEL } from "@/lib/gemini";
+import { ai, GEMINI_MODEL, describeAiError } from "@/lib/gemini";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { sanitizeImageText } from "@/lib/format";
 
 /**
  * POST /api/admin/elaborate
@@ -33,9 +34,9 @@ export async function POST(req: Request) {
 
     const prompt = `You are an expert tutor. Provide a detailed markdown explanation for the following question and its correct answer. 
 Topic: ${question.topic.title}
-Question: ${question.text}
-Correct Answer: ${question.correctAnswer}
-Options were: ${question.options.join(", ")}
+Question: ${sanitizeImageText(question.text)}
+Correct Answer: ${sanitizeImageText(question.correctAnswer)}
+Options were: ${question.options.map(sanitizeImageText).join(", ")}
 
 Your response should include:
 1. A deep dive into the core concept.
@@ -44,9 +45,11 @@ Your response should include:
 4. Suggested search-intent keywords for video tutorials and online web links (e.g. "Search YouTube for: [keyword]").
 `;
 
+    const safePrompt = sanitizeImageText(prompt);
+
     const response = await ai.models.generateContent({
       model: GEMINI_MODEL,
-      contents: prompt,
+      contents: safePrompt,
     });
 
     const markdown = response.text;
@@ -63,7 +66,7 @@ Your response should include:
     return NextResponse.json({ success: true, markdown, cached: false });
   } catch (error) {
     console.error("Elaborate error:", error);
-    return NextResponse.json({ error: "Failed to generate elaboration" }, { status: 500 });
+    return NextResponse.json({ error: describeAiError(error) }, { status: 500 });
   }
 }
 

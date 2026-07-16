@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { 
   Button, Card, Text, Input, Field, Dialog, DialogTrigger, 
   DialogSurface, DialogTitle, DialogBody, DialogActions, DialogContent, 
-  Spinner, Select, Textarea, Badge, Tooltip,
+  Spinner, Select, Textarea, Badge, Tooltip, MessageBar, MessageBarBody,
   Combobox, Option,
   Menu, MenuTrigger, MenuPopover, MenuList, MenuItem,
   OverlayDrawer, DrawerHeader, DrawerHeaderTitle, DrawerBody,
@@ -20,6 +20,8 @@ import {
 import { TableColumnDefinition, createTableColumn, DataGrid, DataGridHeader, DataGridHeaderCell, DataGridRow, DataGridBody, DataGridCell } from "@fluentui/react-components";
 import { GenerateQuizForm } from "./GenerateQuizForm";
 import { LinkButton } from "./LinkButton";
+import { difficultyColor } from "@/lib/format";
+import { useTaxonomyManagerStyles } from "./styles/useTaxonomyManagerStyles";
 
 interface Exam {
   id: string;
@@ -70,11 +72,13 @@ interface FlatTopic extends Topic {
 }
 
 export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "subtopics" }) {
+  const styles = useTaxonomyManagerStyles();
   const [exams, setExams] = useState<Exam[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [flatTopics, setFlatTopics] = useState<FlatTopic[]>([]);
   const [allQuizzes, setAllQuizzes] = useState<QuizSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   // Creation/Edit Dialog Controls
   const [examDialogOpen, setExamDialogOpen] = useState(false);
@@ -169,15 +173,20 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
   };
 
   useEffect(() => {
+    let cancelled = false;
     void (async () => {
       await fetchData();
+      if (!cancelled) {
+        // fetchData handles its own loading state
+      }
     })();
+    return () => { cancelled = true; };
   }, []);
 
 
-  const triggerConfirm = (title: string, description: string, onConfirm: () => Promise<void>) => {
+  const triggerConfirm = useCallback((title: string, description: string, onConfirm: () => Promise<void>) => {
     setConfirmDialog({ open: true, title, description, onConfirm });
-  };
+  }, []);
 
   const loadQuizDetails = async (id: string) => {
     setActiveQuizLoading(true);
@@ -198,9 +207,6 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
     if (!selectedQuizId) {
       return;
     }
-
-
-
     void (async () => {
       await loadQuizDetails(selectedQuizId);
     })();
@@ -272,11 +278,11 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
         await loadQuizDetails(selectedQuizId);
         await fetchData();
       } else {
-        alert(data.error || "Failed to save question");
+        setError(data.error || "Failed to save question");
       }
     } catch (e) {
       console.error(e);
-      alert("Error saving question");
+      setError("Error saving question");
     } finally {
       setLoading(false);
     }
@@ -412,7 +418,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
     await fetchData();
   };
 
-  const handleDeleteExam = (id: string, name: string) => {
+  const handleDeleteExam = useCallback((id: string, name: string) => {
     triggerConfirm(
       "Delete Exam",
       `Are you sure you want to permanently delete "${name}"? This action cannot be undone and will delete all topics linked under it.`,
@@ -422,9 +428,9 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
         await fetchData();
       }
     );
-  };
+  }, [triggerConfirm]);
 
-  const handleDeleteTopic = (id: string, name: string) => {
+  const handleDeleteTopic = useCallback((id: string, name: string) => {
     triggerConfirm(
       "Delete Topic",
       `Are you sure you want to permanently delete the topic "${name}"? This will delete all subtopics nested under it.`,
@@ -434,7 +440,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
         await fetchData();
       }
     );
-  };
+  }, [triggerConfirm]);
 
   const handleDeleteQuiz = (id: string, name: string) => {
     triggerConfirm(
@@ -522,6 +528,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
 
   const openNewTopicDialog = (examId = '', parentId = '') => {
     setTopicForm({ id: '', title: '', description: '', examId, parentId });
+    setError(null);
     setTopicDialogOpen(true);
   };
 
@@ -531,13 +538,10 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
   };
 
   const renderDifficultyBadge = (difficulty: string) => {
-    let color: "success" | "warning" | "danger" = "warning";
-    if (difficulty.toLowerCase() === "easy") color = "success";
-    if (difficulty.toLowerCase() === "hard") color = "danger";
-    return <Badge color={color} appearance="filled">{difficulty}</Badge>;
+    return <Badge color={difficultyColor(difficulty)} appearance="filled">{difficulty}</Badge>;
   };
 
-  const examColumns: TableColumnDefinition<Exam>[] = [
+  const examColumns = useMemo<TableColumnDefinition<Exam>[]>(() => [
     createTableColumn<Exam>({
       columnId: 'title',
       compare: (a, b) => a.title.localeCompare(b.title),
@@ -546,15 +550,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
         <Tooltip content="Click to view details" relationship="label">
           <Button 
             appearance="transparent" 
-            style={{ 
-              padding: 0, 
-              height: 'auto', 
-              fontWeight: 'bold', 
-              color: '#0078d4', 
-              textAlign: 'left',
-              justifyContent: 'flex-start',
-              minWidth: 'auto'
-            }}
+            className={styles.examTitleButton}
             onClick={() => setSelectedExamId(item.id)}
           >
             {item.title}
@@ -566,8 +562,8 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       columnId: 'description',
       renderHeaderCell: () => 'Description',
       renderCell: (item) => (
-        <Text style={{ color: '#616161', fontSize: '13px' }}>
-          {item.description || <span style={{ fontStyle: 'italic', color: '#b3b3b3' }}>No description</span>}
+        <Text className={styles.cellDescriptionText}>
+          {item.description || <span className={styles.cellDescriptionFallback}>No description</span>}
         </Text>
       ),
     }),
@@ -581,8 +577,8 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
         }, 0) || 0;
 
         return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <BookOpen24Regular style={{ color: '#0078d4' }} />
+          <div className={styles.topicsCountContainer}>
+            <BookOpen24Regular className={styles.bookOpenIcon} />
             <Text>{item.topics?.length || 0} Topics • {subtopicCount} Subtopics</Text>
           </div>
         );
@@ -614,9 +610,9 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
         </Menu>
       ),
     }),
-  ];
+   ], [handleDeleteExam, topics, styles]);
 
-  const topicColumns: TableColumnDefinition<FlatTopic>[] = [
+  const topicColumns = useMemo<TableColumnDefinition<FlatTopic>[]>(() => [
     createTableColumn<FlatTopic>({
       columnId: 'title',
       compare: (a, b) => a.title.localeCompare(b.title),
@@ -625,15 +621,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
         <Tooltip content="Click to view details" relationship="label">
           <Button 
             appearance="transparent" 
-            style={{ 
-              padding: 0, 
-              height: 'auto', 
-              fontWeight: 'semibold', 
-              color: '#0078d4', 
-              textAlign: 'left',
-              justifyContent: 'flex-start',
-              minWidth: 'auto'
-            }}
+            className={styles.topicTitleButton}
             onClick={() => setSelectedTopicId(item.id)}
           >
             {item.title}
@@ -645,9 +633,9 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       columnId: 'displayType',
       renderHeaderCell: () => 'Hierarchy Level',
       renderCell: (item) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          {item.parentTopics && item.parentTopics.length > 0 && <ChevronRight20Regular style={{ color: '#a19f9d' }} />}
-          <Text style={{ fontSize: '13px', color: '#616161' }}>{item.displayType}</Text>
+        <div className={styles.displayTypeContainer}>
+          {item.parentTopics && item.parentTopics.length > 0 && <ChevronRight20Regular className={styles.chevronIcon} />}
+          <Text className={styles.displayTypeText}>{item.displayType}</Text>
         </div>
       ),
     }),
@@ -655,8 +643,8 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       columnId: 'stats',
       renderHeaderCell: () => 'Stats',
       renderCell: (item) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <DocumentDatabase24Regular style={{ color: '#107c41' }} />
+        <div className={styles.statsContainer}>
+          <DocumentDatabase24Regular className={styles.documentDatabaseIcon} />
           <Text>{item._count?.quizzes || 0} Quizzes</Text>
         </div>
       ),
@@ -676,37 +664,28 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
                   <MenuItem icon={<Branch20Regular />} onClick={() => openNewTopicDialog('', item.id)}>Add Sub Topic</MenuItem>
                   <MenuItem icon={<Link20Regular />} onClick={() => {
                     setLinkTopicId(item.id);
-                    setSelectedSubtopicIds(item.subtopics?.map(t => t.id) || []);
+                    setSelectedSubtopicIds([]);
                     setTopicLinkDialogOpen(true);
                   }}>Link Sub Topics</MenuItem>
                 </>
               ) : (
-                <>
-                  <MenuItem icon={<Add20Regular />} onClick={() => openNewQuizDialog(item.id)}>Create Quiz</MenuItem>
-                  <MenuItem icon={<Link20Regular />} onClick={() => {
-                    setLinkTopicId(item.id);
-                    setSelectedQuizIds(item.quizzes?.map(q => q.id) || []);
-                    setQuizLinkDialogOpen(true);
-                  }}>Link Existing Quizzes</MenuItem>
-                </>
+                <MenuItem icon={<Link20Regular />} onClick={() => {
+                  setLinkTopicId(item.id);
+                  setSelectedQuizIds([]);
+                  setQuizLinkDialogOpen(true);
+                }}>Link Quizzes</MenuItem>
               )}
               <MenuItem icon={<Edit20Regular />} onClick={() => {
-                setTopicForm({ 
-                  id: item.id, 
-                  title: item.title, 
-                  description: item.description || '', 
-                  examId: '',
-                  parentId: ''
-                });
+                setTopicForm({ id: item.id, title: item.title, description: item.description || '', examId: '', parentId: item.parentTopics?.[0]?.id || '' });
                 setTopicDialogOpen(true);
               }}>Edit Topic</MenuItem>
               <MenuItem icon={<Delete20Regular />} onClick={() => handleDeleteTopic(item.id, item.title)}>Delete Topic</MenuItem>
             </MenuList>
           </MenuPopover>
         </Menu>
-      ),
+      )
     }),
-  ];
+   ], [handleDeleteTopic, styles]);
 
   // Filters for linking available items in Combobox
   const availableMainTopics = flatTopics.filter(t => 
@@ -759,29 +738,34 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
   const paginatedTopics = filteredTopics.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   if (loading) return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '300px' }}>
+    <div className={styles.loadingContainer}>
       <Spinner size="huge" label="Loading taxonomy..." />
     </div>
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', fontFamily: 'Segoe UI, sans-serif' }}>
+    <div className={styles.root}>
+      {error && (
+        <MessageBar intent="error">
+          <MessageBarBody>{error}</MessageBarBody>
+        </MessageBar>
+      )}
       
       {/* EXAMS VIEW */}
       {view === "exams" && (
         <>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className={styles.viewHeader}>
             <div>
-              <Text size={700} weight="bold" style={{ color: '#242424' }}>Exams ({filteredExams.length})</Text>
-              <Text block size={200} style={{ color: '#616161', marginTop: '4px' }}>Manage the top-level exams representing major categories of your curriculum.</Text>
+              <Text size={700} weight="bold" className={styles.viewTitleText}>Exams ({filteredExams.length})</Text>
+              <Text block size={200} className={styles.viewSubtitleText}>Manage the top-level exams representing major categories of your curriculum.</Text>
             </div>
             
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <div className={styles.viewHeaderActions}>
               <Popover>
                 <PopoverTrigger disableButtonEnhancement>
                   <Button size="small" icon={<Filter20Regular />}>Filter</Button>
                 </PopoverTrigger>
-                <PopoverSurface style={{ width: '280px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <PopoverSurface className={styles.filterPopover}>
                   <Text size={300} weight="semibold">Search Filters</Text>
                   <Field label="Search Title/Description">
                     <Input 
@@ -805,24 +789,12 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
           </div>
           
           {filteredExams.length === 0 ? (
-            <div style={{ display: 'flex', justifyContent: 'center', width: '100%', padding: '40px 0' }}>
-              <Card style={{ 
-                boxShadow: '0 4px 16px rgba(0,0,0,0.06)', 
-                borderRadius: '12px', 
-                border: '1px solid #e0e0e0',
-                padding: '40px', 
-                textAlign: 'center', 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center', 
-                gap: '16px',
-                maxWidth: '550px',
-                width: '100%'
-              }}>
-                <Warning48Regular style={{ color: '#0078d4' }} />
-                <div style={{ textAlign: 'center' }}>
-                  <Text size={500} weight="bold" block style={{ color: '#242424', marginBottom: '6px' }}>No Exams Found</Text>
-                  <Text size={200} style={{ color: '#616161' }}>Create an exam category to start structuring your topics and subtopics.</Text>
+            <div className={styles.emptyStateWrapper}>
+              <Card className={styles.emptyStateCard}>
+                <Warning48Regular className={styles.emptyStateIcon} />
+                <div className={styles.emptyStateTextContainer}>
+                  <Text size={500} weight="bold" block className={styles.emptyStateTitleText}>No Exams Found</Text>
+                  <Text size={200} className={styles.emptyStateSubtitleText}>Create an exam category to start structuring your topics and subtopics.</Text>
                 </div>
                 <Button size="small" appearance="primary" icon={<Add20Regular />} onClick={() => {
                   setExamForm({ id: '', title: '', description: '' });
@@ -831,27 +803,21 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
               </Card>
             </div>
           ) : (
-            <Card style={{ 
-              boxShadow: '0 4px 12px rgba(0,0,0,0.08)', 
-              borderRadius: '12px', 
-              border: '1px solid #e0e0e0',
-              overflow: 'hidden',
-              padding: 0
-            }}>
-              <div style={{ overflowX: 'auto', width: '100%' }}>
-                <DataGrid items={paginatedExams} columns={examColumns} style={{ minWidth: '800px' }}>
-                  <DataGridHeader style={{ backgroundColor: '#fafafa', borderBottom: '1px solid #eaeaea' }}>
+            <Card className={styles.dataGridCard}>
+              <div className={styles.scrollContainer}>
+                <DataGrid items={paginatedExams} columns={examColumns} className={styles.examDataGrid}>
+                  <DataGridHeader className={styles.dataGridHeader}>
                     <DataGridRow>
                       {({ renderHeaderCell }) => (
-                        <DataGridHeaderCell style={{ padding: '12px 16px', fontWeight: 'bold' }}>{renderHeaderCell()}</DataGridHeaderCell>
+                        <DataGridHeaderCell className={styles.dataGridHeaderCell}>{renderHeaderCell()}</DataGridHeaderCell>
                       )}
                     </DataGridRow>
                   </DataGridHeader>
                   <DataGridBody<Exam>>
                     {({ item, rowId }) => (
-                      <DataGridRow<Exam> key={rowId} style={{ borderBottom: '1px solid #f0f0f0', transition: 'background 0.2s' }}>
+                      <DataGridRow<Exam> key={rowId} className={styles.dataGridRow}>
                         {({ renderCell }) => (
-                          <DataGridCell style={{ padding: '16px' }}>{renderCell(item)}</DataGridCell>
+                          <DataGridCell className={styles.dataGridCell}>{renderCell(item)}</DataGridCell>
                         )}
                       </DataGridRow>
                     )}
@@ -860,9 +826,9 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
               </div>
 
               {/* PAGINATION FOOTER */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderTop: '1px solid #eaeaea', backgroundColor: '#fafafa', flexWrap: 'wrap', gap: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Text size={200} style={{ color: '#616161' }}>Show</Text>
+              <div className={styles.paginationFooter}>
+                <div className={styles.pageSizeSelector}>
+                  <Text size={200} className={styles.paginationLabel}>Show</Text>
                   <Select 
                     value={pageSize.toString()} 
                     onChange={(e) => {
@@ -870,21 +836,21 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
                       setCurrentPage(1);
                     }}
                     size="small"
-                    style={{ width: '80px' }}
+                    className={styles.fullWidthSelect}
                   >
                     <option value="5">5</option>
                     <option value="10">10</option>
                     <option value="20">20</option>
                     <option value="50">50</option>
                   </Select>
-                  <Text size={200} style={{ color: '#616161' }}>entries</Text>
+                  <Text size={200} className={styles.paginationLabel}>entries</Text>
                 </div>
 
-                <Text size={200} style={{ color: '#616161' }}>
+                <Text size={200} className={styles.paginationLabel}>
                   Showing {totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, totalItems)} of {totalItems} entries
                 </Text>
 
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div className={styles.paginationNav}>
                   <Button 
                     size="small" 
                     disabled={currentPage === 1}
@@ -910,24 +876,24 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       {/* TOPICS VIEW */}
       {(view === "main-topics" || view === "subtopics") && (
         <>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className={styles.viewHeader}>
             <div>
-              <Text size={700} weight="bold" style={{ color: '#242424' }}>
+              <Text size={700} weight="bold" className={styles.viewTitleText}>
                 {view === "main-topics" ? "Main Topics" : "Sub Topics"} ({filteredTopics.length})
               </Text>
-              <Text block size={200} style={{ color: '#616161', marginTop: '4px' }}>
+              <Text block size={200} className={styles.viewSubtitleText}>
                 {view === "main-topics" 
                   ? "Manage top-level topic nodes under Exams or Standalone Topics." 
                   : "Manage fine-grained subtopics nested under Main Topics."}
               </Text>
             </div>
             
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <div className={styles.viewHeaderActions}>
               <Popover>
                 <PopoverTrigger disableButtonEnhancement>
                   <Button size="small" icon={<Filter20Regular />}>Filter</Button>
                 </PopoverTrigger>
-                <PopoverSurface style={{ width: '280px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <PopoverSurface className={styles.filterPopover}>
                   <Text size={300} weight="semibold">Search Filters</Text>
                   <Field label="Search Title/Description">
                     <Input 
@@ -954,26 +920,14 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
           </div>
           
           {filteredTopics.length === 0 ? (
-            <div style={{ display: 'flex', justifyContent: 'center', width: '100%', padding: '40px 0' }}>
-              <Card style={{ 
-                boxShadow: '0 4px 16px rgba(0,0,0,0.06)', 
-                borderRadius: '12px', 
-                border: '1px solid #e0e0e0',
-                padding: '40px', 
-                textAlign: 'center', 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center', 
-                gap: '16px',
-                maxWidth: '550px',
-                width: '100%'
-              }}>
-                <Warning48Regular style={{ color: '#0078d4' }} />
-                <div style={{ textAlign: 'center' }}>
-                  <Text size={500} weight="bold" block style={{ color: '#242424', marginBottom: '6px' }}>
+            <div className={styles.emptyStateWrapper}>
+              <Card className={styles.emptyStateCard}>
+                <Warning48Regular className={styles.emptyStateIcon} />
+                <div className={styles.emptyStateTextContainer}>
+                  <Text size={500} weight="bold" block className={styles.emptyStateTitleText}>
                     No {view === "main-topics" ? "Main Topics" : "Sub Topics"} Found
                   </Text>
-                  <Text size={200} style={{ color: '#616161' }}>
+                  <Text size={200} className={styles.emptyStateSubtitleText}>
                     {view === "main-topics" 
                       ? 'Create Standalone Topics here, or add main topics to specific Exams from the Exams tab.' 
                       : 'Add subtopics directly here, or click the branch icon on any Main Topic in the Main Topics tab.'}
@@ -990,27 +944,21 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
               </Card>
             </div>
           ) : (
-            <Card style={{ 
-              boxShadow: '0 4px 12px rgba(0,0,0,0.08)', 
-              borderRadius: '12px', 
-              border: '1px solid #e0e0e0',
-              overflow: 'hidden',
-              padding: 0
-            }}>
-              <div style={{ overflowX: 'auto', width: '100%' }}>
-                <DataGrid items={paginatedTopics} columns={topicColumns} style={{ minWidth: '900px' }}>
-                  <DataGridHeader style={{ backgroundColor: '#fafafa', borderBottom: '1px solid #eaeaea' }}>
+            <Card className={styles.dataGridCard}>
+              <div className={styles.scrollContainer}>
+                <DataGrid items={paginatedTopics} columns={topicColumns} className={styles.topicDataGrid}>
+                  <DataGridHeader className={styles.dataGridHeader}>
                     <DataGridRow>
                       {({ renderHeaderCell }) => (
-                        <DataGridHeaderCell style={{ padding: '12px 16px', fontWeight: 'bold' }}>{renderHeaderCell()}</DataGridHeaderCell>
+                        <DataGridHeaderCell className={styles.dataGridHeaderCell}>{renderHeaderCell()}</DataGridHeaderCell>
                       )}
                     </DataGridRow>
                   </DataGridHeader>
                   <DataGridBody<FlatTopic>>
                     {({ item, rowId }) => (
-                      <DataGridRow<FlatTopic> key={rowId} style={{ borderBottom: '1px solid #f0f0f0', transition: 'background 0.2s' }}>
+                      <DataGridRow<FlatTopic> key={rowId} className={styles.dataGridRow}>
                         {({ renderCell }) => (
-                          <DataGridCell style={{ padding: '16px' }}>{renderCell(item)}</DataGridCell>
+                          <DataGridCell className={styles.dataGridCell}>{renderCell(item)}</DataGridCell>
                         )}
                       </DataGridRow>
                     )}
@@ -1019,9 +967,9 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
               </div>
 
               {/* PAGINATION FOOTER */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderTop: '1px solid #eaeaea', backgroundColor: '#fafafa', flexWrap: 'wrap', gap: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Text size={200} style={{ color: '#616161' }}>Show</Text>
+              <div className={styles.paginationFooter}>
+                <div className={styles.pageSizeSelector}>
+                  <Text size={200} className={styles.paginationLabel}>Show</Text>
                   <Select 
                     value={pageSize.toString()} 
                     onChange={(e) => {
@@ -1029,21 +977,21 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
                       setCurrentPage(1);
                     }}
                     size="small"
-                    style={{ width: '80px' }}
+                    className={styles.fullWidthSelect}
                   >
                     <option value="5">5</option>
                     <option value="10">10</option>
                     <option value="20">20</option>
                     <option value="50">50</option>
                   </Select>
-                  <Text size={200} style={{ color: '#616161' }}>entries</Text>
+                  <Text size={200} className={styles.paginationLabel}>entries</Text>
                 </div>
 
-                <Text size={200} style={{ color: '#616161' }}>
+                <Text size={200} className={styles.paginationLabel}>
                   Showing {totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, totalItems)} of {totalItems} entries
                 </Text>
 
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div className={styles.paginationNav}>
                   <Button 
                     size="small" 
                     disabled={currentPage === 1}
@@ -1068,18 +1016,18 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
 
       {/* Exam Dialog */}
       <Dialog open={examDialogOpen} onOpenChange={(e, data) => setExamDialogOpen(data.open)}>
-        <DialogSurface style={{ borderRadius: '12px', padding: '24px' }}>
+        <DialogSurface className={styles.dialogSurface}>
           <DialogBody>
             <DialogTitle action={<DialogTrigger action="close"><Button appearance="subtle" aria-label="close" icon={<Dismiss20Regular />} /></DialogTrigger>}>{examForm.id ? "Edit Exam" : "Add Exam"}</DialogTitle>
-            <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingTop: '16px' }}>
+            <DialogContent className={styles.dialogContent}>
               <Field label="Exam Title" required>
-                <Input value={examForm.title} onChange={e => setExamForm({...examForm, title: e.target.value})} style={{ width: '100%' }} />
+                <Input value={examForm.title} onChange={e => setExamForm({...examForm, title: e.target.value})} className={styles.fullWidthInput} />
               </Field>
               <Field label="Description">
-                <Textarea value={examForm.description} onChange={e => setExamForm({...examForm, description: e.target.value})} style={{ width: '100%', minHeight: '80px' }} />
+                <Textarea value={examForm.description} onChange={e => setExamForm({...examForm, description: e.target.value})} className={styles.fullWidthTextarea} />
               </Field>
             </DialogContent>
-            <DialogActions style={{ marginTop: '24px' }}>
+            <DialogActions className={styles.dialogActions}>
               <DialogTrigger disableButtonEnhancement>
                 <Button appearance="secondary">Cancel</Button>
               </DialogTrigger>
@@ -1091,10 +1039,10 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
 
       {/* Bulk Link Standalone Topics to Exam Dialog */}
       <Dialog open={examLinkDialogOpen} onOpenChange={(e, data) => setExamLinkDialogOpen(data.open)}>
-        <DialogSurface style={{ borderRadius: '12px', padding: '24px' }}>
+        <DialogSurface className={styles.dialogSurface}>
           <DialogBody>
             <DialogTitle action={<DialogTrigger action="close"><Button appearance="subtle" aria-label="close" icon={<Dismiss20Regular />} /></DialogTrigger>}>Link Existing Main Topics</DialogTitle>
-            <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingTop: '16px' }}>
+            <DialogContent className={styles.dialogContent}>
               <Field label="Select Standalone Main Topics to Associate with Exam">
                 <Combobox 
                   multiselect
@@ -1102,7 +1050,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
                   onOptionSelect={(e, data) => setSelectedTopicIds(data.selectedOptions)}
                   value={selectedTopicIds.map(id => flatTopics.find(t => t.id === id)?.title).filter(Boolean).join(", ")}
                   placeholder="Select topics..."
-                  style={{ width: '100%' }}
+                  className={styles.fullWidthCombobox}
                 >
                   {availableMainTopics.map(t => (
                     <Option key={t.id} value={t.id} text={t.title}>{t.title}</Option>
@@ -1110,7 +1058,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
                 </Combobox>
               </Field>
             </DialogContent>
-            <DialogActions style={{ marginTop: '24px' }}>
+            <DialogActions className={styles.dialogActions}>
               <DialogTrigger disableButtonEnhancement>
                 <Button appearance="secondary">Cancel</Button>
               </DialogTrigger>
@@ -1122,10 +1070,10 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
 
       {/* Bulk Link Subtopics to Main Topic Dialog */}
       <Dialog open={topicLinkDialogOpen} onOpenChange={(e, data) => setTopicLinkDialogOpen(data.open)}>
-        <DialogSurface style={{ borderRadius: '12px', padding: '24px' }}>
+        <DialogSurface className={styles.dialogSurface}>
           <DialogBody>
             <DialogTitle action={<DialogTrigger action="close"><Button appearance="subtle" aria-label="close" icon={<Dismiss20Regular />} /></DialogTrigger>}>Link Existing Sub Topics</DialogTitle>
-            <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingTop: '16px' }}>
+            <DialogContent className={styles.dialogContent}>
               <Field label="Select Standalone Sub Topics to Link to Main Topic">
                 <Combobox 
                   multiselect
@@ -1133,7 +1081,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
                   onOptionSelect={(e, data) => setSelectedSubtopicIds(data.selectedOptions)}
                   value={selectedSubtopicIds.map(id => flatTopics.find(t => t.id === id)?.title).filter(Boolean).join(", ")}
                   placeholder="Select subtopics..."
-                  style={{ width: '100%' }}
+                  className={styles.fullWidthCombobox}
                 >
                   {availableSubtopics.map(t => (
                     <Option key={t.id} value={t.id} text={t.title}>{t.title}</Option>
@@ -1141,7 +1089,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
                 </Combobox>
               </Field>
             </DialogContent>
-            <DialogActions style={{ marginTop: '24px' }}>
+            <DialogActions className={styles.dialogActions}>
               <DialogTrigger disableButtonEnhancement>
                 <Button appearance="secondary">Cancel</Button>
               </DialogTrigger>
@@ -1153,10 +1101,10 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
 
       {/* Bulk Link Quizzes Dialog */}
       <Dialog open={quizLinkDialogOpen} onOpenChange={(e, data) => setQuizLinkDialogOpen(data.open)}>
-        <DialogSurface style={{ borderRadius: '12px', padding: '24px' }}>
+        <DialogSurface className={styles.dialogSurface}>
           <DialogBody>
             <DialogTitle action={<DialogTrigger action="close"><Button appearance="subtle" aria-label="close" icon={<Dismiss20Regular />} /></DialogTrigger>}>Link Existing Quizzes</DialogTitle>
-            <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingTop: '16px' }}>
+            <DialogContent className={styles.dialogContent}>
               <Field label="Select Existing Quizzes to pull into this Sub Topic">
                 <Combobox 
                   multiselect
@@ -1164,7 +1112,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
                   onOptionSelect={(e, data) => setSelectedQuizIds(data.selectedOptions)}
                   value={selectedQuizIds.map(id => allQuizzes.find(q => q.id === id)?.title).filter(Boolean).join(", ")}
                   placeholder="Select quizzes..."
-                  style={{ width: '100%' }}
+                  className={styles.fullWidthCombobox}
                 >
                   {availableQuizzes.map(q => (
                     <Option key={q.id} value={q.id} text={q.title}>{q.title}</Option>
@@ -1172,7 +1120,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
                 </Combobox>
               </Field>
             </DialogContent>
-            <DialogActions style={{ marginTop: '24px' }}>
+            <DialogActions className={styles.dialogActions}>
               <DialogTrigger disableButtonEnhancement>
                 <Button appearance="secondary">Cancel</Button>
               </DialogTrigger>
@@ -1184,15 +1132,15 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
 
       {/* Create Quiz Dialog */}
       <Dialog open={quizDialogOpen} onOpenChange={(e, data) => setQuizDialogOpen(data.open)}>
-        <DialogSurface style={{ borderRadius: "14px", padding: "28px", maxWidth: "640px", width: "100%" }}>
+        <DialogSurface className={styles.dialogSurfaceQuizAI}>
           <DialogBody>
             <DialogTitle action={<DialogTrigger action="close"><Button appearance="subtle" aria-label="close" icon={<Dismiss20Regular />} /></DialogTrigger>}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <Sparkle20Regular style={{ color: "#0078d4" }} />
+              <div className={styles.quizAIDialogTitleRow}>
+                <Sparkle20Regular className={styles.sparkleIcon} />
                 Generate Quiz with AI
               </div>
             </DialogTitle>
-            <DialogContent style={{ paddingTop: "16px" }}>
+            <DialogContent className={styles.dialogContentPadTop}>
               <GenerateQuizForm 
                 initialTopicId={quizForm.topicId}
                 onSuccess={async () => {
@@ -1207,20 +1155,20 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
 
       {/* Topic Dialog (Simplified independent creation dialog, no classifications / linking required) */}
       <Dialog open={topicDialogOpen} onOpenChange={(e, data) => setTopicDialogOpen(data.open)}>
-        <DialogSurface style={{ borderRadius: '12px', padding: '24px' }}>
+        <DialogSurface className={styles.dialogSurface}>
           <DialogBody>
             <DialogTitle action={<DialogTrigger action="close"><Button appearance="subtle" aria-label="close" icon={<Dismiss20Regular />} /></DialogTrigger>}>
               {topicForm.id ? "Edit Topic Settings" : (topicForm.parentId ? "Add Sub Topic" : (topicForm.examId ? "Add Main Topic" : "Add Topic"))}
             </DialogTitle>
-            <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingTop: '16px' }}>
+            <DialogContent className={styles.dialogContent}>
               <Field label="Topic Title" required>
-                <Input value={topicForm.title} onChange={e => setTopicForm({...topicForm, title: e.target.value})} style={{ width: '100%' }} />
+                <Input value={topicForm.title} onChange={e => setTopicForm({...topicForm, title: e.target.value})} className={styles.fullWidthInput} />
               </Field>
               <Field label="Description">
-                <Textarea value={topicForm.description} onChange={e => setTopicForm({...topicForm, description: e.target.value})} style={{ width: '100%', minHeight: '80px' }} />
+                <Textarea value={topicForm.description} onChange={e => setTopicForm({...topicForm, description: e.target.value})} className={styles.fullWidthTextarea} />
               </Field>
             </DialogContent>
-            <DialogActions style={{ marginTop: '24px' }}>
+            <DialogActions className={styles.dialogActions}>
               <DialogTrigger disableButtonEnhancement>
                 <Button appearance="secondary">Cancel</Button>
               </DialogTrigger>
@@ -1235,9 +1183,9 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
         position="end" 
         open={!!selectedExamId} 
         onOpenChange={(_, data) => setSelectedExamId(data.open ? selectedExamId : null)}
-        style={{ width: '550px', maxWidth: '100%', boxShadow: '-4px 0 24px rgba(0,0,0,0.15)' }}
+        className={styles.overlayDrawer}
       >
-        <DrawerHeader style={{ borderBottom: '1px solid #eaeaea', padding: '16px 24px' }}>
+        <DrawerHeader className={styles.drawerHeader}>
           <DrawerHeaderTitle 
             action={
               <Button 
@@ -1248,19 +1196,19 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
               />
             }
           >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <Text size={500} weight="bold" style={{ color: '#242424' }}>{activeExam?.title}</Text>
-              <Text size={200} style={{ color: '#616161', fontWeight: 'normal', lineHeight: '1.4' }}>
-                {activeExam?.description || <span style={{ fontStyle: 'italic', color: '#b3b3b3' }}>No description provided.</span>}
+            <div className={styles.drawerHeaderContent}>
+              <Text size={500} weight="bold" className={styles.drawerTitleText}>{activeExam?.title}</Text>
+              <Text size={200} className={styles.drawerDescriptionText}>
+                {activeExam?.description || <span className={styles.drawerDescriptionFallback}>No description provided.</span>}
               </Text>
             </div>
           </DrawerHeaderTitle>
         </DrawerHeader>
-        <DrawerBody style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          
+        <DrawerBody className={styles.drawerBody}>
+           
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <Text size={400} weight="semibold" style={{ color: '#242424' }}>Linked Main Topics ({activeExam?.topics?.length || 0})</Text>
+            <div className={styles.sectionHeader}>
+              <Text size={400} weight="semibold" className={styles.sectionHeaderTitle}>Linked Main Topics ({activeExam?.topics?.length || 0})</Text>
               {activeExam && (
                 <Button 
                   size="small" 
@@ -1278,18 +1226,18 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
             </div>
             
             {activeExam?.topics && activeExam.topics.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div className={styles.linkedList}>
                 {activeExam.topics.map(t => (
-                  <Card key={t.id} style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', border: '1px solid #f0f0f0', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <Text weight="semibold" style={{ color: '#242424' }}>{t.title}</Text>
+                  <Card key={t.id} className={styles.linkedItemCard}>
+                    <div className={styles.linkedItemTextContent}>
+                      <Text weight="semibold" className={styles.linkedItemTitle}>{t.title}</Text>
                     </div>
                     <Tooltip content="Unlink from Exam" relationship="label">
                       <Button 
                         size="small" 
                         appearance="subtle" 
                         icon={<LinkDismiss20Regular />}
-                        style={{ color: '#d13438' }}
+                        className={styles.unlinkButton}
                         onClick={() => handleUnlinkTopicFromExam(t.id, t.title, activeExam?.title || '')}
                       />
                     </Tooltip>
@@ -1297,8 +1245,8 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
                 ))}
               </div>
             ) : (
-              <div style={{ padding: '32px', textAlign: 'center', backgroundColor: '#fafafa', borderRadius: '8px', border: '1px dashed #d9d9d9' }}>
-                <Text style={{ color: '#a19f9d' }}>No topics linked to this exam.</Text>
+              <div className={styles.dashedEmptyState}>
+                <Text className={styles.dashedEmptyStateText}>No topics linked to this exam.</Text>
               </div>
             )}
           </div>
@@ -1306,160 +1254,160 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       </OverlayDrawer>
 
       {/* Topic/Subtopic Detail Drawer */}
-      <OverlayDrawer 
-        position="end" 
-        open={!!selectedTopicId} 
-        onOpenChange={(_, data) => setSelectedTopicId(data.open ? selectedTopicId : null)}
-        style={{ width: '550px', maxWidth: '100%', boxShadow: '-4px 0 24px rgba(0,0,0,0.15)' }}
-      >
-        <DrawerHeader style={{ borderBottom: '1px solid #eaeaea', padding: '16px 24px' }}>
-          <DrawerHeaderTitle 
-            action={
-              <Button 
-                appearance="subtle" 
-                icon={<Dismiss20Regular />}
-                onClick={() => setSelectedTopicId(null)}
-                aria-label="Close"
-              />
-            }
-          >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Text size={500} weight="bold" style={{ color: '#242424' }}>{activeTopic?.title}</Text>
-              </div>
-              <Text size={200} style={{ color: '#616161', fontWeight: 'normal', lineHeight: '1.4' }}>
-                {activeTopic?.description || <span style={{ fontStyle: 'italic', color: '#b3b3b3' }}>No description provided.</span>}
-              </Text>
-            </div>
-          </DrawerHeaderTitle>
-        </DrawerHeader>
-        <DrawerBody style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          
-          {/* Main Topic (no parentTopics) => shows linked subtopics */}
-          {activeTopic && (!activeTopic.parentTopics || activeTopic.parentTopics.length === 0) ? (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <Text size={400} weight="semibold" style={{ color: '#242424' }}>Linked Subtopics ({activeTopic?.subtopics?.length || 0})</Text>
-                <Button 
-                  size="small" 
-                  appearance="outline" 
-                  icon={<Link20Regular />}
-                  onClick={() => {
-                    setLinkTopicId(activeTopic.id);
-                    setSelectedSubtopicIds([]);
-                    setTopicLinkDialogOpen(true);
-                  }}
-                >
-                  Link Sub Topics
-                </Button>
-              </div>
-              
-              {activeTopic?.subtopics && activeTopic.subtopics.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {activeTopic.subtopics.map(t => (
-                    <Card key={t.id} style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', border: '1px solid #f0f0f0', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <Text weight="semibold" style={{ color: '#242424' }}>{t.title}</Text>
-                      </div>
-                      <Tooltip content="Unlink from Topic" relationship="label">
-                        <Button 
-                          size="small" 
-                          appearance="subtle" 
-                          icon={<LinkDismiss20Regular />}
-                          style={{ color: '#d13438' }}
-                          onClick={() => handleUnlinkSubtopicFromParent(t.id, t.title, activeTopic?.title || '')}
-                        />
-                      </Tooltip>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div style={{ padding: '32px', textAlign: 'center', backgroundColor: '#fafafa', borderRadius: '8px', border: '1px dashed #d9d9d9' }}>
-                  <Text style={{ color: '#a19f9d' }}>No subtopics linked to this topic.</Text>
-                </div>
-              )}
-            </div>
-          ) : (
-            /* Sub Topic (has parentTopics) => shows linked quizzes */
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
-                <Text size={400} weight="semibold" style={{ color: '#242424' }}>Linked Quizzes ({activeTopic?.quizzes?.length || 0})</Text>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <Button 
-                    size="small" 
-                    appearance="outline" 
-                    icon={<Link20Regular />}
-                    onClick={() => {
-                      if (activeTopic) {
-                        setLinkTopicId(activeTopic.id);
-                        setSelectedQuizIds([]);
-                        setQuizLinkDialogOpen(true);
-                      }
-                    }}
-                  >
-                    Link Quizzes
-                  </Button>
-                  <Button 
-                    size="small" 
-                    appearance="primary" 
-                    icon={<Add20Regular />}
-                    onClick={() => activeTopic && openNewQuizDialog(activeTopic.id)}
-                  >
-                    Create Quiz
-                  </Button>
-                </div>
-              </div>
-              
-              {activeTopic?.quizzes && activeTopic.quizzes.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {activeTopic.quizzes.map(q => (
-                    <Card key={q.id} style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', border: '1px solid #f0f0f0', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <Tooltip content="Click to view questions" relationship="label">
-                          <LinkButton
-                            appearance="transparent"
-                            style={{ padding: 0, height: 'auto', fontWeight: 'bold', color: '#0078d4', textAlign: 'left', justifyContent: 'flex-start', minWidth: 'auto' }}
-                            href={`/admin/manage/quizzes/${q.id}/questions`}
-                          >
-                            {q.title}
-                          </LinkButton>
-                        </Tooltip>
-                        <Text size={100} style={{ color: '#616161' }}>Order: #{q.quizOrder} • {q._count?.questions || 0} Questions</Text>
-                      </div>
-                      
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        {renderDifficultyBadge(q.difficulty)}
-                        <Tooltip content="Unlink Quiz" relationship="label">
-                          <Button 
-                            size="small" 
-                            appearance="subtle" 
-                            icon={<LinkDismiss20Regular />}
-                            style={{ color: '#616161' }}
-                            onClick={() => handleUnlinkQuizFromSubtopic(q.id, q.title, activeTopic?.title || '')}
-                          />
-                        </Tooltip>
-                        <Tooltip content="Delete Quiz permanently" relationship="label">
-                          <Button 
-                            size="small" 
-                            appearance="subtle" 
-                            icon={<Delete20Regular />}
-                            style={{ color: '#d13438' }}
-                            onClick={() => handleDeleteQuiz(q.id, q.title)}
-                          />
-                        </Tooltip>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div style={{ padding: '32px', textAlign: 'center', backgroundColor: '#fafafa', borderRadius: '8px', border: '1px dashed #d9d9d9' }}>
-                  <Text style={{ color: '#a19f9d' }}>No quizzes linked to this subtopic.</Text>
-                </div>
-              )}
-            </div>
-          )}
-        </DrawerBody>
-      </OverlayDrawer>
+       <OverlayDrawer 
+         position="end" 
+         open={!!selectedTopicId} 
+         onOpenChange={(_, data) => setSelectedTopicId(data.open ? selectedTopicId : null)}
+         className={styles.overlayDrawer}
+       >
+         <DrawerHeader className={styles.drawerHeader}>
+           <DrawerHeaderTitle 
+             action={
+               <Button 
+                 appearance="subtle" 
+                 icon={<Dismiss20Regular />}
+                 onClick={() => setSelectedTopicId(null)}
+                 aria-label="Close"
+               />
+             }
+           >
+             <div className={styles.drawerHeaderContent}>
+               <div className={styles.drawerTitleRow}>
+                 <Text size={500} weight="bold" className={styles.drawerTitleText}>{activeTopic?.title}</Text>
+               </div>
+               <Text size={200} className={styles.drawerDescriptionText}>
+                 {activeTopic?.description || <span className={styles.drawerDescriptionFallback}>No description provided.</span>}
+               </Text>
+             </div>
+           </DrawerHeaderTitle>
+         </DrawerHeader>
+         <DrawerBody className={styles.drawerBody}>
+           
+           {/* Main Topic (no parentTopics) => shows linked subtopics */}
+           {activeTopic && (!activeTopic.parentTopics || activeTopic.parentTopics.length === 0) ? (
+             <div>
+               <div className={styles.sectionHeader}>
+                 <Text size={400} weight="semibold" className={styles.sectionHeaderTitle}>Linked Subtopics ({activeTopic?.subtopics?.length || 0})</Text>
+                 <Button 
+                   size="small" 
+                   appearance="outline" 
+                   icon={<Link20Regular />}
+                   onClick={() => {
+                     setLinkTopicId(activeTopic.id);
+                     setSelectedSubtopicIds([]);
+                     setTopicLinkDialogOpen(true);
+                   }}
+                 >
+                   Link Sub Topics
+                 </Button>
+               </div>
+               
+               {activeTopic?.subtopics && activeTopic.subtopics.length > 0 ? (
+                 <div className={styles.linkedList}>
+                   {activeTopic.subtopics.map(t => (
+                     <Card key={t.id} className={styles.linkedItemCard}>
+                       <div className={styles.linkedItemTextContent}>
+                         <Text weight="semibold" className={styles.linkedItemTitle}>{t.title}</Text>
+                       </div>
+                       <Tooltip content="Unlink from Topic" relationship="label">
+                         <Button 
+                           size="small" 
+                           appearance="subtle" 
+                           icon={<LinkDismiss20Regular />}
+                           className={styles.unlinkButton}
+                           onClick={() => handleUnlinkSubtopicFromParent(t.id, t.title, activeTopic?.title || '')}
+                         />
+                       </Tooltip>
+                     </Card>
+                   ))}
+                 </div>
+               ) : (
+                 <div className={styles.dashedEmptyState}>
+                   <Text className={styles.dashedEmptyStateText}>No subtopics linked to this topic.</Text>
+                 </div>
+               )}
+             </div>
+           ) : (
+             /* Sub Topic (has parentTopics) => shows linked quizzes */
+             <div>
+                <div className={styles.sectionHeaderWrap}>
+                 <Text size={400} weight="semibold" className={styles.sectionHeaderTitle}>Linked Quizzes ({activeTopic?.quizzes?.length || 0})</Text>
+                 <div className={styles.quizzesActionButtons}>
+                   <Button 
+                     size="small" 
+                     appearance="outline" 
+                     icon={<Link20Regular />}
+                     onClick={() => {
+                       if (activeTopic) {
+                         setLinkTopicId(activeTopic.id);
+                         setSelectedQuizIds([]);
+                         setQuizLinkDialogOpen(true);
+                       }
+                     }}
+                   >
+                     Link Quizzes
+                   </Button>
+                   <Button 
+                     size="small" 
+                     appearance="primary" 
+                     icon={<Add20Regular />}
+                     onClick={() => activeTopic && openNewQuizDialog(activeTopic.id)}
+                   >
+                     Create Quiz
+                   </Button>
+                 </div>
+               </div>
+               
+               {activeTopic?.quizzes && activeTopic.quizzes.length > 0 ? (
+                 <div className={styles.linkedList}>
+                   {activeTopic.quizzes.map(q => (
+                     <Card key={q.id} className={styles.linkedItemCard}>
+                       <div className={styles.linkedItemTextContent}>
+                         <Tooltip content="Click to view questions" relationship="label">
+                           <LinkButton
+                             appearance="transparent"
+                             className={styles.quizLinkButton}
+                             href={`/admin/manage/quizzes/${q.id}/questions`}
+                           >
+                             {q.title}
+                           </LinkButton>
+                         </Tooltip>
+                         <Text size={100} className={styles.quizMetaText}>Order: #{q.quizOrder} • {q._count?.questions || 0} Questions</Text>
+                       </div>
+                       
+                       <div className={styles.quizActionButtons}>
+                         {renderDifficultyBadge(q.difficulty)}
+                         <Tooltip content="Unlink Quiz" relationship="label">
+                           <Button 
+                             size="small" 
+                             appearance="subtle" 
+                             icon={<LinkDismiss20Regular />}
+                             className={styles.quizUnlinkButton}
+                             onClick={() => handleUnlinkQuizFromSubtopic(q.id, q.title, activeTopic?.title || '')}
+                           />
+                         </Tooltip>
+                         <Tooltip content="Delete Quiz permanently" relationship="label">
+                           <Button 
+                             size="small" 
+                             appearance="subtle" 
+                             icon={<Delete20Regular />}
+                             className={styles.unlinkButton}
+                             onClick={() => handleDeleteQuiz(q.id, q.title)}
+                           />
+                         </Tooltip>
+                       </div>
+                     </Card>
+                   ))}
+                 </div>
+               ) : (
+                 <div className={styles.dashedEmptyState}>
+                   <Text className={styles.dashedEmptyStateText}>No quizzes linked to this subtopic.</Text>
+                 </div>
+               )}
+             </div>
+           )}
+         </DrawerBody>
+       </OverlayDrawer>
 
       {/* Reusable Fluent UI Confirmation Dialog */}
       {/* ── Quiz Detail Drawer ── */}
@@ -1467,31 +1415,31 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
         position="end"
         open={!!selectedQuizId}
         onOpenChange={(_, d) => setSelectedQuizId(d.open ? selectedQuizId : null)}
-        style={{ width: "500px", maxWidth: "100%", boxShadow: "-4px 0 24px rgba(0,0,0,0.12)" }}
+        className={styles.overlayDrawerQuiz}
       >
-        <DrawerHeader style={{ borderBottom: "1px solid #eaeaea", padding: "16px 24px" }}>
+        <DrawerHeader className={styles.drawerHeader}>
           <DrawerHeaderTitle
             action={
               <Button appearance="subtle" icon={<Dismiss20Regular />} onClick={() => setSelectedQuizId(null)} aria-label="Close" />
             }
           >
-            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <Text size={500} weight="bold" style={{ color: "#242424" }}>{activeQuizDetail?.title}</Text>
+            <div className={styles.drawerHeaderContent}>
+              <div className={styles.drawerTitleRow}>
+                <Text size={500} weight="bold" className={styles.drawerTitleText}>{activeQuizDetail?.title}</Text>
                 {activeQuizDetail && <Badge appearance="filled" color={activeQuizDetail.difficulty === "Easy" ? "success" : activeQuizDetail.difficulty === "Hard" ? "danger" : "warning"}>{activeQuizDetail.difficulty}</Badge>}
               </div>
-              <Text size={200} style={{ color: "#6b7280" }}>
+              <Text size={200} className={styles.quizOrderText}>
                 Order #{activeQuizDetail?.quizOrder} · {activeQuizDetail?.questions?.length || 0} questions
               </Text>
             </div>
           </DrawerHeaderTitle>
         </DrawerHeader>
 
-        <DrawerBody style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "20px" }}>
+        <DrawerBody className={styles.drawerBody}>
           {/* Quiz Questions management in drawer */}
           <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
-              <Text size={400} weight="semibold" style={{ color: "#242424" }}>
+            <div className={styles.sectionHeaderQuestions}>
+              <Text size={400} weight="semibold" className={styles.sectionHeaderTitle}>
                 Questions ({activeQuizDetail?.questions?.length || 0})
               </Text>
               <Button size="small" icon={<Add20Regular />} onClick={handleOpenAddQuestion}>
@@ -1500,21 +1448,18 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
             </div>
 
             {activeQuizLoading ? (
-              <div style={{ display: "flex", justifyContent: "center", padding: "20px" }}>
+              <div className={styles.questionsLoading}>
                 <Spinner size="medium" label="Loading questions..." />
               </div>
             ) : activeQuizDetail?.questions && activeQuizDetail.questions.length > 0 ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div className={styles.linkedList}>
                 {activeQuizDetail.questions.map((q: QuizQuestionDetail, idx: number) => (
-                  <Card key={q.id} style={{
-                    display: "flex", flexDirection: "column", gap: "8px", padding: "16px",
-                    border: "1px solid #f0f0f0", borderRadius: "8px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)"
-                  }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "8px" }}>
-                      <Text weight="semibold" size={300} style={{ color: "#1f2937", lineHeight: "1.4" }}>
+                  <Card key={q.id} className={styles.questionCard}>
+                    <div className={styles.questionHeaderRow}>
+                      <Text weight="semibold" size={300} className={styles.questionText}>
                         {idx + 1}. {q.text}
                       </Text>
-                      <div style={{ display: "flex", gap: "4px" }}>
+                      <div className={styles.questionActionButtons}>
                         <Button 
                           size="small" appearance="subtle" icon={<Edit20Regular />} 
                           onClick={() => handleOpenEditQuestion(q)} 
@@ -1522,24 +1467,21 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
                         />
                         <Button 
                           size="small" appearance="subtle" icon={<Delete20Regular />} 
-                          style={{ color: "#d13438" }}
+                          className={styles.unlinkButton}
                           onClick={() => handleDeleteQuestion(q.id, q.text)} 
                           aria-label="Delete question"
                         />
                       </div>
                     </div>
 
-                    <div style={{ display: "flex", flexDirection: "column", gap: "4px", paddingLeft: "12px", borderLeft: "2px solid #e5e7eb" }}>
+                    <div className={styles.optionList}>
                       {q.options.map((opt: string, oIdx: number) => {
                         const isCorrect = opt === q.correctAnswer;
                         return (
                           <Text 
                             key={oIdx} 
                             size={200} 
-                            style={{ 
-                              color: isCorrect ? "#16a34a" : "#4b5563", 
-                              fontWeight: isCorrect ? "bold" : "normal" 
-                            }}
+                            className={isCorrect ? styles.optionTextCorrect : styles.optionText}
                           >
                             {oIdx + 1}. {opt} {isCorrect && "✓"}
                           </Text>
@@ -1548,12 +1490,12 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
                     </div>
 
                     {q.hint && (
-                      <Text size={100} style={{ color: "#6b7280", fontStyle: "italic" }}>
+                      <Text size={100} className={styles.hintText}>
                         Hint: {q.hint}
                       </Text>
                     )}
                     {q.description && (
-                      <Text size={100} style={{ color: "#6b7280" }}>
+                      <Text size={100} className={styles.explanationText}>
                         Explanation: {q.description}
                       </Text>
                     )}
@@ -1561,8 +1503,8 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
                 ))}
               </div>
             ) : (
-              <div style={{ padding: "32px", textAlign: "center", backgroundColor: "#fafafa", borderRadius: "8px", border: "1px dashed #d9d9d9" }}>
-                <Text style={{ color: "#9ca3af" }}>No questions linked. Click &quot;Add Question&quot; to build questions manually.</Text>
+              <div className={styles.dashedEmptyState}>
+                <Text className={styles.dashedEmptyStateTextAlt}>No questions linked. Click &quot;Add Question&quot; to build questions manually.</Text>
               </div>
             )}
           </div>
@@ -1571,22 +1513,22 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
 
       {/* ── Add / Edit Question Dialog ── */}
       <Dialog open={questionDialogOpen} onOpenChange={(_, d) => setQuestionDialogOpen(d.open)}>
-        <DialogSurface style={{ borderRadius: "14px", padding: "28px", maxWidth: "600px", width: "100%" }}>
+        <DialogSurface className={styles.dialogSurfaceQuestion}>
           <DialogBody>
             <DialogTitle action={<DialogTrigger action="close"><Button appearance="subtle" aria-label="close" icon={<Dismiss20Regular />} /></DialogTrigger>}>
               {questionForm.id ? "Edit Question" : "Add Question"}
             </DialogTitle>
-            <DialogContent style={{ display: "flex", flexDirection: "column", gap: "16px", paddingTop: "16px" }}>
+            <DialogContent className={styles.dialogContentSmallGap}>
               <Field label="Question Text" required>
                 <Textarea 
                   value={questionForm.text} 
                   onChange={e => setQuestionForm(prev => ({ ...prev, text: e.target.value }))} 
                   placeholder="Enter the question text..." 
-                  style={{ width: "100%", minHeight: "80px" }}
+                  className={styles.fullWidthTextarea}
                 />
               </Field>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              <div className={styles.optionsGrid}>
                 {questionForm.options.map((opt, idx) => (
                   <Field key={idx} label={`Option ${idx + 1}`} required>
                     <Input 
@@ -1602,7 +1544,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
                 <Select 
                   value={questionForm.correctAnswer} 
                   onChange={(e, data) => setQuestionForm(prev => ({ ...prev, correctAnswer: data.value }))}
-                  style={{ width: "100%" }}
+                  className={styles.fullWidthSelect}
                 >
                   <option value="">Select correct option...</option>
                   {questionForm.options.filter(Boolean).map((opt, idx) => (
@@ -1624,11 +1566,11 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
                   value={questionForm.description} 
                   onChange={e => setQuestionForm(prev => ({ ...prev, description: e.target.value }))} 
                   placeholder="Explain why this option is correct..."
-                  style={{ width: "100%", minHeight: "80px" }}
+                  className={styles.fullWidthTextarea}
                 />
               </Field>
             </DialogContent>
-            <DialogActions style={{ marginTop: "24px" }}>
+            <DialogActions className={styles.dialogActions}>
               <DialogTrigger disableButtonEnhancement>
                 <Button appearance="secondary">Cancel</Button>
               </DialogTrigger>
@@ -1642,21 +1584,21 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
 
       {/* Bulk Link Quizzes Dialog (moving this down below overlays) */}
       <Dialog open={confirmDialog.open} onOpenChange={(e, data) => setConfirmDialog(prev => ({ ...prev, open: data.open }))}>
-        <DialogSurface style={{ borderRadius: '12px', padding: '24px', maxWidth: '400px' }}>
+        <DialogSurface className={styles.dialogSurfaceMax400}>
           <DialogBody>
             <DialogTitle action={<DialogTrigger action="close"><Button appearance="subtle" aria-label="close" icon={<Dismiss20Regular />} /></DialogTrigger>}>{confirmDialog.title}</DialogTitle>
-            <DialogContent style={{ paddingTop: '12px' }}>
-              <Text style={{ color: '#616161', fontSize: '14px', lineHeight: '1.5' }}>
+            <DialogContent className={styles.dialogContentConfirm}>
+              <Text className={styles.confirmDescriptionText}>
                 {confirmDialog.description}
               </Text>
             </DialogContent>
-            <DialogActions style={{ marginTop: '24px' }}>
+            <DialogActions className={styles.dialogActions}>
               <DialogTrigger disableButtonEnhancement>
                 <Button appearance="secondary">Cancel</Button>
               </DialogTrigger>
               <Button 
                 appearance="primary" 
-                style={{ backgroundColor: '#d13438', borderColor: '#d13438', color: '#ffffff' }}
+                className={styles.confirmButtonDestructive}
                 onClick={async () => {
                   await confirmDialog.onConfirm();
                   setConfirmDialog(prev => ({ ...prev, open: false }));

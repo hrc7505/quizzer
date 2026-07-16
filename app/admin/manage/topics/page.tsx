@@ -11,7 +11,7 @@ export default async function ManageTopicsPage() {
   }
 
   return (
-    <div style={{ width: '100%' }}>
+    <div>
       <TaxonomyManager view="main-topics" />
     </div>
   );

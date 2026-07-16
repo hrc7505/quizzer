@@ -6,6 +6,7 @@ import { ArrowLeft20Regular, ArrowSync20Regular, Brain20Regular, BookOpen20Regul
 import { LinkButton } from "./LinkButton";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
+import { useDeepDiveDetailStyles } from "./styles/useDeepDiveDetailStyles";
 
 interface Question {
   id: string;
@@ -27,6 +28,7 @@ interface DeepDiveDetailProps {
  * Renders the saved elaboration from DB and provides a Regenerate action.
  */
 export function DeepDiveDetail({ question }: DeepDiveDetailProps) {
+  const styles = useDeepDiveDetailStyles();
   const router = useRouter();
   const [regenerating, setRegenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,55 +59,35 @@ export function DeepDiveDetail({ question }: DeepDiveDetailProps) {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
+    <div className={styles.root}>
 
       {/* Back navigation */}
-      <LinkButton href="/deep-dives" appearance="subtle" icon={<ArrowLeft20Regular />} size="small" style={{ color: "#667eea", width: "fit-content" }}>
+      <LinkButton href="/deep-dives" appearance="subtle" icon={<ArrowLeft20Regular />} size="small" className={styles.backButton}>
         Back to Library
       </LinkButton>
 
       {/* Header card */}
-      <Card style={{
-        borderRadius: "16px",
-        border: "1px solid #e5e7eb",
-        boxShadow: "0 4px 16px rgba(102,126,234,0.08)",
-        overflow: "hidden",
-        padding: 0
-      }}>
+      <Card className={styles.headerCard}>
         {/* Gradient banner */}
-        <div style={{
-          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-          padding: "24px 28px",
-          display: "flex", alignItems: "flex-start", gap: "16px"
-        }}>
-          <div style={{
-            width: "44px", height: "44px", borderRadius: "12px",
-            background: "rgba(255,255,255,0.2)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            flexShrink: 0
-          }}>
-            <Brain20Regular style={{ color: "white", fontSize: "24px" }} />
+        <div className={styles.banner}>
+          <div className={styles.bannerIconContainer}>
+            <Brain20Regular className={styles.bannerIcon} />
           </div>
-          <div style={{ flex: 1 }}>
-            <Text size={600} weight="bold" style={{ color: "white", display: "block", lineHeight: "1.3" }}>
+          <div>
+            <Text size={600} weight="bold" className={styles.bannerTitle}>
               {question.text}
             </Text>
           </div>
         </div>
 
         {/* Meta + actions row */}
-        <div style={{
-          padding: "16px 28px",
-          display: "flex", justifyContent: "space-between", alignItems: "center",
-          flexWrap: "wrap", gap: "12px",
-          borderBottom: "1px solid #f3f4f6"
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-            <BookOpen20Regular style={{ color: "#667eea" }} />
-            <Text size={300} weight="semibold" style={{ color: "#374151" }}>{question.topic.title}</Text>
+        <div className={styles.metaRow}>
+          <div className={styles.metaLeft}>
+            <BookOpen20Regular className={styles.metaIcon} />
+            <Text size={300} weight="semibold" className={styles.metaTopic}>{question.topic.title}</Text>
             {question.quiz && (
               <>
-                <Text size={200} style={{ color: "#9ca3af" }}>·</Text>
+                <Text size={200} className={styles.metaSeparator}>·</Text>
                 <Badge appearance="tint" color="informative">{question.quiz.title}</Badge>
                 <Badge appearance="filled" color={difficultyColor(question.quiz.difficulty)}>
                   {question.quiz.difficulty}
@@ -125,8 +107,8 @@ export function DeepDiveDetail({ question }: DeepDiveDetailProps) {
         </div>
 
         {/* Correct answer */}
-        <div style={{ padding: "12px 28px", background: "#f0fdf4", borderBottom: "1px solid #e5e7eb" }}>
-          <Text size={300} style={{ color: "#15803d" }}>
+        <div className={styles.correctAnswerRow}>
+          <Text size={300} className={styles.correctAnswerText}>
             <strong>✓ Correct Answer:</strong> {question.correctAnswer}
           </Text>
         </div>
@@ -141,22 +123,14 @@ export function DeepDiveDetail({ question }: DeepDiveDetailProps) {
 
       {/* Elaboration content */}
       {question.elaboration ? (
-        <Card style={{
-          borderRadius: "16px",
-          border: "1px solid #e5e7eb",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-          padding: "32px"
-        }}>
-          <div className="markdown-body" style={{ lineHeight: "1.7", color: "#1f2937" }}>
+        <Card className={styles.elaborationCard}>
+          <div className={styles.markdownBody}>
             <ReactMarkdown>{question.elaboration}</ReactMarkdown>
           </div>
         </Card>
       ) : (
-        <Card style={{
-          borderRadius: "16px", padding: "48px",
-          textAlign: "center", border: "1px dashed #d1d5db"
-        }}>
-          <Text size={400} style={{ color: "#9ca3af" }}>
+        <Card className={styles.emptyCard}>
+          <Text size={400} className={styles.emptyText}>
             No elaboration saved yet. Use the <strong>🤖 AI Deep Dive</strong> button in quiz results to generate one.
           </Text>
         </Card>

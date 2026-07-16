@@ -4,6 +4,17 @@ import { makeStyles, shorthands } from "@fluentui/react-components";
  * Hook to generate Fluent UI styles for the QuizWizard component.
  */
 export const useQuizWizardStyles = makeStyles({
+  quizPlayFont: {
+    fontFamily: "var(--font-winky) !important",
+    color: "inherit",
+    lineHeight: "inherit",
+    letterSpacing: "inherit",
+    fontSize: "inherit",
+    fontWeight: "inherit",
+    "& span, & p, & h1, & h2, & h3, & h4, & h5, & h6, & div, & button": {
+      fontFamily: "var(--font-winky) !important",
+    },
+  },
   container: {
     maxWidth: "800px",
     ...shorthands.margin("0", "auto"),
@@ -60,8 +71,8 @@ export const useQuizWizardStyles = makeStyles({
     ...shorthands.border("2px", "solid", "#e2e8f0"),
     display: "flex",
     alignItems: "center",
-    justifyContent: "center",
-    textAlign: "center",
+    justifyContent: "flex-start",
+    textAlign: "left",
     "@media (max-width: 480px)": {
       padding: "12px",
     },
@@ -96,7 +107,8 @@ export const useQuizWizardStyles = makeStyles({
   actionsRow: {
     marginTop: "24px",
     display: "flex",
-    justifyContent: "flex-end",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   btnNext: {
     minWidth: "140px",
@@ -278,6 +290,8 @@ export const useQuizWizardStyles = makeStyles({
   questionText: {
     flex: 1,
     lineHeight: "1.4",
+    color: "#2563eb",
+    fontFamily: "var(--font-winky) !important",
   },
   explanationIcon: {
     color: "#2563eb",
@@ -303,7 +317,38 @@ export const useQuizWizardStyles = makeStyles({
     fontWeight: 700,
     fontSize: "13px",
   },
+  authWarningBox: {
+    marginBottom: "16px",
+    padding: "14px 16px",
+    borderRadius: "12px",
+    backgroundColor: "#fef3c7",
+    color: "#92400e",
+    border: "1px solid #fcd34d",
+  },
+  explanationRow: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: "8px",
+    marginBottom: "6px",
+  },
+  explanationCheck: {
+    color: "#10b981",
+    marginTop: "2px",
+    flexShrink: 0,
+    fontSize: "16px",
+  },
+  optionText: {
+    fontFamily: "var(--font-winky) !important",
+    fontSize: "12px",
+  },
+  questionPlayText: {
+    fontFamily: "var(--font-winky) !important",
+    fontSize: "18px",
+  },
   scoreText: {
     fontWeight: 600,
+  },
+  scoreValue: {
+    fontWeight: "bold",
   },
 });

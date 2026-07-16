@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
+import { INTERNAL_TOPIC_TITLE } from "@/lib/constants";
 import { revalidatePath } from "next/cache";
 
 export async function GET(req: Request) {
@@ -12,7 +13,7 @@ export async function GET(req: Request) {
     
     const where: Prisma.TopicWhereInput = {
       // Always exclude the hidden sentinel topic used as a FK anchor for standalone-generated questions
-      NOT: { title: "__internal__" }
+      NOT: { title: INTERNAL_TOPIC_TITLE }
     };
     if (examId) {
       where.exams = { some: { id: examId } };

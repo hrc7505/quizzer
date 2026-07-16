@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { INTERNAL_TOPIC_TITLE } from "@/lib/constants";
 import { AdminDeepDivesManager } from "@/components/ui/AdminDeepDivesManager";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +15,10 @@ export const metadata = {
  */
 export default async function AdminDeepDivesPage() {
   const questions = await prisma.question.findMany({
-    where: { elaboration: { not: null } },
+    where: {
+      elaboration: { not: null },
+      topic: { isNot: { title: INTERNAL_TOPIC_TITLE } }
+    },
     select: {
       id: true,
       text: true,

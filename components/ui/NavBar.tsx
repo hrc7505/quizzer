@@ -241,6 +241,10 @@ export function NavBar({ maxWidth = "1200px" }: { maxWidth?: string }) {
           type="overlay"
           selectedValue={pathname}
           onOpenChange={(_, data) => setIsAdminDrawerOpen(data.open)}
+          onNavItemSelect={(_, data) => {
+            router.push(data.value);
+            setIsAdminDrawerOpen(false);
+          }}
         >
           <NavDrawerHeader className={styles.adminDrawerHeader}>
             <div className={styles.adminDrawerHeaderRow}>
@@ -250,50 +254,40 @@ export function NavBar({ maxWidth = "1200px" }: { maxWidth?: string }) {
           </NavDrawerHeader>
           <NavDrawerBody>
             <NavItem
-              as={Link as unknown as "a"}
-              href="/admin" value="/admin" icon={<Board24Regular />}
+              value="/admin" icon={<Board24Regular />}
               onMouseEnter={() => prefetch("/admin")}
-              onClick={() => setIsAdminDrawerOpen(false)}
             >Dashboard</NavItem>
 
             <NavItem
-              as={Link as unknown as "a"}
-              href="/admin/generate" value="/admin/generate" icon={<Add24Regular />}
+              value="/admin/generate" icon={<Add24Regular />}
               onMouseEnter={() => prefetch("/admin/generate")}
-              onClick={() => setIsAdminDrawerOpen(false)}
             >Generate Quiz</NavItem>
 
             <NavCategory value="taxonomy">
               <NavCategoryItem icon={<Options24Regular />}>Taxonomy</NavCategoryItem>
               <NavSubItemGroup>
-                <NavSubItem as={Link as unknown as "a"} href="/admin/manage/exams" value="/admin/manage/exams"
+                <NavSubItem value="/admin/manage/exams"
                   onMouseEnter={() => prefetch("/admin/manage/exams")}
-                  onClick={() => setIsAdminDrawerOpen(false)}
                 >Exams</NavSubItem>
-                <NavSubItem as={Link as unknown as "a"} href="/admin/manage/topics" value="/admin/manage/topics"
+                <NavSubItem value="/admin/manage/topics"
                   onMouseEnter={() => prefetch("/admin/manage/topics")}
-                  onClick={() => setIsAdminDrawerOpen(false)}
                 >Main Topics</NavSubItem>
-                <NavSubItem as={Link as unknown as "a"} href="/admin/manage/subtopics" value="/admin/manage/subtopics"
+                <NavSubItem value="/admin/manage/subtopics"
                   onMouseEnter={() => prefetch("/admin/manage/subtopics")}
-                  onClick={() => setIsAdminDrawerOpen(false)}
                 >Sub Topics</NavSubItem>
               </NavSubItemGroup>
             </NavCategory>
 
-            <NavItem as={Link as unknown as "a"} href="/admin/manage/quizzes" value="/admin/manage/quizzes" icon={<DocumentDatabase24Regular />}
+            <NavItem value="/admin/manage/quizzes" icon={<DocumentDatabase24Regular />}
               onMouseEnter={() => prefetch("/admin/manage/quizzes")}
-              onClick={() => setIsAdminDrawerOpen(false)}
             >Quizzes</NavItem>
 
-            <NavItem as={Link as unknown as "a"} href="/admin/manage/users" value="/admin/manage/users" icon={<People24Regular />}
+            <NavItem value="/admin/manage/users" icon={<People24Regular />}
               onMouseEnter={() => prefetch("/admin/manage/users")}
-              onClick={() => setIsAdminDrawerOpen(false)}
             >Users</NavItem>
 
-            <NavItem as={Link as unknown as "a"} href="/admin/manage/deep-dives" value="/admin/manage/deep-dives" icon={<Brain24Regular />}
+            <NavItem value="/admin/manage/deep-dives" icon={<Brain24Regular />}
               onMouseEnter={() => prefetch("/admin/manage/deep-dives")}
-              onClick={() => setIsAdminDrawerOpen(false)}
             >Deep Dives</NavItem>
           </NavDrawerBody>
 
@@ -323,3 +317,5 @@ export function NavBar({ maxWidth = "1200px" }: { maxWidth?: string }) {
     </>
   );
 }
+
+export default NavBar;

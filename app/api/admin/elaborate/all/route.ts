@@ -1,16 +1,28 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth/next";
+import { authOptions, SessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { INTERNAL_TOPIC_TITLE } from "@/lib/constants";
 import { revalidatePath } from "next/cache";
 
-/**
- * GET /api/admin/elaborate/all
- * Returns all questions that have a saved elaboration, along with topic + quiz context.
- * Used by both the public deep-dives library and the admin management page.
- */
+async function requireAdmin() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user || (session.user as SessionUser).role !== "ADMIN") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  return null;
+}
+
 export async function GET() {
   try {
+    const authError = await requireAdmin();
+    if (authError) return authError;
+
     const questions = await prisma.question.findMany({
-      where: { elaboration: { not: null } },
+      where: {
+        elaboration: { not: null },
+        topic: { isNot: { title: INTERNAL_TOPIC_TITLE } }
+      },
       select: {
         id: true,
         text: true,
@@ -28,13 +40,11 @@ export async function GET() {
   }
 }
 
-/**
- * DELETE /api/admin/elaborate/all
- * Bulk-clears ALL saved elaborations from the database.
- * Admin-only action — used from the manage page.
- */
 export async function DELETE() {
   try {
+    const authError = await requireAdmin();
+    if (authError) return authError;
+
     const result = await prisma.question.updateMany({
       where: { elaboration: { not: null } },
       data: { elaboration: null }

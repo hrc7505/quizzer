@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import {
   Brain24Regular, BookOpen24Regular,
   Sparkle24Regular, ArrowRight16Regular
-} from "@/components/ui/ServerIcons";
+} from "@/components/ui/Icons";
 import Link from "next/link";
 import { getServerSession } from "next-auth/next";
 import { authOptions, SessionUser } from "@/lib/auth";
@@ -122,7 +122,7 @@ export default async function HomePage() {
             Smart Study. AI-Powered Preparation.
           </h1>
           
-          <p className="text-base md:text-lg text-slate-400 leading-relaxed mb-8 px-2">
+          <p className="text-base md:text-lg text-slate-300 leading-relaxed mb-8 px-2">
             Generate high-quality multiple-choice quizzes instantly from titles, text documents, or PDFs.
             Test your knowledge and leverage Gemini AI to deep-dive into complex concepts.
           </p>

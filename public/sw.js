@@ -1,5 +1,10 @@
-// Quizzer Service Worker – caches the app shell for offline use
-const CACHE_NAME = "quizzer-v1";
+// Quizzer Service Worker – caches the app shell for offline use.
+// Strategy:
+//  - Navigations: network-first, fall back to the cached shell ("/") when offline.
+//  - Static assets (JS/CSS/images): left to the browser's own HTTP cache so we
+//    never serve a stale hashed bundle after a redeploy.
+//  - API / auth requests: never intercepted.
+const CACHE_NAME = "quizzer-v3";
 const SHELL_ASSETS = [
   "/",
   "/manifest.json",
@@ -25,25 +30,31 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// Network-first strategy: try network, fall back to cache
 self.addEventListener("fetch", (event) => {
-  // Only intercept same-origin GET requests; skip API / auth routes
-  if (
-    event.request.method !== "GET" ||
-    event.request.url.includes("/api/") ||
-    event.request.url.includes("/auth/")
-  ) {
-    return;
-  }
+  const { request } = event;
+  if (request.method !== "GET") return;
+
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+  if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/auth/")) return;
+
+  // Only manage navigations. Everything else falls through to the browser.
+  if (request.mode !== "navigate") return;
 
   event.respondWith(
-    fetch(event.request)
-      .then((res) => {
-        // Cache a clone of successful responses
-        const clone = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-        return res;
-      })
-      .catch(() => caches.match(event.request))
+    (async () => {
+      try {
+        return await fetch(request);
+      } catch {
+        const cached = (await caches.match(request)) || (await caches.match("/"));
+        return (
+          cached ||
+          new Response("You are offline and this page was not cached.", {
+            status: 503,
+            headers: { "Content-Type": "text/plain" },
+          })
+        );
+      }
+    })()
   );
 });

@@ -6,6 +6,7 @@ import { Search24Regular, ArrowRight16Regular, Sparkle24Regular } from "@fluentu
 import Link from "next/link";
 import { ShareButton } from "./ShareButton";
 import { Share24Regular } from "@fluentui/react-icons";
+import { difficultyColor } from "@/lib/format";
 
 interface QuizItem {
   id: string;
@@ -39,6 +40,17 @@ const useStyles = makeStyles({
     borderRadius: "14px",
     border: "1px solid #e2e8f0",
     boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
+  },
+  searchIcon: {
+    fontSize: "18px",
+    color: "#64748b",
+  },
+  searchInput: {
+    minWidth: "220px",
+    flex: 1,
+  },
+  filterSelect: {
+    width: "160px",
   },
   grid: {
     display: "grid",
@@ -88,6 +100,9 @@ const useStyles = makeStyles({
     flexWrap: "wrap",
     marginTop: "auto",
   },
+  badgeRounded: {
+    borderRadius: "6px",
+  },
   actionRow: {
     display: "flex",
     gap: "10px",
@@ -132,6 +147,11 @@ const useStyles = makeStyles({
     backgroundColor: "#ffffff",
     borderRadius: "16px",
     border: "1px dashed #cbd5e1",
+  },
+  emptyIcon: {
+    fontSize: "36px",
+    color: "#94a3b8",
+    marginBottom: "12px",
   },
   emptyTitle: {
     color: "#1e293b",
@@ -194,28 +214,22 @@ export function QuizCardGrid({ quizzes, subtopicTitle, basePath }: QuizCardGridP
     };
   }, [hasMore]);
 
-  const getDifficultyColor = (diff: string): "success" | "warning" | "danger" => {
-    if (diff === "Easy") return "success";
-    if (diff === "Hard") return "danger";
-    return "warning";
-  };
-
   return (
     <div className={styles.wrap}>
       {/* Filtering Toolbar */}
       <div className={styles.toolbar}>
         <Input
-          contentBefore={<Search24Regular style={{ fontSize: "18px", color: "#64748b" }} />}
+          contentBefore={<Search24Regular className={styles.searchIcon} />}
           placeholder="Search quizzes by title..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          style={{ minWidth: "220px", flex: 1 }}
+          className={styles.searchInput}
         />
 
         <Select
           value={difficultyFilter}
           onChange={(e, data) => setDifficultyFilter(data.value)}
-          style={{ width: "160px" }}
+          className={styles.filterSelect}
         >
           <option value="">All Difficulties</option>
           <option value="Easy">Easy</option>
@@ -233,70 +247,70 @@ export function QuizCardGrid({ quizzes, subtopicTitle, basePath }: QuizCardGridP
                  <Text size={100} className={styles.quizNo}>
                    Quiz #{quiz.quizOrder}
                  </Text>
-                <Text size={400} weight="bold" className={styles.title}>
-                  {quiz.title}
-                </Text>
-              </div>
+               <Text size={400} weight="bold" className={styles.title}>
+                 {quiz.title}
+               </Text>
+             </div>
 
-              <div className={styles.badgeRow}>
-                <Badge color={getDifficultyColor(quiz.difficulty)} style={{ borderRadius: '6px' }}>
-                  {quiz.difficulty}
-                </Badge>
-                <Badge appearance="tint" color="informative" style={{ borderRadius: '6px' }}>
-                  {quiz._count?.questions || 0} questions
-                </Badge>
-              </div>
+             <div className={styles.badgeRow}>
+               <Badge color={difficultyColor(quiz.difficulty)} className={styles.badgeRounded}>
+                 {quiz.difficulty}
+               </Badge>
+               <Badge appearance="tint" color="informative" className={styles.badgeRounded}>
+                 {quiz._count?.questions || 0} questions
+               </Badge>
+             </div>
 
-              <div className={styles.actionRow}>
-                <Link
-                  href={`${basePath}/quiz/${quiz.id}`}
-                  className={styles.startBtn}
-                >
-                  Start Quiz
-                  <ArrowRight16Regular />
-                </Link>
+             <div className={styles.actionRow}>
+               <Link
+                 href={`${basePath}/quiz/${quiz.id}`}
+                 className={styles.startBtn}
+               >
+                 Start Quiz
+                 <ArrowRight16Regular />
+               </Link>
 
-                {/* Sharing button (mobile-safe: no hover) */}
-                <ShareButton
-                  icon={<Share24Regular />}
-                  buttonAppearance="outline"
-                  buttonSize="large"
-                  buttonClassName={styles.shareBtn}
-                  shareText={`${quiz.title} — Take this quiz on Quizzer!`}
-                  defaultUrl={`${typeof window !== "undefined" ? window.location.origin : ""}${basePath}/quiz/${quiz.id}`}
-                  resolveUrl={async () => {
-                    try {
-                      const res = await fetch(`/api/quiz/${quiz.id}/share-url`);
-                      if (res.ok) {
-                        const json = await res.json();
-                        return json?.url ? `${window.location.origin}${json.url}` : undefined;
-                      }
-                    } catch {
-                      return undefined;
-                    }
-                    return undefined;
-                  }}
-                />
-              </div>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <div className={styles.emptyState}>
-          <Sparkle24Regular style={{ fontSize: "36px", color: "#94a3b8", marginBottom: "12px" }} />
-          <Text size={500} weight="bold" block className={styles.emptyTitle}>
-            No quizzes found in &quot;{subtopicTitle}&quot;
-          </Text>
-          <Text size={200} className={styles.emptyText}>Adjust your filters or query to locate linked quizzes.</Text>
-        </div>
-      )}
+               {/* Sharing button (mobile-safe: no hover) */}
+               <ShareButton
+                 icon={<Share24Regular />}
+                 buttonAppearance="outline"
+                 buttonSize="large"
+                 buttonClassName={styles.shareBtn}
+                 shareText={`${quiz.title} — Take this quiz on Quizzer!`}
+                 defaultUrl={`${typeof window !== "undefined" ? window.location.origin : ""}${basePath}/quiz/${quiz.id}`}
+                 resolveUrl={async () => {
+                   try {
+                     const res = await fetch(`/api/quiz/${quiz.id}/share-url`);
+                     if (res.ok) {
+                       const json = await res.json();
+                       return json?.url ? `${window.location.origin}${json.url}` : undefined;
+                     }
+                   } catch {
+                     return undefined;
+                   }
+                   return undefined;
+                 }}
+               />
+             </div>
+           </Card>
+         ))}
+       </div>
+     ) : (
+       <div className={styles.emptyState}>
+         <Sparkle24Regular className={styles.emptyIcon} />
+         <Text size={500} weight="bold" block className={styles.emptyTitle}>
+           No quizzes found in &quot;{subtopicTitle}&quot;
+         </Text>
+         <Text size={200} className={styles.emptyText}>Adjust your filters or query to locate linked quizzes.</Text>
+       </div>
+     )}
 
-      {/* Infinite Scroll Spinner */}
-      {hasMore && (
-        <div ref={sentinelRef} className={styles.loadMore}>
-          <Spinner label="Loading more quizzes..." />
-        </div>
-      )}
-    </div>
-  );
+     {/* Infinite Scroll Spinner */}
+     {hasMore && (
+       <div ref={sentinelRef} className={styles.loadMore}>
+         <Spinner label="Loading more quizzes..." />
+       </div>
+     )}
+   </div>
+ );
 }

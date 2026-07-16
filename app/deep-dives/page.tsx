@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { INTERNAL_TOPIC_TITLE } from "@/lib/constants";
 import { DeepDivesLibrary } from "@/components/ui/DeepDivesLibrary";
 import { PageLayout } from "@/components/ui/PageLayout";
 
@@ -15,7 +16,10 @@ export const metadata = {
  */
 export default async function DeepDivesPage() {
   const questions = await prisma.question.findMany({
-    where: { elaboration: { not: null } },
+    where: {
+      elaboration: { not: null },
+      topic: { isNot: { title: INTERNAL_TOPIC_TITLE } }
+    },
     select: {
       id: true,
       text: true,

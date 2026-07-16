@@ -8,6 +8,7 @@ import {
 import type { SelectTabData, SelectTabEvent } from "@fluentui/react-components";
 import { GenerateQuizResponse, GenerateQuizPayload } from "./interfaces/GenerateQuizForm.interface";
 import { QuizService } from "../../lib/services/quiz.service";
+import { useGenerateQuizFormStyles } from "./styles/useGenerateQuizFormStyles";
 
 interface GenerateQuizFormProps {
   /** Called after a successful generation — parent can close dialog / refresh state. */
@@ -21,6 +22,7 @@ interface GenerateQuizFormProps {
  * After creation the quiz is standalone; admin links it to subtopics via QuizManager.
  */
 export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizFormProps = {}) {
+  const styles = useGenerateQuizFormStyles();
   const [mode, setMode] = useState<"title" | "text" | "pdf">("title");
   const [quizTitle, setQuizTitle] = useState("");
   const [topicText, setTopicText] = useState("");
@@ -108,7 +110,7 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
   };
 
   return (
-    <form onSubmit={handleGenerate} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+    <form onSubmit={handleGenerate} className={styles.form}>
 
       {error && (
         <MessageBar intent="error">
@@ -129,7 +131,7 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
       )}
 
       {/* Mode tabs */}
-      <TabList selectedValue={mode} onTabSelect={handleTabSelect} style={{ marginBottom: "4px" }}>
+      <TabList selectedValue={mode} onTabSelect={handleTabSelect} className={styles.tabList}>
         <Tab value="title">From Title Only</Tab>
         <Tab value="text">From Text</Tab>
         <Tab value="pdf">From PDF</Tab>
@@ -146,12 +148,12 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
           value={quizTitle}
           onChange={e => setQuizTitle(e.target.value)}
           disabled={loading}
-          style={{ width: "100%" }}
+          className={styles.fullWidthInput}
         />
       </Field>
 
       <Field label="Difficulty Level" required>
-        <Select value={difficulty} onChange={(_, d) => setDifficulty(d.value)} disabled={loading} style={{ width: "100%" }}>
+        <Select value={difficulty} onChange={(_, d) => setDifficulty(d.value)} disabled={loading} className={styles.fullWidthInput}>
           <option value="Easy">Easy</option>
           <option value="Medium">Medium</option>
           <option value="Hard">Hard</option>
@@ -166,7 +168,7 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
             onChange={e => setTopicText(e.target.value)}
             disabled={loading}
             rows={10}
-            style={{ width: "100%" }}
+            className={styles.fullWidthTextarea}
           />
         </Field>
       )}
@@ -174,35 +176,23 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
       {mode === "pdf" && (
         <Field label="Upload PDF" required hint="Upload a PDF document to generate questions from.">
           <div
-            style={{
-              border: `2px dashed ${isDragging ? "#0078d4" : "#ccc"}`,
-              borderRadius: "8px",
-              padding: "32px",
-              textAlign: "center",
-              backgroundColor: isDragging ? "#f3f2f1" : "transparent",
-              cursor: "pointer",
-              transition: "all 0.2s ease",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "8px"
-            }}
+            className={`${styles.dropzone} ${isDragging ? styles.dropzoneActive : ""}`}
             onDragOver={onDragOver}
             onDragLeave={onDragLeave}
             onDrop={onDrop}
             onClick={() => fileInputRef.current?.click()}
           >
             <input type="file" accept=".pdf" onChange={handleFileUpload} disabled={loading} ref={fileInputRef} style={{ display: "none" }} />
-            <Text size={400} weight="semibold" style={{ color: isDragging ? "#0078d4" : "inherit" }}>
+            <Text size={400} weight="semibold" className={styles.dropzoneTitle}>
               {file ? `📄 ${file.name}` : isDragging ? "Drop PDF here" : "Drag & drop a PDF, or click to browse"}
             </Text>
-            {!file && !isDragging && <Text size={200} style={{ color: "#666" }}>Supports .pdf files only</Text>}
+            {!file && !isDragging && <Text size={200} className={styles.dropzoneHint}>Supports .pdf files only</Text>}
           </div>
         </Field>
       )}
 
-      <Button appearance="primary" type="submit" disabled={loading || !isFormValid()} style={{ alignSelf: "flex-start" }}>
-        {loading ? <><Spinner size="tiny" style={{ marginRight: "8px" }} /> Generating…</> : "Generate Quiz"}
+      <Button appearance="primary" type="submit" disabled={loading || !isFormValid()} className={styles.submitButton}>
+        {loading ? <><Spinner size="tiny" className={styles.spinner} /> Generating…</> : "Generate Quiz"}
       </Button>
     </form>
   );

@@ -1,6 +1,10 @@
 import { makeStyles } from "@fluentui/react-components";
 
 export const useBreadcrumbsStyles = makeStyles({
+  nav: {
+    marginBottom: "28px",
+    overflow: "hidden",
+  },
   container: {
     display: "flex",
     alignItems: "center",
@@ -14,6 +18,11 @@ export const useBreadcrumbsStyles = makeStyles({
     gap: "6px",
     whiteSpace: "nowrap",
     flexShrink: 0,
+  },
+  currentItem: {
+    fontWeight: 600,
+    color: "#0f172a",
+    whiteSpace: "nowrap",
   },
   link: {
     textDecoration: "none",

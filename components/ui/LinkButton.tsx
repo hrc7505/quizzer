@@ -24,15 +24,10 @@ export type LinkButtonProps = ButtonProps & {
  */
 export const LinkButton = forwardRef<HTMLAnchorElement, LinkButtonProps>(
   function LinkButton({ href, prefetch = true, ...props }, ref) {
-    const ButtonAsLink = Button as unknown as React.ElementType;
     return (
-      <ButtonAsLink
-        as={Link}
-        href={href}
-        prefetch={prefetch}
-        ref={ref}
-        {...props}
-      />
+      <Link href={href} prefetch={prefetch} className="no-underline">
+        <Button {...props} ref={ref} />
+      </Link>
     );
   }
 );

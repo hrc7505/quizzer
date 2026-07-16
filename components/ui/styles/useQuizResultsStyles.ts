@@ -13,6 +13,9 @@ export const useQuizResultsStyles = makeStyles({
       ...shorthands.gap('16px'),
     },
   },
+  messageBar: {
+    marginBottom: "16px",
+  },
   header: {
     display: 'flex',
     justifyContent: 'space-between',

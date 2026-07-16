@@ -3,7 +3,7 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { ContentHeader } from "@/components/ui/ContentHeader";
 import { DirectoryCardList } from "@/components/ui/DirectoryCardList";
-import { BookOpen24Regular } from "@/components/ui/ServerIcons";
+import { BookOpen24Regular } from "@/components/ui/Icons";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 
@@ -23,10 +23,6 @@ export async function generateStaticParams() {
   );
 }
 
-interface SubtopicsPageProps {
-  params: Promise<{ examId: string; topicId: string }>;
-}
-
 export async function generateMetadata({ params }: SubtopicsPageProps) {
   const { topicId } = await params;
   const topic = await prisma.topic.findUnique({ where: { id: topicId } });
@@ -36,12 +32,7 @@ export async function generateMetadata({ params }: SubtopicsPageProps) {
   };
 }
 
-/**
- * Public Main Topic Subtopics list view.
- * Lists all subtopics nested under a specific main topic.
- */
-export default async function TopicSubtopicsPage({ params }: SubtopicsPageProps) {
-  const { examId, topicId } = await params;
+async function getPageData(examId: string, topicId: string) {
   const [exam, topic] = await Promise.all([
     prisma.exam.findUnique({ where: { id: examId } }),
     prisma.topic.findUnique({
@@ -54,9 +45,17 @@ export default async function TopicSubtopicsPage({ params }: SubtopicsPageProps)
       }
     })
   ]);
+  return { exam, topic };
+}
 
+function SubtopicsPageClient({ examId, topicId, exam, topic }: {
+  examId: string;
+  topicId: string;
+  exam: Awaited<ReturnType<typeof getPageData>>["exam"];
+  topic: Awaited<ReturnType<typeof getPageData>>["topic"];
+}) {
   if (!exam || !topic) {
-    notFound();
+    return null;
   }
 
   const subtopicItems = topic.subtopics.map(sub => ({
@@ -76,16 +75,25 @@ export default async function TopicSubtopicsPage({ params }: SubtopicsPageProps)
   return (
     <PageLayout>
       <Breadcrumbs items={breadcrumbItems} />
-
       <ContentHeader
         icon={<BookOpen24Regular />}
         variant="subtopic"
         title={topic.title}
         description={topic.description}
       />
-
       <SectionHeading>Subtopics</SectionHeading>
       <DirectoryCardList items={subtopicItems} itemLabel="subtopics" searchPlaceholder="Search subtopics..." />
     </PageLayout>
   );
+}
+
+export default async function TopicSubtopicsPage({ params }: SubtopicsPageProps) {
+  const { examId, topicId } = await params;
+  const { exam, topic } = await getPageData(examId, topicId);
+
+  if (!exam || !topic) {
+    notFound();
+  }
+
+  return <SubtopicsPageClient examId={examId} topicId={topicId} exam={exam} topic={topic} />;
 }

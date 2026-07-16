@@ -32,7 +32,7 @@ import {
   MenuItem,
 } from "@fluentui/react-components";
 import { Dismiss20Regular, MoreHorizontal24Regular } from "@fluentui/react-icons";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
 
 import { GState } from "jspdf";
@@ -67,6 +67,7 @@ export function QuizResults({ attempt }: QuizResultsProps) {
 
   const [downloading, setDownloading] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -87,12 +88,15 @@ export function QuizResults({ attempt }: QuizResultsProps) {
   }, [attempt.quizId]);
 
   // Pre-seed in-memory cache from DB-persisted elaborations
-  const initialElaborations: Record<string, { loading: boolean; data?: string; error?: string }> = {};
-  attempt.quiz.questions.forEach((q: QuestionData) => {
-    if (q.elaboration) {
-      initialElaborations[q.id] = { loading: false, data: q.elaboration };
-    }
-  });
+  const initialElaborations = useMemo(() => {
+    const cache: Record<string, { loading: boolean; data?: string; error?: string }> = {};
+    attempt.quiz.questions.forEach((q: QuestionData) => {
+      if (q.elaboration) {
+        cache[q.id] = { loading: false, data: q.elaboration };
+      }
+    });
+    return cache;
+  }, [attempt.quiz.questions]);
 
   const [elaborations, setElaborations] = useState<Record<string, { loading: boolean, data?: string, error?: string }>>(initialElaborations);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -318,7 +322,7 @@ export function QuizResults({ attempt }: QuizResultsProps) {
       pdf.save(`quiz-${attempt.quiz.title.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase()}.pdf`);
     } catch (e) {
       console.error("PDF generation failed", e);
-      alert("Failed to generate PDF");
+      setError("Failed to generate PDF");
     } finally {
       setDownloading(false);
     }
@@ -382,6 +386,11 @@ export function QuizResults({ attempt }: QuizResultsProps) {
   };
   return (
     <div className={styles.container}>
+      {error && (
+        <MessageBar intent="error" style={{ marginBottom: "16px" }}>
+          <MessageBarBody>{error}</MessageBarBody>
+        </MessageBar>
+      )}
       
       <div className={styles.header}>
         <Text size={700} weight="bold" className={styles.headerTitle}>Quiz Results</Text>
@@ -479,10 +488,10 @@ export function QuizResults({ attempt }: QuizResultsProps) {
             <table className={styles.leaderboardTable}>
               <thead>
                 <tr className={styles.leaderboardRow}>
-                  <th className={`${styles.leaderboardHeaderCell} ${styles.leaderboardHeaderColRank}`}>Rank</th>
-                  <th className={styles.leaderboardHeaderCell}>Player</th>
-                  <th className={`${styles.leaderboardHeaderCell} ${styles.leaderboardHeaderColScore}`}>Score</th>
-                  <th className={`${styles.leaderboardHeaderCell} ${styles.leaderboardHeaderColTime}`}>Time</th>
+                  <th scope="col" className={`${styles.leaderboardHeaderCell} ${styles.leaderboardHeaderColRank}`}>Rank</th>
+                  <th scope="col" className={styles.leaderboardHeaderCell}>Player</th>
+                  <th scope="col" className={`${styles.leaderboardHeaderCell} ${styles.leaderboardHeaderColScore}`}>Score</th>
+                  <th scope="col" className={`${styles.leaderboardHeaderCell} ${styles.leaderboardHeaderColTime}`}>Time</th>
                 </tr>
               </thead>
               <tbody>

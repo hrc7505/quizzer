@@ -1,4 +1,4 @@
-import { QuizClient } from "./QuizClient";
+import { QuizClient } from "@/components/ui/QuizClient";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 

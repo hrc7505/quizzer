@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { 
-  Card, Text, Button, ProgressBar, Badge, Spinner, 
+  Card, Text, Button, ProgressBar, Badge, Spinner, MessageBar, MessageBarBody,
   TeachingPopover, TeachingPopoverTrigger, TeachingPopoverSurface, 
   TeachingPopoverHeader, TeachingPopoverTitle, TeachingPopoverBody,
   Avatar,
@@ -86,29 +86,30 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
 
   const [timeTaken, setTimeTaken] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const questions = quiz.questions || [];
   const currentQuestion = questions[currentIndex];
 
   // 1. Initial Load: Check for in-progress attempts and retrieve quiz leaderboard
   useEffect(() => {
+    let cancelled = false;
     const initData = async () => {
       if (status === "loading") return;
+      setError(null);
       if (status === "unauthenticated") {
         setLoading(false);
         setAuthWarning("Sign in to save progress and start this quiz.");
-        // Still fetch leaderboard for unauthenticated users.
         try {
           const leaderboardData = await AttemptService.getLeaderboard(quiz.id);
-          setLeaderboard(leaderboardData);
+          if (!cancelled) setLeaderboard(leaderboardData);
         } catch (err) {
-          console.error("Failed to load leaderboard:", err);
+          if (!cancelled) console.error("Failed to load leaderboard:", err);
         }
         return;
       }
 
       try {
-        // Fetch active attempt (without forcing new)
         const res = await fetch("/api/attempt", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -117,23 +118,23 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
         const attemptData = await res.json();
         
         if (attemptData.success && attemptData.attemptId && attemptData.answers && attemptData.answers.length > 0) {
-          setActiveAttempt(attemptData);
-          console.log("[QuizWizard] Found in-progress attempt:", attemptData.attemptId, "answers:", attemptData.answers.length);
-        } else {
-          console.log("[QuizWizard] No in-progress attempt found. attemptId:", attemptData.attemptId, "answers:", attemptData.answers?.length);
+          if (!cancelled) setActiveAttempt(attemptData);
         }
 
-        // Fetch leaderboard
         const leaderboardData = await AttemptService.getLeaderboard(quiz.id);
-        setLeaderboard(leaderboardData);
+        if (!cancelled) setLeaderboard(leaderboardData);
       } catch (err) {
-        console.error("Failed to initialize quiz metadata:", err);
+        if (!cancelled) {
+          console.error("Failed to initialize quiz metadata:", err);
+          setError("Failed to load quiz data. Please try again.");
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     initData();
+    return () => { cancelled = true; };
   }, [quiz.id, status]);
 
   // 2. Play Timer: Increments every second once play is active
@@ -156,6 +157,7 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
     }
 
     setAuthWarning(null);
+    setError(null);
     setLoading(true);
     try {
       // If we already have the attempt data from the initial load, use it directly
@@ -208,10 +210,10 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
         setShowHint(false);
         setIsPlaying(true);
       } else {
-        alert("Failed to initialize quiz attempt.");
+        setError(data.error || "Failed to initialize quiz attempt.");
       }
     } catch {
-      alert("An unexpected error occurred.");
+      setError("An unexpected error occurred.");
     } finally {
       setLoading(false);
     }
@@ -278,16 +280,17 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
     } else {
       // Finalize Quiz Attempt after the last answer is saved.
       setIsSubmitting(true);
+      setError(null);
       try {
         await savePromise;
         const res = await AttemptService.completeAttempt(attemptId, timeTaken);
         if (res.success) {
           router.push(`/quiz/results/${res.attemptId}`);
         } else {
-          alert("Failed to submit attempt");
+          setError("Failed to submit attempt");
         }
       } catch {
-        alert("An error occurred while finalizing quiz.");
+        setError("An error occurred while finalizing quiz.");
       } finally {
         setIsSubmitting(false);
       }
@@ -316,17 +319,15 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
 
 
   /** DataGrid column definitions for the leaderboard */
-const leaderboardColumns: TableColumnDefinition<AttemptLeaderboardEntry>[] = [
-
-
-createTableColumn<AttemptLeaderboardEntry>({
+  const leaderboardColumns = useMemo<TableColumnDefinition<AttemptLeaderboardEntry>[]>(() => [
+    createTableColumn<AttemptLeaderboardEntry>({
       columnId: "rank",
       renderHeaderCell: () => "Rank",
       renderCell: (item) => {
         const badgeStyle: Record<number, string> = {
-          1: "#f59e0b", // gold
-          2: "#94a3b8", // silver
-          3: "#cd7f32", // bronze
+          1: "#f59e0b",
+          2: "#94a3b8",
+          3: "#cd7f32",
         };
         const bg = badgeStyle[item.rank ?? 0] || "#e2e8f0";
         return (
@@ -369,7 +370,7 @@ createTableColumn<AttemptLeaderboardEntry>({
         </TableCellLayout>
       ),
     }),
-  ];
+  ], [styles]);
 
   // Rendering Loading Screen
   if (loading) {
@@ -514,6 +515,12 @@ createTableColumn<AttemptLeaderboardEntry>({
         <ProgressBar value={progress} max={1} />
       </div>
 
+      {error && (
+        <MessageBar intent="error">
+          <MessageBarBody>{error}</MessageBarBody>
+        </MessageBar>
+      )}
+
       {/* Question Card */}
       {currentQuestion && (
         <Card className={styles.questionCard}>
@@ -524,7 +531,7 @@ createTableColumn<AttemptLeaderboardEntry>({
           </div>
 
           {/* Answer Options */}
-          <div className={styles.optionsGrid}>
+          <div className={styles.optionsGrid} role="group" aria-label="Answer options">
             {currentQuestion.options.map((opt: string, i: number) => {
               const isSelected = selectedOption === opt;
               const isCorrectAnswer = currentQuestion.correctAnswer === opt;
@@ -540,15 +547,25 @@ createTableColumn<AttemptLeaderboardEntry>({
               }
 
               return (
-                <div 
-                  key={i} 
+                <button
+                  key={i}
+                  type="button"
                   onClick={() => handleOptionClick(opt)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleOptionClick(opt);
+                    }
+                  }}
                   className={`${styles.optionItem} ${optionStateClass}`}
+                  aria-pressed={isSelected}
+                  aria-label={`Option ${i + 1}: ${opt}${isSelected ? ", selected" : ""}${isCorrectAnswer && selectedOption ? ", correct answer" : ""}`}
+                  disabled={!!selectedOption}
                 >
                   <Text size={200} weight={selectedOption && isCorrectAnswer ? "bold" : "regular"} className={styles.quizPlayFont} style={{ fontFamily: "var(--font-winky)", fontSize: "12px" }}>
                     {opt}
                   </Text>
-                </div>
+                </button>
               );
             })}
           </div>

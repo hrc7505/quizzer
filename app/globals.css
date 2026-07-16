@@ -80,6 +80,12 @@ img, video, canvas, svg {
   height: auto;
 }
 
+:focus-visible {
+  outline: 2px solid #4f46e5;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 /* Ensure markdown code blocks scroll horizontally instead of breaking layout */
 .markdown-body pre {
   white-space: pre;

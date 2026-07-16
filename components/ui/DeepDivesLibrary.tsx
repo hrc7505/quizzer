@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Text, Input, Card, Badge, Button } from "@fluentui/react-components";
 import { BookOpenRegular, Brain20Regular, Filter20Regular } from "@fluentui/react-icons";
 import Link from "next/link";
+import { difficultyColor } from "@/lib/format";
 
 interface QuestionSummary {
   id: string;
@@ -44,13 +45,8 @@ export function DeepDivesLibrary({ questions }: DeepDivesLibraryProps) {
     grouped[key].push(q);
   });
 
-  const difficultyColor = (d: string): "success" | "warning" | "danger" =>
-    d === "Easy" ? "success" : d === "Hard" ? "danger" : "warning";
-
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
-
-      {/* Header */}
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <div style={{

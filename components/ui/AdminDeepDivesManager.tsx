@@ -15,6 +15,7 @@ import {
 } from "@fluentui/react-icons";
 import { createTableColumn, TableColumnDefinition } from "@fluentui/react-components";
 import { LinkButton } from "./LinkButton";
+import { difficultyColor } from "@/lib/format";
 
 interface QuestionRecord {
   id: string;
@@ -67,9 +68,6 @@ export function AdminDeepDivesManager({ questions: initialQuestions }: AdminDeep
   const totalItems = filtered.length;
   const totalPages = Math.ceil(totalItems / pageSize) || 1;
   const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-
-  const difficultyColor = (d: string): "success" | "warning" | "danger" =>
-    d === "Easy" ? "success" : d === "Hard" ? "danger" : "warning";
 
   const handleRegenerate = async (q: QuestionRecord) => {
     setLoadingId(q.id);

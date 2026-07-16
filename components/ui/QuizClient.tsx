@@ -19,7 +19,12 @@ interface QuizClientProps {
   };
 }
 
-function QuizClient({ quiz }: QuizClientProps) {
+/**
+ * Shared quiz player wrapper used by both the exam-linked and standalone
+ * (topic-linked) quiz routes. Keeping a single component avoids divergence
+ * between the two near-identical copies.
+ */
+export function QuizClient({ quiz }: QuizClientProps) {
   if (!quiz) {
     return null;
   }
@@ -30,5 +35,3 @@ function QuizClient({ quiz }: QuizClientProps) {
     </PageLayout>
   );
 }
-
-export { QuizClient };

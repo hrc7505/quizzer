@@ -16,6 +16,7 @@ const winkySans = Winky_Sans({
   display: "swap",
   variable: "--font-winky",
   weight: "400",
+  fallback: ["system-ui", "sans-serif"],
 });
 
 export const viewport: Viewport = {
@@ -84,7 +85,6 @@ export default function RootLayout({
             height={3}
             showSpinner={false}
             shadow={false}
-            zIndex={3000}
           />
           {children}
         </Providers>

@@ -4,11 +4,13 @@ import { useState } from "react";
 import {
   Text, Button, Badge, Card, Spinner, Field, Input, Textarea, Select, Tooltip,
   Dialog, DialogSurface, DialogBody, DialogTitle, DialogContent, DialogActions, DialogTrigger,
+  MessageBar, MessageBarBody,
 } from "@fluentui/react-components";
 import {
   Add20Regular, Edit20Regular, Delete20Regular, ArrowLeft20Regular, Dismiss20Regular
 } from "@fluentui/react-icons";
 import { useRouter } from "next/navigation";
+import { difficultyColor } from "@/lib/format";
 
 interface Question {
   id: string;
@@ -41,6 +43,7 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
   const router = useRouter();
   const [quiz, setQuiz] = useState<QuizDetail>(initialQuiz);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Dialog & confirm states
   const [questionDialogOpen, setQuestionDialogOpen] = useState(false);
@@ -83,6 +86,7 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
       hint: "",
       description: ""
     });
+    setError(null);
     setQuestionDialogOpen(true);
   };
 
@@ -95,6 +99,7 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
       hint: q.hint || "",
       description: q.description || ""
     });
+    setError(null);
     setQuestionDialogOpen(true);
   };
 
@@ -136,11 +141,11 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
         setQuestionDialogOpen(false);
         await refreshQuiz();
       } else {
-        alert(data.error || "Failed to save question");
+        setError(data.error || "Failed to save question");
       }
     } catch (e) {
       console.error(e);
-      alert("Error saving question");
+      setError("Error saving question");
     } finally {
       setLoading(false);
     }
@@ -167,11 +172,13 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
     );
   };
 
-  const difficultyColor = (d: string): "success" | "warning" | "danger" =>
-    d === "Easy" ? "success" : d === "Hard" ? "danger" : "warning";
-
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "28px", fontFamily: "Segoe UI, sans-serif" }}>
+      {error && (
+        <MessageBar intent="error">
+          <MessageBarBody>{error}</MessageBarBody>
+        </MessageBar>
+      )}
       {/* Back button & Breadcrumbs */}
       <div>
         <Button 

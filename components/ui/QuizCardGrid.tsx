@@ -6,6 +6,7 @@ import { Search24Regular, ArrowRight16Regular, Sparkle24Regular } from "@fluentu
 import Link from "next/link";
 import { ShareButton } from "./ShareButton";
 import { Share24Regular } from "@fluentui/react-icons";
+import { difficultyColor } from "@/lib/format";
 
 interface QuizItem {
   id: string;
@@ -194,12 +195,6 @@ export function QuizCardGrid({ quizzes, subtopicTitle, basePath }: QuizCardGridP
     };
   }, [hasMore]);
 
-  const getDifficultyColor = (diff: string): "success" | "warning" | "danger" => {
-    if (diff === "Easy") return "success";
-    if (diff === "Hard") return "danger";
-    return "warning";
-  };
-
   return (
     <div className={styles.wrap}>
       {/* Filtering Toolbar */}
@@ -239,7 +234,7 @@ export function QuizCardGrid({ quizzes, subtopicTitle, basePath }: QuizCardGridP
               </div>
 
               <div className={styles.badgeRow}>
-                <Badge color={getDifficultyColor(quiz.difficulty)} style={{ borderRadius: '6px' }}>
+                <Badge color={difficultyColor(quiz.difficulty)} style={{ borderRadius: '6px' }}>
                   {quiz.difficulty}
                 </Badge>
                 <Badge appearance="tint" color="informative" style={{ borderRadius: '6px' }}>

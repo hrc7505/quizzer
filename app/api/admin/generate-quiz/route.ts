@@ -8,6 +8,7 @@ import { authOptions, SessionUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import PDFParser from "pdf2json";
 import { INTERNAL_TOPIC_TITLE } from "@/lib/constants";
+import { sanitizeImageText } from "@/lib/format";
 import fs from "fs";
 import path from "path";
 import os from "os";
@@ -69,49 +70,12 @@ function chunkText(text: string, maxLength: number): string[] {
 }
 
 function sanitizePdfText(text: string): string {
-  const lines = text.split("\n");
-  const filtered = lines.filter(line => {
-    const lower = line.toLowerCase().trim();
-    if (!lower) return true;
-    if (/!\[.*?\]\(.*?\)/.test(line)) return false;
-    if (/\[.*?\]\(.*?\.(png|jpg|jpeg|gif|bmp|webp|svg).*?\)/i.test(line)) return false;
-    if (/data:image\/[a-zA-Z]+;base64,[a-zA-Z0-9+/=\s]+/i.test(line)) return false;
-    if (/\b(image|img|figure|photo|picture)\d*\s*(\.\s*(png|jpg|jpeg|gif|bmp|webp|svg))?\b/i.test(lower)) return false;
-    if (/\b(image|img|figure|photo|picture)\b/i.test(lower) && /\.(png|jpg|jpeg|gif|bmp|webp|svg)\b/i.test(lower)) return false;
-    if (/\b\d+\.(png|jpg|jpeg|gif|bmp|webp|svg)\b/i.test(lower)) return false;
-    if (/\((png|jpg|jpeg|gif|bmp|webp|svg)\)/i.test(line)) return false;
-    if (/\[(png|jpg|jpeg|gif|bmp|webp|svg)\]/i.test(line)) return false;
-    if (/^(image|img|figure|photo|picture)\d*$/i.test(lower)) return false;
-    if (/\b(image|img|figure|photo|picture)\d*\b/i.test(lower)) return false;
-    if (/\.(png|jpg|jpeg|gif|bmp|webp|svg)\b/i.test(lower) && /image|img|figure|photo|picture/i.test(lower)) return false;
-    return true;
-  }).map(line => {
-    return line
-      .replace(/!\[.*?\]\(.*?\)/g, "")
-      .replace(/\[.*?\]\(.*?\.(png|jpg|jpeg|gif|bmp|webp|svg).*?\)/gi, "")
-      .replace(/data:image\/[a-zA-Z]+;base64,[a-zA-Z0-9+/=\s]+/gi, "")
-      .replace(/\b(image|img|figure|photo|picture)\d*\s*(\.\s*(png|jpg|jpeg|gif|bmp|webp|svg))?\b/gi, "")
-      .replace(/\b(image|img|figure|photo|picture)\s*(file|png|jpg|jpeg|gif|bmp|webp|svg)\b/gi, "")
-      .replace(/\b\d+\.(png|jpg|jpeg|gif|bmp|webp|svg)\b/gi, "")
-      .replace(/\b(image|img|figure|photo|picture)\d*\b/gi, "")
-      .replace(/\(\s*(png|jpg|jpeg|gif|bmp|webp|svg)\s*\)/gi, "")
-      .replace(/\[\s*(png|jpg|jpeg|gif|bmp|webp|svg)\s*\]/gi, "")
-      .trim();
-  }).filter(line => line !== "");
-  return filtered.join("\n").replace(/\n{3,}/g, "\n\n").trim();
-}
-
-function sanitizePrompt(text: string): string {
   return text
-    .replace(/!\[.*?\]\(.*?\)/g, "")
-    .replace(/\[.*?\]\(.*?\.(png|jpg|jpeg|gif|bmp|webp|svg).*?\)/gi, "")
-    .replace(/data:image\/[a-zA-Z]+;base64,[a-zA-Z0-9+/=\s]+/gi, "")
-    .replace(/\b(image|img|figure|photo|picture)\d*\s*(\.\s*(png|jpg|jpeg|gif|bmp|webp|svg))?\b/gi, "")
-    .replace(/\b(image|img|figure|photo|picture)\s*(file|png|jpg|jpeg|gif|bmp|webp|svg)\b/gi, "")
-    .replace(/\b\d+\.(png|jpg|jpeg|gif|bmp|webp|svg)\b/gi, "")
-    .replace(/\b(image|img|figure|photo|picture)\d*\b/gi, "")
-    .replace(/\(\s*(png|jpg|jpeg|gif|bmp|webp|svg)\s*\)/gi, "")
-    .replace(/\[\s*(png|jpg|jpeg|gif|bmp|webp|svg)\s*\]/gi, "")
+    .split("\n")
+    .map(line => sanitizeImageText(line))
+    .filter(line => line.trim() !== "")
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
 
@@ -150,11 +114,7 @@ async function generateQuestionsBatch(prompt: string): Promise<GeneratedQuestion
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
 
-  const safePrompt = prompt
-    .replace(/\b(image|img|figure|photo|picture)\d*\s*(\.\s*(png|jpg|jpeg|gif|bmp|webp|svg))?\b/gi, "")
-    .replace(/\b(image|img|figure|photo|picture)\s*(file|png|jpg|jpeg|gif|bmp|webp|svg)\b/gi, "")
-    .replace(/\b\d+\.(png|jpg|jpeg|gif|bmp|webp|svg)\b/gi, "")
-    .replace(/\b(image|img|figure|photo|picture)\b/gi, "");
+  const safePrompt = sanitizeImageText(prompt);
 
   try {
     const response = await ai.models.generateContent({
@@ -247,7 +207,7 @@ Each question must have exactly 4 options.
 One option must be the correct answer (matching the string exactly).
 Provide a hint and a detailed description/explanation for the answer.${existingQuestionsText}`;
 
-      allGeneratedQuestions = await generateQuestionsBatch(sanitizePrompt(prompt));
+      allGeneratedQuestions = await generateQuestionsBatch(sanitizeImageText(prompt));
 
     } else if (mode === "text" || mode === "pdf") {
       let fullText = "";
@@ -294,7 +254,7 @@ Text content to analyze:
 ${chunk}`;
 
         try {
-          const batchQuestions = await generateQuestionsBatch(sanitizePrompt(prompt));
+          const batchQuestions = await generateQuestionsBatch(sanitizeImageText(prompt));
           allGeneratedQuestions = [...allGeneratedQuestions, ...batchQuestions];
         } catch (err) {
           console.warn(`Failed to process chunk ${i + 1}/${textChunks.length}`, err);

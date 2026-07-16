@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ai, GEMINI_MODEL, describeAiError } from "@/lib/gemini";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { sanitizeImageText } from "@/lib/format";
 
 /**
  * POST /api/admin/elaborate
@@ -31,25 +32,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, markdown: question.elaboration, cached: true });
     }
 
-    const sanitize = (text: string) =>
-      text
-        .replace(/!\[.*?\]\(.*?\)/g, "")
-        .replace(/\[.*?\]\(.*?\.(png|jpg|jpeg|gif|bmp|webp|svg).*?\)/gi, "")
-        .replace(/data:image\/[a-zA-Z]+;base64,[a-zA-Z0-9+/=\s]+/gi, "")
-        .replace(/\b(image|img|figure|photo|picture)\d*\s*(\.\s*(png|jpg|jpeg|gif|bmp|webp|svg))?\b/gi, "")
-        .replace(/\b(image|img|figure|photo|picture)\s*(file|png|jpg|jpeg|gif|bmp|webp|svg)\b/gi, "")
-        .replace(/\b\d+\.(png|jpg|jpeg|gif|bmp|webp|svg)\b/gi, "")
-        .replace(/\b(image|img|figure|photo|picture)\b/gi, "")
-        .replace(/\(\s*(png|jpg|jpeg|gif|bmp|webp|svg)\s*\)/gi, "")
-        .replace(/\[\s*(png|jpg|jpeg|gif|bmp|webp|svg)\s*\]/gi, "")
-        .replace(/\b(image|img|figure|photo|picture)\d*\b/gi, "")
-        .trim();
-
     const prompt = `You are an expert tutor. Provide a detailed markdown explanation for the following question and its correct answer. 
 Topic: ${question.topic.title}
-Question: ${sanitize(question.text)}
-Correct Answer: ${sanitize(question.correctAnswer)}
-Options were: ${question.options.map(sanitize).join(", ")}
+Question: ${sanitizeImageText(question.text)}
+Correct Answer: ${sanitizeImageText(question.correctAnswer)}
+Options were: ${question.options.map(sanitizeImageText).join(", ")}
 
 Your response should include:
 1. A deep dive into the core concept.
@@ -58,7 +45,7 @@ Your response should include:
 4. Suggested search-intent keywords for video tutorials and online web links (e.g. "Search YouTube for: [keyword]").
 `;
 
-    const safePrompt = sanitize(prompt);
+    const safePrompt = sanitizeImageText(prompt);
 
     const response = await ai.models.generateContent({
       model: GEMINI_MODEL,

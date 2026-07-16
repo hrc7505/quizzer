@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { 
   Button, Card, Text, Input, Field, Dialog, DialogTrigger, 
   DialogSurface, DialogTitle, DialogBody, DialogActions, DialogContent, 
-  Spinner, Select, Textarea, Badge, Tooltip,
+  Spinner, Select, Textarea, Badge, Tooltip, MessageBar, MessageBarBody,
   Combobox, Option,
   Menu, MenuTrigger, MenuPopover, MenuList, MenuItem,
   OverlayDrawer, DrawerHeader, DrawerHeaderTitle, DrawerBody,
@@ -20,6 +20,7 @@ import {
 import { TableColumnDefinition, createTableColumn, DataGrid, DataGridHeader, DataGridHeaderCell, DataGridRow, DataGridBody, DataGridCell } from "@fluentui/react-components";
 import { GenerateQuizForm } from "./GenerateQuizForm";
 import { LinkButton } from "./LinkButton";
+import { difficultyColor } from "@/lib/format";
 
 interface Exam {
   id: string;
@@ -75,6 +76,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
   const [flatTopics, setFlatTopics] = useState<FlatTopic[]>([]);
   const [allQuizzes, setAllQuizzes] = useState<QuizSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   // Creation/Edit Dialog Controls
   const [examDialogOpen, setExamDialogOpen] = useState(false);
@@ -169,15 +171,20 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
   };
 
   useEffect(() => {
+    let cancelled = false;
     void (async () => {
       await fetchData();
+      if (!cancelled) {
+        // fetchData handles its own loading state
+      }
     })();
+    return () => { cancelled = true; };
   }, []);
 
 
-  const triggerConfirm = (title: string, description: string, onConfirm: () => Promise<void>) => {
+  const triggerConfirm = useCallback((title: string, description: string, onConfirm: () => Promise<void>) => {
     setConfirmDialog({ open: true, title, description, onConfirm });
-  };
+  }, []);
 
   const loadQuizDetails = async (id: string) => {
     setActiveQuizLoading(true);
@@ -198,9 +205,6 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
     if (!selectedQuizId) {
       return;
     }
-
-
-
     void (async () => {
       await loadQuizDetails(selectedQuizId);
     })();
@@ -272,11 +276,11 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
         await loadQuizDetails(selectedQuizId);
         await fetchData();
       } else {
-        alert(data.error || "Failed to save question");
+        setError(data.error || "Failed to save question");
       }
     } catch (e) {
       console.error(e);
-      alert("Error saving question");
+      setError("Error saving question");
     } finally {
       setLoading(false);
     }
@@ -412,7 +416,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
     await fetchData();
   };
 
-  const handleDeleteExam = (id: string, name: string) => {
+  const handleDeleteExam = useCallback((id: string, name: string) => {
     triggerConfirm(
       "Delete Exam",
       `Are you sure you want to permanently delete "${name}"? This action cannot be undone and will delete all topics linked under it.`,
@@ -422,9 +426,9 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
         await fetchData();
       }
     );
-  };
+  }, [triggerConfirm]);
 
-  const handleDeleteTopic = (id: string, name: string) => {
+  const handleDeleteTopic = useCallback((id: string, name: string) => {
     triggerConfirm(
       "Delete Topic",
       `Are you sure you want to permanently delete the topic "${name}"? This will delete all subtopics nested under it.`,
@@ -434,7 +438,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
         await fetchData();
       }
     );
-  };
+  }, [triggerConfirm]);
 
   const handleDeleteQuiz = (id: string, name: string) => {
     triggerConfirm(
@@ -522,6 +526,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
 
   const openNewTopicDialog = (examId = '', parentId = '') => {
     setTopicForm({ id: '', title: '', description: '', examId, parentId });
+    setError(null);
     setTopicDialogOpen(true);
   };
 
@@ -531,13 +536,10 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
   };
 
   const renderDifficultyBadge = (difficulty: string) => {
-    let color: "success" | "warning" | "danger" = "warning";
-    if (difficulty.toLowerCase() === "easy") color = "success";
-    if (difficulty.toLowerCase() === "hard") color = "danger";
-    return <Badge color={color} appearance="filled">{difficulty}</Badge>;
+    return <Badge color={difficultyColor(difficulty)} appearance="filled">{difficulty}</Badge>;
   };
 
-  const examColumns: TableColumnDefinition<Exam>[] = [
+  const examColumns = useMemo<TableColumnDefinition<Exam>[]>(() => [
     createTableColumn<Exam>({
       columnId: 'title',
       compare: (a, b) => a.title.localeCompare(b.title),
@@ -614,9 +616,9 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
         </Menu>
       ),
     }),
-  ];
+  ], [handleDeleteExam, topics]);
 
-  const topicColumns: TableColumnDefinition<FlatTopic>[] = [
+  const topicColumns = useMemo<TableColumnDefinition<FlatTopic>[]>(() => [
     createTableColumn<FlatTopic>({
       columnId: 'title',
       compare: (a, b) => a.title.localeCompare(b.title),
@@ -676,37 +678,28 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
                   <MenuItem icon={<Branch20Regular />} onClick={() => openNewTopicDialog('', item.id)}>Add Sub Topic</MenuItem>
                   <MenuItem icon={<Link20Regular />} onClick={() => {
                     setLinkTopicId(item.id);
-                    setSelectedSubtopicIds(item.subtopics?.map(t => t.id) || []);
+                    setSelectedSubtopicIds([]);
                     setTopicLinkDialogOpen(true);
                   }}>Link Sub Topics</MenuItem>
                 </>
               ) : (
-                <>
-                  <MenuItem icon={<Add20Regular />} onClick={() => openNewQuizDialog(item.id)}>Create Quiz</MenuItem>
-                  <MenuItem icon={<Link20Regular />} onClick={() => {
-                    setLinkTopicId(item.id);
-                    setSelectedQuizIds(item.quizzes?.map(q => q.id) || []);
-                    setQuizLinkDialogOpen(true);
-                  }}>Link Existing Quizzes</MenuItem>
-                </>
+                <MenuItem icon={<Link20Regular />} onClick={() => {
+                  setLinkTopicId(item.id);
+                  setSelectedQuizIds([]);
+                  setQuizLinkDialogOpen(true);
+                }}>Link Quizzes</MenuItem>
               )}
               <MenuItem icon={<Edit20Regular />} onClick={() => {
-                setTopicForm({ 
-                  id: item.id, 
-                  title: item.title, 
-                  description: item.description || '', 
-                  examId: '',
-                  parentId: ''
-                });
+                setTopicForm({ id: item.id, title: item.title, description: item.description || '', examId: '', parentId: item.parentTopics?.[0]?.id || '' });
                 setTopicDialogOpen(true);
               }}>Edit Topic</MenuItem>
               <MenuItem icon={<Delete20Regular />} onClick={() => handleDeleteTopic(item.id, item.title)}>Delete Topic</MenuItem>
             </MenuList>
           </MenuPopover>
         </Menu>
-      ),
+      )
     }),
-  ];
+  ], [handleDeleteTopic]);
 
   // Filters for linking available items in Combobox
   const availableMainTopics = flatTopics.filter(t => 
@@ -766,6 +759,11 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', fontFamily: 'Segoe UI, sans-serif' }}>
+      {error && (
+        <MessageBar intent="error">
+          <MessageBarBody>{error}</MessageBarBody>
+        </MessageBar>
+      )}
       
       {/* EXAMS VIEW */}
       {view === "exams" && (

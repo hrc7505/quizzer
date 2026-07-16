@@ -5,6 +5,7 @@ import {
   Text, Button, Badge, Input, Card, Select, Spinner, Field, Textarea, Tooltip,
   Dialog, DialogSurface, DialogBody, DialogTitle, DialogContent, DialogActions, DialogTrigger,
   Popover, PopoverTrigger, PopoverSurface,
+  MessageBar, MessageBarBody,
 } from "@fluentui/react-components";
 import {
   Add20Regular, Edit20Regular, Delete20Regular, Filter20Regular, Dismiss20Regular,
@@ -49,6 +50,7 @@ interface AdminQuestionsManagerProps {
 export function AdminQuestionsManager({ questions: initial, quizzes }: AdminQuestionsManagerProps) {
   const [questions, setQuestions] = useState<Question[]>(initial);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Dialog & confirm states
   const [questionDialogOpen, setQuestionDialogOpen] = useState(false);
@@ -108,6 +110,7 @@ export function AdminQuestionsManager({ questions: initial, quizzes }: AdminQues
       hint: "",
       description: ""
     });
+    setError(null);
     setQuestionDialogOpen(true);
   };
 
@@ -121,6 +124,7 @@ export function AdminQuestionsManager({ questions: initial, quizzes }: AdminQues
       hint: q.hint || "",
       description: q.description || ""
     });
+    setError(null);
     setQuestionDialogOpen(true);
   };
 
@@ -162,11 +166,11 @@ export function AdminQuestionsManager({ questions: initial, quizzes }: AdminQues
         setQuestionDialogOpen(false);
         await fetchQuestions();
       } else {
-        alert(data.error || "Failed to save question");
+        setError(data.error || "Failed to save question");
       }
     } catch (e) {
       console.error(e);
-      alert("Error saving question");
+      setError("Error saving question");
     } finally {
       setLoading(false);
     }
@@ -186,6 +190,11 @@ export function AdminQuestionsManager({ questions: initial, quizzes }: AdminQues
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "28px", fontFamily: "Segoe UI, sans-serif" }}>
+      {error && (
+        <MessageBar intent="error">
+          <MessageBarBody>{error}</MessageBarBody>
+        </MessageBar>
+      )}
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
         <div>

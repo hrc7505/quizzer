@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Text, Button, Badge, Input, Card, Select, Spinner, Field, Textarea, Tooltip,
   Dialog, DialogSurface, DialogBody, DialogTitle, DialogContent, DialogActions, DialogTrigger,
@@ -9,6 +9,7 @@ import {
   DataGrid, DataGridHeader, DataGridHeaderCell, DataGridRow, DataGridBody, DataGridCell,
   Menu, MenuTrigger, MenuPopover, MenuList, MenuItem,
   OverlayDrawer, DrawerHeader, DrawerHeaderTitle, DrawerBody,
+  MessageBar, MessageBarBody,
 } from "@fluentui/react-components";
 import {
   Add20Regular, Edit20Regular, Delete20Regular, Link20Regular, LinkDismiss20Regular,
@@ -19,6 +20,7 @@ import {
 import { createTableColumn, TableColumnDefinition } from "@fluentui/react-components";
 import { GenerateQuizForm } from "./GenerateQuizForm";
 import { LinkButton } from "./LinkButton";
+import { difficultyColor } from "@/lib/format";
 
 interface TopicRef {
   id: string;
@@ -51,6 +53,7 @@ const DIFFICULTIES = ["Easy", "Medium", "Hard"];
 export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
   const [quizzes, setQuizzes] = useState<Quiz[]>(initial);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Dialog state
   const [quizDialogOpen, setQuizDialogOpen] = useState(false);
@@ -99,8 +102,9 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
     description: ""
   });
 
-  const triggerConfirm = (title: string, description: string, onConfirm: () => Promise<void>) =>
-    setConfirmDialog({ open: true, title, description, onConfirm });
+  const triggerConfirm = useCallback((title: string, description: string, onConfirm: () => Promise<void>) =>
+    setConfirmDialog({ open: true, title, description, onConfirm }),
+  []);
 
   // ── Database Actions ────────────────────────────────────────────────────────
   
@@ -142,11 +146,11 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
       hint: "",
       description: ""
     });
+    setError(null);
     setQuestionDialogOpen(true);
   };
 
   const handleOpenEditQuestion = (q: QuizQuestionDetail) => {
-
     setQuestionForm({
       id: q.id,
       text: q.text,
@@ -155,6 +159,7 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
       hint: q.hint || "",
       description: q.description || ""
     });
+    setError(null);
     setQuestionDialogOpen(true);
   };
 
@@ -199,11 +204,11 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
         await loadQuizDetails(selectedQuizId);
         await fetchQuizzes();
       } else {
-        alert(data.error || "Failed to save question");
+        setError(data.error || "Failed to save question");
       }
     } catch (e) {
       console.error(e);
-      alert("Error saving question");
+      setError("Error saving question");
     } finally {
       setLoading(false);
     }
@@ -267,9 +272,6 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
     const data = await res.json();
     if (Array.isArray(data)) setQuizzes(data);
   };
-
-  const difficultyColor = (d: string): "success" | "warning" | "danger" =>
-    d === "Easy" ? "success" : d === "Hard" ? "danger" : "warning";
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
 
@@ -343,7 +345,7 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
     );
   };
 
-  const handleDelete = (quiz: Quiz) => {
+  const handleDelete = useCallback((quiz: Quiz) => {
     triggerConfirm(
       "Delete Quiz",
       `Permanently delete "${quiz.title}"? This will also delete all ${quiz._count.questions} questions and ${quiz._count.attempts} attempt records. This cannot be undone.`,
@@ -355,7 +357,7 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
         setLoading(false);
       }
     );
-  };
+  }, [triggerConfirm, selectedQuizId]);
 
   const openGenerateDialog = () => {
     setGenerateDialogOpen(true);
@@ -374,7 +376,7 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
 
   // ── Table columns ─────────────────────────────────────────────────────────────
 
-  const columns: TableColumnDefinition<Quiz>[] = [
+  const columns = useMemo<TableColumnDefinition<Quiz>[]>(() => [
     createTableColumn<Quiz>({
       columnId: "title",
       compare: (a, b) => a.title.localeCompare(b.title),
@@ -434,19 +436,28 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
           <MenuPopover>
             <MenuList>
               <MenuItem icon={<Edit20Regular />} onClick={() => openEditDialog(item)}>Edit Quiz</MenuItem>
-              <MenuItem icon={<Link20Regular />} onClick={() => openLinkDialog(item)}>Link / Unlink Topics</MenuItem>
+              <MenuItem icon={<Link20Regular />} onClick={() => {
+                setLinkQuizId(item.id);
+                setSelectedTopicIds([]);
+                setLinkDialogOpen(true);
+              }}>Link Topics</MenuItem>
               <MenuItem icon={<Delete20Regular />} onClick={() => handleDelete(item)}>Delete Quiz</MenuItem>
             </MenuList>
           </MenuPopover>
         </Menu>
       )
-    })
-  ];
+    }),
+  ], [handleDelete]);
 
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "28px", fontFamily: "Segoe UI, sans-serif" }}>
+      {error && (
+        <MessageBar intent="error">
+          <MessageBarBody>{error}</MessageBarBody>
+        </MessageBar>
+      )}
 
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>

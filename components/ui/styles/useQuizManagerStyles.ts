@@ -30,6 +30,13 @@ export const useQuizManagerStyles = makeStyles({
   },
   topicBadge: {
     borderRadius: "6px",
+    height: "auto",
+    minHeight: "20px",
+    paddingTop: "2px",
+    paddingBottom: "2px",
+    lineHeight: "1.3",
+    whiteSpace: "normal",
+    wordBreak: "break-word",
   },
   statsWrap: {
     display: "flex",
@@ -206,7 +213,7 @@ export const useQuizManagerStyles = makeStyles({
     color: "#6b7280",
   },
   drawer: {
-    width: "500px",
+    width: "800px",
     maxWidth: "100%",
     boxShadow: "-4px 0 24px rgba(0,0,0,0.12)",
   },

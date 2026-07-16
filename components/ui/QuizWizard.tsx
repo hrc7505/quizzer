@@ -23,6 +23,7 @@ import { splitSentences, formatTime } from "@/lib/text";
 import { useQuizWizardStyles } from "./styles/useQuizWizardStyles";
 import { ShareButton } from "./ShareButton";
 import { Share24Regular } from "@fluentui/react-icons";
+import NoData from "./NoData";
 
 /**
  * QuizWizard Component. Coordinates quiz play state, fetches leaderboards, 
@@ -456,9 +457,11 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
           </div>
 
           {leaderboard.length === 0 ? (
-            <Text size={300} className={styles.leaderboardEmptyText}>
-              No rankings available yet. Be the first to top the leaderboard!
-            </Text>
+            <NoData
+              title="No rankings available yet."
+              description="Be the first to top the leaderboard!"
+              icon="sparkle"
+            />
           ) : (
             <DataGrid
               items={leaderboard.map((entry, index) => ({ ...entry, rank: index + 1 }))}

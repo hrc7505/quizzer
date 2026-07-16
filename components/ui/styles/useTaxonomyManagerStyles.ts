@@ -271,12 +271,12 @@ export const useTaxonomyManagerStyles = makeStyles({
 
   // ── Drawers (shared surfaces) ───────────────────────────────────
   overlayDrawer: {
-    width: "550px",
+    width: "800px",
     maxWidth: "100%",
     boxShadow: "-4px 0 24px rgba(0,0,0,0.15)",
   },
   overlayDrawerQuiz: {
-    width: "500px",
+    width: "800px",
     maxWidth: "100%",
     boxShadow: "-4px 0 24px rgba(0,0,0,0.12)",
   },

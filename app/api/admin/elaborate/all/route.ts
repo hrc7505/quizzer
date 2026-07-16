@@ -50,7 +50,7 @@ export async function DELETE() {
       data: { elaboration: null }
     });
 
-    revalidatePath("/deep-dives");
+    revalidatePath("/deep-dives", "page");
 
     return NextResponse.json({ success: true, count: result.count });
   } catch (error) {

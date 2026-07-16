@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { Card, Input, Text } from "@fluentui/react-components";
-import { Search24Regular, ArrowRight16Regular, Sparkle24Regular } from "@fluentui/react-icons";
+import { Search24Regular, ArrowRight16Regular } from "@fluentui/react-icons";
 import Link from "next/link";
 import { useDirectoryCardListStyles } from "./styles/useDirectoryCardListStyles";
+import NoData from "./NoData";
 
 interface DirectoryItem {
   id: string;
@@ -89,13 +90,7 @@ export function DirectoryCardList({
           ))}
         </div>
       ) : (
-<div className={styles.emptyState}>
-<Sparkle24Regular className={styles.emptyIcon} />
-<Text size={500} weight="bold" block className={styles.emptyTitle}>
-            {emptyMessage}
-          </Text>
-<Text size={200} className={styles.emptyDescription}>Try adjusting your search terms or verify your configuration.</Text>
-        </div>
+        <NoData title={emptyMessage} description="Try adjusting your search terms or verify your configuration." icon="sparkle" />
       )}
     </div>
   );

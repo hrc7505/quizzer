@@ -19,7 +19,8 @@ export default async function ResultsPage({ params }: { params: Promise<{ attemp
               correctAnswer: true,
               hint: true,
               description: true,
-              elaboration: true
+              elaboration: true,
+              topic: { select: { id: true, title: true } }
             }
           },
         }
@@ -43,7 +44,8 @@ export default async function ResultsPage({ params }: { params: Promise<{ attemp
         correctAnswer: true,
         hint: true,
         description: true,
-        elaboration: true
+        elaboration: true,
+        topic: { select: { id: true, title: true } }
       }
     });
     attempt.quiz.questions = fallbackQuestions;

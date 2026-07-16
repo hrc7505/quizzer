@@ -11,6 +11,7 @@ import {
 } from "@fluentui/react-icons";
 import { useRouter } from "next/navigation";
 import { difficultyColor } from "@/lib/format";
+import NoData from "./NoData";
 import { useAdminQuizQuestionsManagerStyles } from "./styles/useAdminQuizQuestionsManagerStyles";
 
 interface Question {
@@ -223,15 +224,12 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
 
       {/* Questions list */}
       {quiz.questions.length === 0 ? (
-        <Card className={styles.emptyCard}>
-          <Text size={500} weight="bold" className={styles.titleSecondary}>No Questions Yet</Text>
-          <Text size={300} className={styles.emptySubtitle}>
-            This quiz has no questions. Click &quot;Add Question&quot; below to add a question manually.
-          </Text>
-          <Button appearance="primary" icon={<Add20Regular />} onClick={handleOpenAdd}>
-            Add First Question
-          </Button>
-        </Card>
+        <NoData 
+          title="No Questions Yet" 
+          description="This quiz has no questions. Click Add Question below to add a question manually." 
+          icon="book"
+          action={<Button appearance="primary" icon={<Add20Regular />} onClick={handleOpenAdd}>Add First Question</Button>}
+        />
       ) : (
         <div className={styles.questionsList}>
           {quiz.questions.map((q, idx) => (

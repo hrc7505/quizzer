@@ -9,6 +9,7 @@ export interface QuestionData {
   hint: string;
   description: string;
   elaboration: string | null;
+  topic?: { id: string; title: string };
 }
 
 /**
@@ -17,6 +18,7 @@ export interface QuestionData {
 export interface QuizData {
   id: string;
   title: string;
+  difficulty?: string;
   questions: QuestionData[];
   topics: { id: string }[];
 }

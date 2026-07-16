@@ -129,6 +129,13 @@ export const useDeepDivesLibraryStyles = makeStyles({
   cardBadge: {
     borderRadius: "6px",
     fontSize: "11px",
+    height: "auto",
+    minHeight: "20px",
+    paddingTop: "2px",
+    paddingBottom: "2px",
+    lineHeight: "1.3",
+    whiteSpace: "normal",
+    wordBreak: "break-word",
   },
   questionText: {
     color: "#1f2937",

@@ -60,8 +60,8 @@ Your response should include:
       data: { elaboration: markdown }
     });
 
-    revalidatePath("/deep-dives");
-    revalidatePath(`/deep-dives/${questionId}`);
+    revalidatePath("/deep-dives", "page");
+    revalidatePath(`/deep-dives/${questionId}`, "page");
 
     return NextResponse.json({ success: true, markdown, cached: false });
   } catch (error) {
@@ -86,8 +86,8 @@ export async function DELETE(req: Request) {
       data: { elaboration: null }
     });
 
-    revalidatePath("/deep-dives");
-    revalidatePath(`/deep-dives/${questionId}`);
+    revalidatePath("/deep-dives", "page");
+    revalidatePath(`/deep-dives/${questionId}`, "page");
 
     return NextResponse.json({ success: true });
   } catch (error) {

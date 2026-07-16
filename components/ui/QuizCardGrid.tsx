@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Card, Text, Badge, Input, Select, Spinner, makeStyles } from "@fluentui/react-components";
-import { Search24Regular, ArrowRight16Regular, Sparkle24Regular } from "@fluentui/react-icons";
+import { Search24Regular, ArrowRight16Regular } from "@fluentui/react-icons";
 import Link from "next/link";
 import { ShareButton } from "./ShareButton";
 import { Share24Regular } from "@fluentui/react-icons";
 import { difficultyColor } from "@/lib/format";
+import NoData from "./NoData";
 
 interface QuizItem {
   id: string;
@@ -295,15 +296,13 @@ export function QuizCardGrid({ quizzes, subtopicTitle, basePath }: QuizCardGridP
            </Card>
          ))}
        </div>
-     ) : (
-       <div className={styles.emptyState}>
-         <Sparkle24Regular className={styles.emptyIcon} />
-         <Text size={500} weight="bold" block className={styles.emptyTitle}>
-           No quizzes found in &quot;{subtopicTitle}&quot;
-         </Text>
-         <Text size={200} className={styles.emptyText}>Adjust your filters or query to locate linked quizzes.</Text>
-       </div>
-     )}
+      ) : (
+        <NoData 
+          title={`No quizzes found in "${subtopicTitle}"`} 
+          description="Adjust your filters or query to locate linked quizzes." 
+          icon="sparkle" 
+        />
+      )}
 
      {/* Infinite Scroll Spinner */}
      {hasMore && (

@@ -387,7 +387,7 @@ export function QuizResults({ attempt }: QuizResultsProps) {
   return (
     <div className={styles.container}>
       {error && (
-        <MessageBar intent="error" style={{ marginBottom: "16px" }}>
+        <MessageBar intent="error" className={styles.messageBar}>
           <MessageBarBody>{error}</MessageBarBody>
         </MessageBar>
       )}

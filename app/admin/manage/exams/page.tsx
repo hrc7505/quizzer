@@ -11,7 +11,7 @@ export default async function ManageExamsPage() {
   }
 
   return (
-    <div style={{ width: '100%' }}>
+    <div>
       <TaxonomyManager view="exams" />
     </div>
   );

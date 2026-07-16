@@ -5,6 +5,7 @@ import { Text, Input, Card, Badge, Button } from "@fluentui/react-components";
 import { BookOpenRegular, Brain20Regular, Filter20Regular } from "@fluentui/react-icons";
 import Link from "next/link";
 import { difficultyColor } from "@/lib/format";
+import { useDeepDivesLibraryStyles } from "./styles/useDeepDivesLibraryStyles";
 
 interface QuestionSummary {
   id: string;
@@ -24,6 +25,7 @@ interface DeepDivesLibraryProps {
  * Groups by topic, supports search filter, paginates results.
  */
 export function DeepDivesLibrary({ questions }: DeepDivesLibraryProps) {
+  const styles = useDeepDivesLibraryStyles();
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 12;
@@ -46,19 +48,15 @@ export function DeepDivesLibrary({ questions }: DeepDivesLibraryProps) {
   });
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <div style={{
-            width: "48px", height: "48px", borderRadius: "12px",
-            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-            display: "flex", alignItems: "center", justifyContent: "center"
-          }}>
-            <Brain20Regular style={{ color: "white", fontSize: "24px" }} />
+    <div className={styles.root}>
+      <div className={styles.headerWrap}>
+        <div className={styles.headerRow}>
+          <div className={styles.headerIconContainer}>
+            <Brain20Regular className={styles.headerIcon} />
           </div>
           <div>
-            <Text size={800} weight="bold" style={{ color: "#1a1a2e", display: "block" }}>AI Deep Dives</Text>
-            <Text size={300} style={{ color: "#6b7280" }}>
+            <Text size={800} weight="bold" className={styles.headerTitle}>AI Deep Dives</Text>
+            <Text size={300} className={styles.headerSubtitle}>
               {questions.length} elaboration{questions.length !== 1 ? "s" : ""} saved · Browse and revisit any time
             </Text>
           </div>
@@ -66,18 +64,13 @@ export function DeepDivesLibrary({ questions }: DeepDivesLibraryProps) {
       </div>
 
       {/* Search */}
-      <div style={{
-        display: "flex", alignItems: "center", gap: "12px",
-        background: "white", borderRadius: "12px",
-        padding: "16px 20px", boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-        border: "1px solid #e5e7eb"
-      }}>
-        <Filter20Regular style={{ color: "#9ca3af" }} />
+      <div className={styles.searchWrap}>
+        <Filter20Regular className={styles.searchIcon} />
         <Input
           placeholder="Search by question, topic, or quiz…"
           value={search}
           onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
-          style={{ flex: 1, border: "none", outline: "none" }}
+          className={styles.searchInput}
         />
         {search && (
           <Button size="small" appearance="subtle" onClick={() => setSearch("")}>Clear</Button>
@@ -86,16 +79,12 @@ export function DeepDivesLibrary({ questions }: DeepDivesLibraryProps) {
 
       {/* Empty state */}
       {questions.length === 0 && (
-        <div style={{
-          textAlign: "center", padding: "80px 32px",
-          background: "white", borderRadius: "16px",
-          border: "1px dashed #d1d5db"
-        }}>
-          <Brain20Regular style={{ fontSize: "48px", color: "#9ca3af", marginBottom: "16px" }} />
-          <Text size={500} weight="semibold" block style={{ color: "#374151", marginBottom: "8px" }}>
+        <div className={styles.emptyState}>
+          <Brain20Regular className={styles.emptyIcon} />
+          <Text size={500} weight="semibold" block className={styles.emptyTitle}>
             No Deep Dives Yet
           </Text>
-          <Text size={300} style={{ color: "#6b7280" }}>
+          <Text size={300} className={styles.emptyText}>
             Complete a quiz and click &quot;🤖 AI Deep Dive&quot; on any question to generate and save your first elaboration.
           </Text>
         </div>
@@ -103,74 +92,46 @@ export function DeepDivesLibrary({ questions }: DeepDivesLibraryProps) {
 
       {/* No search results */}
       {questions.length > 0 && filtered.length === 0 && (
-        <div style={{ textAlign: "center", padding: "48px", background: "white", borderRadius: "12px" }}>
-          <Text size={400} style={{ color: "#6b7280" }}>No results match your search.</Text>
+        <div className={styles.noResults}>
+          <Text size={400} className={styles.emptyText}>No results match your search.</Text>
         </div>
       )}
 
       {/* Grouped cards */}
       {Object.entries(grouped).map(([topicTitle, qs]) => (
-        <div key={topicTitle} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <BookOpenRegular style={{ color: "#667eea" }} />
-            <Text size={500} weight="semibold" style={{ color: "#1f2937" }}>{topicTitle}</Text>
-            <Badge appearance="filled" color="informative" style={{ borderRadius: "12px" }}>
+        <div key={topicTitle} className={styles.groupWrap}>
+          <div className={styles.groupHeader}>
+            <BookOpenRegular className={styles.headerIcon} />
+            <Text size={500} weight="semibold" className={styles.groupTitle}>{topicTitle}</Text>
+            <Badge appearance="filled" color="informative" className={styles.groupBadge}>
               {qs.length}
             </Badge>
           </div>
 
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-            gap: "16px"
-          }}>
+          <div className={styles.cardGrid}>
             {qs.map(q => (
-              <Link key={q.id} href={`/deep-dives/${q.id}`} style={{ textDecoration: "none" }}>
-                <Card style={{
-                  borderRadius: "12px",
-                  border: "1px solid #e5e7eb",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-                  padding: "20px",
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "12px"
-                }}>
+              <Link key={q.id} href={`/deep-dives/${q.id}`} className={styles.cardLink}>
+                <Card className={styles.card}>
                   {/* Quiz badge */}
                   {q.quiz && (
-                    <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                      <Badge appearance="tint" color="informative" style={{ borderRadius: "6px", fontSize: "11px" }}>
+                    <div className={styles.cardBadgeRow}>
+                      <Badge appearance="tint" color="informative" className={styles.cardBadge}>
                         {q.quiz.title}
                       </Badge>
-                      <Badge appearance="filled" color={difficultyColor(q.quiz.difficulty)} style={{ borderRadius: "6px", fontSize: "11px" }}>
+                      <Badge appearance="filled" color={difficultyColor(q.quiz.difficulty)} className={styles.cardBadge}>
                         {q.quiz.difficulty}
                       </Badge>
                     </div>
                   )}
 
                   {/* Question text */}
-                  <Text size={300} weight="semibold" style={{
-                    color: "#1f2937",
-                    display: "-webkit-box",
-                    WebkitLineClamp: 3,
-                    WebkitBoxOrient: "vertical",
-                    overflow: "hidden",
-                    lineHeight: "1.5"
-                  }}>
+                  <Text size={300} weight="semibold" className={styles.questionText}>
                     {q.text}
                   </Text>
 
                   {/* Correct answer */}
-                  <div style={{
-                    marginTop: "auto",
-                    padding: "8px 12px",
-                    background: "#f0fdf4",
-                    borderRadius: "6px",
-                    borderLeft: "3px solid #22c55e"
-                  }}>
-                    <Text size={100} style={{ color: "#15803d" }}>✓ {q.correctAnswer}</Text>
+                  <div className={styles.correctAnswerBlock}>
+                    <Text size={100} className={styles.correctAnswerText}>✓ {q.correctAnswer}</Text>
                   </div>
                 </Card>
               </Link>
@@ -181,11 +142,11 @@ export function DeepDivesLibrary({ questions }: DeepDivesLibraryProps) {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "12px", paddingTop: "8px" }}>
+        <div className={styles.pagination}>
           <Button size="small" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>
             Previous
           </Button>
-          <Text size={200} style={{ color: "#6b7280" }}>
+          <Text size={200} className={styles.paginationText}>
             Page {currentPage} of {totalPages} · {filtered.length} results
           </Text>
           <Button size="small" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>

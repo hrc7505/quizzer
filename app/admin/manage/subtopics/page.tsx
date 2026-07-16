@@ -11,7 +11,7 @@ export default async function ManageSubTopicsPage() {
   }
 
   return (
-    <div style={{ width: '100%' }}>
+    <div>
       <TaxonomyManager view="subtopics" />
     </div>
   );

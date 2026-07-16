@@ -40,7 +40,7 @@ export default async function ManageQuizQuestionsPage({ params }: ManageQuizQues
   }
 
   return (
-    <div style={{ width: '100%' }}>
+    <div>
       <AdminQuizQuestionsManager quiz={quiz} />
     </div>
   );

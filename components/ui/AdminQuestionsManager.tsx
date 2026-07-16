@@ -11,6 +11,7 @@ import {
   Add20Regular, Edit20Regular, Delete20Regular, Filter20Regular, Dismiss20Regular,
   BookOpen24Regular
 } from "@fluentui/react-icons";
+import { useAdminQuestionsManagerStyles } from "@/components/ui/styles/useAdminQuestionsManagerStyles";
 
 interface QuizRef {
   id: string;
@@ -48,6 +49,7 @@ interface AdminQuestionsManagerProps {
  * Supports manual create, edit, delete, searching, and filtering by quiz.
  */
 export function AdminQuestionsManager({ questions: initial, quizzes }: AdminQuestionsManagerProps) {
+  const styles = useAdminQuestionsManagerStyles();
   const [questions, setQuestions] = useState<Question[]>(initial);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -189,32 +191,32 @@ export function AdminQuestionsManager({ questions: initial, quizzes }: AdminQues
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "28px", fontFamily: "Segoe UI, sans-serif" }}>
+    <div className={styles.root}>
       {error && (
         <MessageBar intent="error">
           <MessageBarBody>{error}</MessageBarBody>
         </MessageBar>
       )}
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
+      <div className={styles.header}>
         <div>
-          <Text size={700} weight="bold" style={{ color: "#242424", display: "block" }}>
+          <Text size={700} weight="bold" className={styles.headerTitle}>
             Questions Directory
-            <Badge appearance="filled" color="informative" style={{ marginLeft: "10px", borderRadius: "12px" }}>
+            <Badge appearance="filled" color="informative" className={styles.headerBadge}>
               {questions.length}
             </Badge>
           </Text>
-          <Text size={200} style={{ color: "#6b7280", marginTop: "4px", display: "block" }}>
+          <Text size={200} className={styles.headerSubtitle}>
             Inspect, search, edit, or manually compose questions for any quiz.
           </Text>
         </div>
 
-        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+        <div className={styles.headerActions}>
           <Popover>
             <PopoverTrigger disableButtonEnhancement>
               <Button size="small" icon={<Filter20Regular />}>Filter</Button>
             </PopoverTrigger>
-            <PopoverSurface style={{ width: "280px", display: "flex", flexDirection: "column", gap: "14px" }}>
+            <PopoverSurface className={styles.filterSurface}>
               <Text size={300} weight="semibold">Search & Filter</Text>
               <Field label="Search text / quiz">
                 <Input
@@ -242,15 +244,11 @@ export function AdminQuestionsManager({ questions: initial, quizzes }: AdminQues
 
       {/* Empty State */}
       {questions.length === 0 ? (
-        <div style={{ display: "flex", justifyContent: "center", padding: "60px 0" }}>
-          <Card style={{
-            borderRadius: "16px", padding: "48px", textAlign: "center",
-            border: "1px dashed #d1d5db", display: "flex", flexDirection: "column",
-            alignItems: "center", gap: "16px", maxWidth: "520px", width: "100%"
-          }}>
-            <BookOpen24Regular style={{ color: "#0078d4", fontSize: "48px" }} />
-            <Text size={500} weight="bold" block style={{ color: "#374151" }}>No Questions Found</Text>
-            <Text size={300} style={{ color: "#6b7280" }}>
+        <div className={styles.emptyWrapper}>
+          <Card className={styles.emptyCard}>
+            <BookOpen24Regular className={styles.emptyIcon} />
+            <Text size={500} weight="bold" block className={styles.emptyTitle}>No Questions Found</Text>
+            <Text size={300} className={styles.emptyText}>
               There are no questions populated in the database. You can generate a quiz with AI or add individual questions manually.
             </Text>
             <Button appearance="primary" icon={<Add20Regular />} onClick={handleOpenAdd}>
@@ -259,58 +257,47 @@ export function AdminQuestionsManager({ questions: initial, quizzes }: AdminQues
           </Card>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+        <div className={styles.listWrapper}>
           {/* Card list of questions */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <div className={styles.cardList}>
             {paginated.map((q, idx) => (
-              <Card key={q.id} style={{
-                borderRadius: "14px", border: "1px solid #e5e7eb",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.02)", padding: "24px"
-              }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}>
+              <Card key={q.id} className={styles.questionCard}>
+                <div className={styles.questionCardTop}>
                   <div>
-                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "8px" }}>
-                      <Badge appearance="tint" color="informative" style={{ borderRadius: "6px" }}>
+                    <div className={styles.badgeRow}>
+                      <Badge appearance="tint" color="informative" className={styles.badgeRounded}>
                         Quiz: {q.quiz?.title || "Unassigned"}
                       </Badge>
                       {q.topic && (
-                        <Badge appearance="tint" color="brand" style={{ borderRadius: "6px" }}>
+                        <Badge appearance="tint" color="brand" className={styles.badgeRounded}>
                           Topic: {q.topic.title}
                         </Badge>
                       )}
                     </div>
-                    <Text size={400} weight="semibold" style={{ color: "#0f172a", lineHeight: "1.4", display: "block" }}>
+                    <Text size={400} weight="semibold" className={styles.questionText}>
                       {(currentPage - 1) * pageSize + idx + 1}. {q.text}
                     </Text>
                   </div>
 
-                  <div style={{ display: "flex", gap: "6px" }}>
+                  <div className={styles.cardActions}>
                     <Tooltip content="Edit Question" relationship="label">
                       <Button size="small" icon={<Edit20Regular />} onClick={() => handleOpenEdit(q)} />
                     </Tooltip>
                     <Tooltip content="Delete Question" relationship="label">
-                      <Button size="small" icon={<Delete20Regular />} style={{ color: "#d13438" }} onClick={() => handleDelete(q)} />
+                      <Button size="small" icon={<Delete20Regular />} className={styles.deleteButton} onClick={() => handleDelete(q)} />
                     </Tooltip>
                   </div>
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px", marginTop: "14px", paddingLeft: "12px", borderLeft: "3px solid #e2e8f0" }}>
+                <div className={styles.optionsGrid}>
                   {q.options.map((opt, oIdx) => {
                     const isCorrect = opt === q.correctAnswer;
                     return (
-                      <div key={oIdx} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                        <span style={{
-                          width: "20px", height: "20px", borderRadius: "50%",
-                          backgroundColor: isCorrect ? "#dcfce7" : "#f1f5f9",
-                          color: isCorrect ? "#15803d" : "#64748b",
-                          fontSize: "11px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold"
-                        }}>
+                      <div key={oIdx} className={styles.optionItem}>
+                        <span className={`${styles.optionBadge} ${isCorrect ? styles.optionBadgeCorrect : styles.optionBadgeDefault}`}>
                           {oIdx + 1}
                         </span>
-                        <Text size={200} style={{
-                          color: isCorrect ? "#15803d" : "#334155",
-                          fontWeight: isCorrect ? "600" : "normal"
-                        }}>
+                        <Text size={200} className={isCorrect ? styles.optionTextCorrect : styles.optionTextDefault}>
                           {opt} {isCorrect && "✓"}
                         </Text>
                       </div>
@@ -319,14 +306,14 @@ export function AdminQuestionsManager({ questions: initial, quizzes }: AdminQues
                 </div>
 
                 {(q.hint || q.description) && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "14px", paddingTop: "12px", borderTop: "1px solid #f1f5f9" }}>
+                  <div className={styles.metaBlock}>
                     {q.hint && (
-                      <Text size={100} style={{ color: "#64748b", fontStyle: "italic" }}>
+                      <Text size={100} className={styles.hintText}>
                         Hint: {q.hint}
                       </Text>
                     )}
                     {q.description && (
-                      <Text size={100} style={{ color: "#64748b" }}>
+                      <Text size={100} className={styles.descriptionText}>
                         Explanation: {q.description}
                       </Text>
                     )}
@@ -337,25 +324,21 @@ export function AdminQuestionsManager({ questions: initial, quizzes }: AdminQues
           </div>
 
           {/* Pagination Footer */}
-          <Card style={{
-            display: "flex", justifyContent: "space-between", alignItems: "center",
-            padding: "14px 16px", border: "1px solid #e5e7eb", borderRadius: "12px",
-            backgroundColor: "white", flexWrap: "wrap", gap: "10px"
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <Text size={200} style={{ color: "#6b7280" }}>Show</Text>
-              <Select value={pageSize.toString()} onChange={e => { setPageSize(parseInt(e.target.value)); setCurrentPage(1); }} size="small" style={{ width: "80px" }}>
+          <Card className={styles.paginationCard}>
+            <div className={styles.paginationLeft}>
+              <Text size={200} className={styles.mutedText}>Show</Text>
+              <Select value={pageSize.toString()} onChange={e => { setPageSize(parseInt(e.target.value)); setCurrentPage(1); }} size="small" className={styles.pageSizeSelect}>
                 <option value="5">5</option>
                 <option value="10">10</option>
                 <option value="20">20</option>
                 <option value="50">50</option>
               </Select>
-              <Text size={200} style={{ color: "#6b7280" }}>entries</Text>
+              <Text size={200} className={styles.mutedText}>entries</Text>
             </div>
-            <Text size={200} style={{ color: "#6b7280" }}>
+            <Text size={200} className={styles.mutedText}>
               {totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, totalItems)} of {totalItems}
             </Text>
-            <div style={{ display: "flex", gap: "8px" }}>
+            <div className={styles.paginationButtons}>
               <Button size="small" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>Previous</Button>
               <Button size="small" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>Next</Button>
             </div>
@@ -365,18 +348,14 @@ export function AdminQuestionsManager({ questions: initial, quizzes }: AdminQues
 
       {/* ── Add / Edit Question Dialog ── */}
       <Dialog open={questionDialogOpen} onOpenChange={(_, d) => setQuestionDialogOpen(d.open)}>
-        <DialogSurface style={{ borderRadius: "14px", padding: "28px", maxWidth: "600px", width: "100%" }}>
+        <DialogSurface className={styles.questionDialogSurface}>
           <DialogBody>
             <DialogTitle action={<DialogTrigger action="close"><Button appearance="subtle" aria-label="close" icon={<Dismiss20Regular />} /></DialogTrigger>}>
               {questionForm.id ? "Edit Question" : "Add Question"}
             </DialogTitle>
-            <DialogContent style={{ display: "flex", flexDirection: "column", gap: "16px", paddingTop: "16px" }}>
+            <DialogContent className={styles.dialogContent}>
               <Field label="Parent Quiz" required>
-                <Select
-                  value={questionForm.quizId}
-                  onChange={e => setQuestionForm(prev => ({ ...prev, quizId: e.target.value }))}
-                  style={{ width: "100%" }}
-                >
+                  <Select value={questionForm.quizId} onChange={e => setQuestionForm(prev => ({ ...prev, quizId: e.target.value }))} className={styles.fullWidth}>
                   <option value="">Select quiz assignment...</option>
                   {quizzes.map(quiz => (
                     <option key={quiz.id} value={quiz.id}>{quiz.title}</option>
@@ -389,29 +368,29 @@ export function AdminQuestionsManager({ questions: initial, quizzes }: AdminQues
                   value={questionForm.text} 
                   onChange={e => setQuestionForm(prev => ({ ...prev, text: e.target.value }))} 
                   placeholder="Enter the question text..." 
-                  style={{ width: "100%", minHeight: "80px" }}
+                  className={styles.textarea}
                 />
               </Field>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              <div className={styles.optionsFormGrid}>
                 {questionForm.options.map((opt, idx) => (
                   <Field key={idx} label={`Option ${idx + 1}`} required>
-                    <Input 
-                      value={opt} 
-                      onChange={e => handleOptionChange(idx, e.target.value)} 
-                      placeholder={`Enter option ${idx + 1}`} 
-                      style={{ width: "100%" }}
-                    />
+                     <Input 
+                       value={opt} 
+                       onChange={e => handleOptionChange(idx, e.target.value)} 
+                       placeholder={`Enter option ${idx + 1}`} 
+                       className={styles.fullWidth}
+                     />
                   </Field>
                 ))}
               </div>
 
               <Field label="Correct Answer" required>
-                <Select 
-                  value={questionForm.correctAnswer} 
-                  onChange={e => setQuestionForm(prev => ({ ...prev, correctAnswer: e.target.value }))}
-                  style={{ width: "100%" }}
-                >
+                 <Select 
+                   value={questionForm.correctAnswer} 
+                   onChange={e => setQuestionForm(prev => ({ ...prev, correctAnswer: e.target.value }))}
+                   className={styles.fullWidth}
+                 >
                   <option value="">Select correct option...</option>
                   {questionForm.options.map((opt, idx) => (
                     opt.trim() && <option key={idx} value={opt}>{opt}</option>
@@ -420,24 +399,24 @@ export function AdminQuestionsManager({ questions: initial, quizzes }: AdminQues
               </Field>
 
               <Field label="Hint (Optional)">
-                <Input 
-                  value={questionForm.hint} 
-                  onChange={e => setQuestionForm(prev => ({ ...prev, hint: e.target.value }))} 
-                  placeholder="Enter a brief hint..." 
-                  style={{ width: "100%" }}
-                />
+                 <Input 
+                   value={questionForm.hint} 
+                   onChange={e => setQuestionForm(prev => ({ ...prev, hint: e.target.value }))} 
+                   placeholder="Enter a brief hint..." 
+                   className={styles.fullWidth}
+                 />
               </Field>
 
               <Field label="Explanation / Description">
-                <Textarea 
-                  value={questionForm.description} 
-                  onChange={e => setQuestionForm(prev => ({ ...prev, description: e.target.value }))} 
-                  placeholder="Explain why this answer is correct..." 
-                  style={{ width: "100%", minHeight: "80px" }}
-                />
+                 <Textarea 
+                   value={questionForm.description} 
+                   onChange={e => setQuestionForm(prev => ({ ...prev, description: e.target.value }))} 
+                   placeholder="Explain why this answer is correct..." 
+                   className={styles.textarea}
+                 />
               </Field>
             </DialogContent>
-            <DialogActions style={{ marginTop: "24px" }}>
+            <DialogActions className={styles.dialogActions}>
               <DialogTrigger disableButtonEnhancement>
                 <Button appearance="secondary">Cancel</Button>
               </DialogTrigger>
@@ -455,23 +434,23 @@ export function AdminQuestionsManager({ questions: initial, quizzes }: AdminQues
 
       {/* ── Confirmation Dialog ── */}
       <Dialog open={confirmDialog.open} onOpenChange={(_, d) => setConfirmDialog(p => ({ ...p, open: d.open }))}>
-        <DialogSurface style={{ borderRadius: "12px", padding: "24px", maxWidth: "420px" }}>
+        <DialogSurface className={styles.confirmDialogSurface}>
           <DialogBody>
             <DialogTitle action={<DialogTrigger action="close"><Button appearance="subtle" aria-label="close" icon={<Dismiss20Regular />} /></DialogTrigger>}>
               {confirmDialog.title}
             </DialogTitle>
-            <DialogContent style={{ paddingTop: "12px" }}>
-              <Text style={{ color: "#616161", fontSize: "14px", lineHeight: "1.5" }}>
+            <DialogContent className={styles.confirmContent}>
+              <Text className={styles.confirmText}>
                 {confirmDialog.description}
               </Text>
             </DialogContent>
-            <DialogActions style={{ marginTop: "24px" }}>
+            <DialogActions className={styles.dialogActions}>
               <DialogTrigger disableButtonEnhancement>
                 <Button appearance="secondary">Cancel</Button>
               </DialogTrigger>
               <Button
                 appearance="primary"
-                style={{ backgroundColor: "#d13438", borderColor: "#d13438", color: "#fff" }}
+                className={styles.confirmButton}
                 onClick={async () => {
                   await confirmDialog.onConfirm();
                   setConfirmDialog(p => ({ ...p, open: false }));

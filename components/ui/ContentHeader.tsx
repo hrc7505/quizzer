@@ -44,12 +44,15 @@ const useStyles = makeStyles({
     color: "#242424",
     margin: 0,
   },
-  description: {
-    color: "#616161",
-    fontSize: "14px",
-    lineHeight: 1.5,
-    margin: "6px 0 0 0",
-  },
+   titleWrap: {
+     minWidth: 0,
+   },
+   description: {
+     color: "#616161",
+     fontSize: "14px",
+     lineHeight: 1.5,
+     margin: "6px 0 0 0",
+   },
 });
 
 export function ContentHeader({ icon, variant = "exam", title, description }: ContentHeaderProps) {
@@ -61,7 +64,7 @@ export function ContentHeader({ icon, variant = "exam", title, description }: Co
       <div className={styles.badge} style={{ background: gradient }}>
         {icon}
       </div>
-      <div style={{ minWidth: 0 }}>
+      <div className={styles.titleWrap}>
         <h1 className={styles.title}>{title}</h1>
         {description ? <p className={styles.description}>{description}</p> : null}
       </div>

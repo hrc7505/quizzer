@@ -397,7 +397,7 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
           </Text>
 
           {authWarning && (
-          <div style={{ marginBottom: '16px', padding: '14px 16px', borderRadius: '12px', backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d' }}>
+          <div className={styles.authWarningBox}>
             <Text size={300} weight="semibold">{authWarning}</Text>
           </div>
         )}
@@ -525,7 +525,7 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
       {currentQuestion && (
         <Card className={styles.questionCard}>
           <div className={styles.questionTextRow}>
-            <Text size={400} weight="semibold" className={styles.quizPlayFont} style={{ fontFamily: "var(--font-winky)", fontSize: "18px" }}>
+            <Text size={400} weight="semibold" className={styles.questionPlayText}>
               {currentQuestion.text}
             </Text>
           </div>
@@ -562,7 +562,7 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
                   aria-label={`Option ${i + 1}: ${opt}${isSelected ? ", selected" : ""}${isCorrectAnswer && selectedOption ? ", correct answer" : ""}`}
                   disabled={!!selectedOption}
                 >
-                  <Text size={200} weight={selectedOption && isCorrectAnswer ? "bold" : "regular"} className={styles.quizPlayFont} style={{ fontFamily: "var(--font-winky)", fontSize: "12px" }}>
+                  <Text size={200} weight={selectedOption && isCorrectAnswer ? "bold" : "regular"} className={`${styles.quizPlayFont} ${styles.optionText}`}>
                     {opt}
                   </Text>
                 </button>
@@ -580,8 +580,8 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
               <div className={styles.explanationText}>
                 {currentQuestion.description.split("\n").flatMap((line: string) =>
                   splitSentences(line).map((part: string, idx: number) => (
-                    <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: "8px", marginBottom: "6px" }}>
-                      <Checkmark24Regular style={{ color: "#10b981", marginTop: "2px", flexShrink: 0, fontSize: "16px" }} />
+                    <div key={idx} className={styles.explanationRow}>
+                      <Checkmark24Regular className={styles.explanationCheck} />
                       <Text size={300} className={styles.quizPlayFont}>{part}</Text>
                     </div>
                   ))

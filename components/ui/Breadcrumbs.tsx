@@ -101,13 +101,13 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
     const item = items[index];
     if (!item) return null;
     const content = isLast ? (
-      <span style={{ fontWeight: 600, color: "#0f172a", whiteSpace: "nowrap" }}>{item.label}</span>
+      <span className={styles.currentItem}>{item.label}</span>
     ) : item.href ? (
-      <Link href={item.href} className={styles.link} style={{ whiteSpace: "nowrap" }}>
+      <Link href={item.href} className={styles.link}>
         {item.label}
       </Link>
     ) : (
-      <span style={{ color: "#64748b", whiteSpace: "nowrap" }}>{item.label}</span>
+      <span className={styles.item}>{item.label}</span>
     );
 
     return (
@@ -125,7 +125,7 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
   };
 
   return (
-    <nav aria-label="Breadcrumb" style={{ marginBottom: "28px", overflow: "hidden" }}>
+    <nav aria-label="Breadcrumb" className={styles.nav}>
       <div ref={containerRef} className={styles.container}>
         {n > 0 && renderItem(0, n === 1)}
         {showEcb && (

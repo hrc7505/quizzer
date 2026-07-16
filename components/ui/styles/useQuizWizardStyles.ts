@@ -317,7 +317,38 @@ export const useQuizWizardStyles = makeStyles({
     fontWeight: 700,
     fontSize: "13px",
   },
+  authWarningBox: {
+    marginBottom: "16px",
+    padding: "14px 16px",
+    borderRadius: "12px",
+    backgroundColor: "#fef3c7",
+    color: "#92400e",
+    border: "1px solid #fcd34d",
+  },
+  explanationRow: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: "8px",
+    marginBottom: "6px",
+  },
+  explanationCheck: {
+    color: "#10b981",
+    marginTop: "2px",
+    flexShrink: 0,
+    fontSize: "16px",
+  },
+  optionText: {
+    fontFamily: "var(--font-winky) !important",
+    fontSize: "12px",
+  },
+  questionPlayText: {
+    fontFamily: "var(--font-winky) !important",
+    fontSize: "18px",
+  },
   scoreText: {
     fontWeight: 600,
+  },
+  scoreValue: {
+    fontWeight: "bold",
   },
 });

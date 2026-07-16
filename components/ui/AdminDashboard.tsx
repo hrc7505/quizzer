@@ -2,6 +2,7 @@
 
 import { Card, CardHeader, Text } from "@fluentui/react-components";
 import { LinkButton } from "./LinkButton";
+import { useAdminDashboardStyles } from "./styles/useAdminDashboardStyles";
 
 interface Stats {
   topicsCount: number;
@@ -13,38 +14,39 @@ interface Stats {
 }
 
 export function AdminDashboard({ stats }: { stats: Stats }) {
+  const styles = useAdminDashboardStyles();
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <Text size={700} weight="bold">Admin Dashboard</Text>
+    <div className={styles.root}>
+      <Text size={700} weight="bold" className={styles.title}>Admin Dashboard</Text>
       
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+      <div className={styles.statsGrid}>
         <Card>
           <CardHeader header={<Text weight="semibold">Topics</Text>} />
-          <Text size={800} weight="bold" style={{ padding: '0 16px 16px' }}>{stats.topicsCount}</Text>
+          <Text size={800} weight="bold" className={styles.statCardValue}>{stats.topicsCount}</Text>
         </Card>
         <Card>
           <CardHeader header={<Text weight="semibold">Sub Topics</Text>} />
-          <Text size={800} weight="bold" style={{ padding: '0 16px 16px' }}>{stats.subtopicsCount}</Text>
+          <Text size={800} weight="bold" className={styles.statCardValue}>{stats.subtopicsCount}</Text>
         </Card>
         <Card>
           <CardHeader header={<Text weight="semibold">Quizzes</Text>} />
-          <Text size={800} weight="bold" style={{ padding: '0 16px 16px' }}>{stats.quizzesCount}</Text>
+          <Text size={800} weight="bold" className={styles.statCardValue}>{stats.quizzesCount}</Text>
         </Card>
         <Card>
           <CardHeader header={<Text weight="semibold">Questions</Text>} />
-          <Text size={800} weight="bold" style={{ padding: '0 16px 16px' }}>{stats.questionsCount}</Text>
+          <Text size={800} weight="bold" className={styles.statCardValue}>{stats.questionsCount}</Text>
         </Card>
         <Card>
           <CardHeader header={<Text weight="semibold">Attempts</Text>} />
-          <Text size={800} weight="bold" style={{ padding: '0 16px 16px' }}>{stats.attemptsCount}</Text>
+          <Text size={800} weight="bold" className={styles.statCardValue}>{stats.attemptsCount}</Text>
         </Card>
         <Card>
           <CardHeader header={<Text weight="semibold">Average Score</Text>} />
-          <Text size={800} weight="bold" style={{ padding: '0 16px 16px' }}>{stats.avgScore}%</Text>
+          <Text size={800} weight="bold" className={styles.statCardValue}>{stats.avgScore}%</Text>
         </Card>
       </div>
 
-      <div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
+      <div className={styles.actionsRow}>
         <LinkButton href="/admin/generate" appearance="primary" size="large">Generate New Quiz</LinkButton>
         <LinkButton href="/admin/manage" appearance="secondary" size="large">Manage Taxonomy</LinkButton>
       </div>

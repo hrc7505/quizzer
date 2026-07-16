@@ -5,11 +5,13 @@ import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { Card, CardHeader, Text, Button, Input, Field, Spinner, MessageBar, MessageBarBody } from "@fluentui/react-components";
 import { Sparkle24Regular } from "@/components/ui/Icons";
+import { useAuthPageStyles } from "@/components/ui/styles/useAuthPageStyles";
 
 /**
  * User login page contents that accesses query parameters safely within a Suspense block.
  */
 function LoginContent() {
+  const styles = useAuthPageStyles();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const [email, setEmail] = useState("");
@@ -51,55 +53,49 @@ function LoginContent() {
   };
 
   return (
-    <Card style={{ width: '400px', maxWidth: '100%', padding: '32px', boxShadow: '0 8px 32px rgba(0,0,0,0.08)', borderRadius: '12px' }}>
+    <Card className={`${styles.card} ${styles.cardLight}`}>
       <CardHeader
         header={
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-            <Sparkle24Regular style={{ color: '#0078d4' }} />
+          <div className={styles.cardHeaderRow}>
+            <Sparkle24Regular className={styles.iconColorPrimary} />
             <Text weight="bold" size={600}>
               Sign In to Quizzer
             </Text>
           </div>
         }
         description={
-          <Text size={300} style={{ color: '#64748b' }}>
+          <Text size={300} className={styles.descriptionText}>
             Sign in to start playing quizzes and save your progress.
           </Text>
         }
       />
 
       {error && (
-        <MessageBar intent="error" style={{ marginTop: '16px' }}>
+        <MessageBar intent="error" className={styles.errorBar}>
           <MessageBarBody>{error}</MessageBarBody>
         </MessageBar>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '24px' }}>
+      <div className={styles.formRow}>
         {/* Google Sign In Button */}
         <Button 
           appearance="primary" 
           size="large" 
           onClick={handleGoogleLogin}
           disabled={loading}
-          style={{ 
-            backgroundColor: '#0078d4', 
-            color: 'white', 
-            fontWeight: '600', 
-            height: '44px',
-            borderRadius: '6px'
-          }}
+          className={styles.googleButton}
         >
           {loading ? <Spinner size="tiny" /> : "Sign In with Google"}
         </Button>
 
-        <div style={{ display: 'flex', alignItems: 'center', margin: '12px 0' }}>
-          <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }} />
-          <Text size={200} style={{ padding: '0 8px', color: '#94a3b8' }}>or use Dev Login</Text>
-          <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }} />
+        <div className={styles.dividerRow}>
+          <div className={styles.dividerLine} />
+          <Text size={200} className={styles.dividerText}>or use Dev Login</Text>
+          <div className={styles.dividerLine} />
         </div>
 
         {/* Dev Login Form */}
-        <form onSubmit={handleDevLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <form onSubmit={handleDevLogin} className={styles.devForm}>
           <Field label="Developer Email" hint="For local testing. e.g. user@quizzer.com">
             <Input 
               type="email" 
@@ -108,10 +104,10 @@ function LoginContent() {
               onChange={(e) => setEmail(e.target.value)}
               disabled={loading}
               required
-              style={{ height: '36px' }}
+              className={styles.inputHeight}
             />
           </Field>
-          <Button appearance="outline" type="submit" disabled={loading} style={{ height: '36px' }}>
+          <Button appearance="outline" type="submit" disabled={loading} className={styles.outlineButton}>
             {loading ? <Spinner size="tiny" /> : "Sign In with Credentials"}
           </Button>
         </form>
@@ -124,8 +120,9 @@ function LoginContent() {
  * Main user sign-in route wrapping client hooks in Suspense.
  */
 export default function LoginPage() {
+  const styles = useAuthPageStyles();
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', minHeight: '100vh', backgroundColor: '#f8fafc' }}>
+    <div className={`${styles.pageRoot} ${styles.pageRootLight}`}>
       <Suspense fallback={<Spinner size="large" label="Loading sign in..." />}>
         <LoginContent />
       </Suspense>

@@ -38,12 +38,13 @@ import { useSession } from "next-auth/react";
 import { GState } from "jspdf";
 import Link from "next/link";
 import { AttemptService, LeaderboardEntry } from "@/lib/services/attempt.service";
-import ReactMarkdown from "react-markdown";
 import { splitSentences, formatTime } from "@/lib/text";
 import { QuizResultsProps, QuestionData, UserAnswerData } from "./interfaces/QuizResults.interface";
 import { useQuizResultsStyles } from "./styles/useQuizResultsStyles";
 import { ShareButton } from "./ShareButton";
+import { NoData } from "./NoData";
 import { Share24Regular } from "@fluentui/react-icons";
+import { DeepDiveBody } from "./DeepDiveBody";
 
 // MenuItem's `as` is narrowly typed; this alias lets it render as next/link
 // so the "Return Home" entry prefetches like a normal <Link>.
@@ -101,6 +102,21 @@ export function QuizResults({ attempt }: QuizResultsProps) {
   const [elaborations, setElaborations] = useState<Record<string, { loading: boolean, data?: string, error?: string }>>(initialElaborations);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [activeElaborationId, setActiveElaborationId] = useState<string | null>(null);
+
+  const questionObj = useMemo(() => {
+    if (!activeElaborationId) return null;
+    const q = attempt.quiz.questions.find((qi: QuestionData) => qi.id === activeElaborationId);
+    if (!q) return null;
+    return {
+      ...q,
+      quiz: {
+        id: attempt.quiz.id,
+        title: attempt.quiz.title,
+        difficulty: attempt.quiz.difficulty || "Medium",
+      },
+      topic: q.topic || { id: "", title: "General" },
+    };
+  }, [activeElaborationId, attempt.quiz]);
 
   const handleDownloadPDF = async () => {
     setDownloading(true);
@@ -480,9 +496,7 @@ export function QuizResults({ attempt }: QuizResultsProps) {
               <Spinner label="Loading leaderboard..." size="tiny" />
             </div>
           ) : leaderboard.length === 0 ? (
-            <Text size={300} className={styles.emptyLeaderboardText}>
-              No rankings available yet.
-            </Text>
+            <NoData title="No rankings available yet." description="Be the first to top the leaderboard!" icon="sparkle" />
           ) : (
             <div className={styles.leaderboardTableWrap}>
             <table className={styles.leaderboardTable}>
@@ -604,9 +618,7 @@ export function QuizResults({ attempt }: QuizResultsProps) {
               </Accordion>
             </DialogContent>
             <DialogActions>
-              <DialogTrigger disableButtonEnhancement>
-                <Button appearance="secondary">Close</Button>
-              </DialogTrigger>
+              <Button appearance="subtle" icon={<Dismiss20Regular />} onClick={() => setIsReviewOpen(false)} aria-label="Close" />
             </DialogActions>
           </DialogBody>
         </DialogSurface>
@@ -617,14 +629,13 @@ export function QuizResults({ attempt }: QuizResultsProps) {
         open={isDrawerOpen} 
         onOpenChange={(e, data) => setIsDrawerOpen(data.open)}
         position="end"
-        size="medium"
+        size="large"
+        className={styles.drawer}
       >
         <DrawerHeader>
           <DrawerHeaderTitle
             action={
-              <Button appearance="subtle" onClick={() => setIsDrawerOpen(false)}>
-                Close
-              </Button>
+              <Button appearance="subtle" icon={<Dismiss20Regular />} onClick={() => setIsDrawerOpen(false)} aria-label="Close" />
             }
           >
             AI Deep Dive
@@ -643,10 +654,11 @@ export function QuizResults({ attempt }: QuizResultsProps) {
                   <MessageBarBody>{elaborations[activeElaborationId].error}</MessageBarBody>
                 </MessageBar>
               )}
-              {elaborations[activeElaborationId]?.data && (
-                <div className={`markdown-body ${styles.markdownContainer}`}>
-                  <ReactMarkdown>{elaborations[activeElaborationId].data as string}</ReactMarkdown>
-                </div>
+              {elaborations[activeElaborationId]?.data && questionObj && (
+                <DeepDiveBody question={{
+                  ...questionObj,
+                  elaboration: elaborations[activeElaborationId].data as string
+                }} />
               )}
             </div>
           )}

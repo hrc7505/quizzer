@@ -11,10 +11,11 @@ import {
 } from "@fluentui/react-components";
 import {
   Brain20Regular, Delete20Regular, ArrowSync20Regular, Eye20Regular,
-  Filter20Regular, Dismiss20Regular, Warning48Regular
+  Filter20Regular, Dismiss20Regular
 } from "@fluentui/react-icons";
 import { createTableColumn, TableColumnDefinition } from "@fluentui/react-components";
 import { LinkButton } from "./LinkButton";
+import NoData from "./NoData";
 import { difficultyColor } from "@/lib/format";
 import { useAdminDeepDivesManagerStyles } from "./styles/useAdminDeepDivesManagerStyles";
 
@@ -249,15 +250,11 @@ export function AdminDeepDivesManager({ questions: initialQuestions }: AdminDeep
 
       {/* Empty state */}
       {questions.length === 0 ? (
-        <div className={styles.emptyStateWrapper}>
-          <Card className={styles.emptyStateCard}>
-            <Warning48Regular className={styles.emptyStateIcon} />
-            <Text size={500} weight="bold" block className={styles.emptyStateTitle}>No Saved Deep Dives</Text>
-            <Text size={300} className={styles.emptyStateText}>
-              Elaborations appear here once users generate them via the 🤖 AI Deep Dive button in quiz results.
-            </Text>
-          </Card>
-        </div>
+        <NoData 
+          title="No Saved Deep Dives" 
+          description="Elaborations appear here once users generate them via the 🤖 AI Deep Dive button in quiz results." 
+          icon="brain" 
+        />
       ) : (
         <Card className={styles.tableCard}>
           <div className={styles.tableScroll}>

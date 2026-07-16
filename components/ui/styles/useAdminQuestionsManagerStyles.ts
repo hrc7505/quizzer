@@ -105,6 +105,13 @@ export const useAdminQuestionsManagerStyles = makeStyles({
   },
   badgeRounded: {
     borderRadius: "6px",
+    height: "auto",
+    minHeight: "20px",
+    paddingTop: "2px",
+    paddingBottom: "2px",
+    lineHeight: "1.3",
+    whiteSpace: "normal",
+    wordBreak: "break-word",
   },
   questionText: {
     color: "#0f172a",

@@ -13,13 +13,14 @@ import {
 import { 
   Edit20Regular, Delete20Regular, Add20Regular, 
   BookOpen24Regular, DocumentDatabase24Regular, 
-  ChevronRight20Regular, Warning48Regular, Branch20Regular,
+  ChevronRight20Regular, Branch20Regular,
   MoreHorizontal20Regular, Dismiss20Regular, LinkDismiss20Regular, Link20Regular,
   Filter20Regular, Sparkle20Regular
 } from "@fluentui/react-icons";
 import { TableColumnDefinition, createTableColumn, DataGrid, DataGridHeader, DataGridHeaderCell, DataGridRow, DataGridBody, DataGridCell } from "@fluentui/react-components";
 import { GenerateQuizForm } from "./GenerateQuizForm";
 import { LinkButton } from "./LinkButton";
+import NoData from "./NoData";
 import { difficultyColor } from "@/lib/format";
 import { useTaxonomyManagerStyles } from "./styles/useTaxonomyManagerStyles";
 
@@ -789,20 +790,16 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
           </div>
           
           {filteredExams.length === 0 ? (
-            <div className={styles.emptyStateWrapper}>
-              <Card className={styles.emptyStateCard}>
-                <Warning48Regular className={styles.emptyStateIcon} />
-                <div className={styles.emptyStateTextContainer}>
-                  <Text size={500} weight="bold" block className={styles.emptyStateTitleText}>No Exams Found</Text>
-                  <Text size={200} className={styles.emptyStateSubtitleText}>Create an exam category to start structuring your topics and subtopics.</Text>
-                </div>
-                <Button size="small" appearance="primary" icon={<Add20Regular />} onClick={() => {
-                  setExamForm({ id: '', title: '', description: '' });
-                  setExamDialogOpen(true);
-                }}>Create First Exam</Button>
-              </Card>
-            </div>
-          ) : (
+             <NoData 
+               title="No Exams Found" 
+               description="Create an exam category to start structuring your topics and subtopics." 
+               icon="warning"
+               action={<Button size="small" appearance="primary" icon={<Add20Regular />} onClick={() => {
+                 setExamForm({ id: '', title: '', description: '' });
+                 setExamDialogOpen(true);
+               }}>Create First Exam</Button>}
+             />
+           ) : (
             <Card className={styles.dataGridCard}>
               <div className={styles.scrollContainer}>
                 <DataGrid items={paginatedExams} columns={examColumns} className={styles.examDataGrid}>
@@ -920,30 +917,22 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
           </div>
           
           {filteredTopics.length === 0 ? (
-            <div className={styles.emptyStateWrapper}>
-              <Card className={styles.emptyStateCard}>
-                <Warning48Regular className={styles.emptyStateIcon} />
-                <div className={styles.emptyStateTextContainer}>
-                  <Text size={500} weight="bold" block className={styles.emptyStateTitleText}>
-                    No {view === "main-topics" ? "Main Topics" : "Sub Topics"} Found
-                  </Text>
-                  <Text size={200} className={styles.emptyStateSubtitleText}>
-                    {view === "main-topics" 
-                      ? 'Create Standalone Topics here, or add main topics to specific Exams from the Exams tab.' 
-                      : 'Add subtopics directly here, or click the branch icon on any Main Topic in the Main Topics tab.'}
-                  </Text>
-                </div>
-                <Button 
-                  size="small" 
-                  appearance="primary" 
-                  icon={<Add20Regular />} 
-                  onClick={() => openNewTopicDialog('', '')}
-                >
-                  Create First {view === "main-topics" ? "Main Topic" : "Sub Topic"}
-                </Button>
-              </Card>
-            </div>
-          ) : (
+             <NoData 
+               title={`No ${view === "main-topics" ? "Main Topics" : "Sub Topics"} Found`}
+               description={view === "main-topics" 
+                 ? 'Create Standalone Topics here, or add main topics to specific Exams from the Exams tab.' 
+                 : 'Add subtopics directly here, or click the branch icon on any Main Topic in the Main Topics tab.'}
+               icon="warning"
+               action={<Button 
+                 size="small" 
+                 appearance="primary" 
+                 icon={<Add20Regular />} 
+                 onClick={() => openNewTopicDialog('', '')}
+               >
+                 Create First {view === "main-topics" ? "Main Topic" : "Sub Topic"}
+               </Button>}
+             />
+           ) : (
             <Card className={styles.dataGridCard}>
               <div className={styles.scrollContainer}>
                 <DataGrid items={paginatedTopics} columns={topicColumns} className={styles.topicDataGrid}>
@@ -1244,11 +1233,9 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
                   </Card>
                 ))}
               </div>
-            ) : (
-              <div className={styles.dashedEmptyState}>
-                <Text className={styles.dashedEmptyStateText}>No topics linked to this exam.</Text>
-              </div>
-            )}
+              ) : (
+                <NoData title="No topics linked to this exam." icon="book" compact={true} />
+             )}
           </div>
         </DrawerBody>
       </OverlayDrawer>
@@ -1321,11 +1308,9 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
                      </Card>
                    ))}
                  </div>
-               ) : (
-                 <div className={styles.dashedEmptyState}>
-                   <Text className={styles.dashedEmptyStateText}>No subtopics linked to this topic.</Text>
-                 </div>
-               )}
+                ) : (
+                  <NoData title="No subtopics linked to this topic." icon="book" compact={true} />
+                )}
              </div>
            ) : (
              /* Sub Topic (has parentTopics) => shows linked quizzes */
@@ -1399,11 +1384,9 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
                      </Card>
                    ))}
                  </div>
-               ) : (
-                 <div className={styles.dashedEmptyState}>
-                   <Text className={styles.dashedEmptyStateText}>No quizzes linked to this subtopic.</Text>
-                 </div>
-               )}
+                ) : (
+                  <NoData title="No quizzes linked to this subtopic." icon="book" compact={true} />
+                )}
              </div>
            )}
          </DrawerBody>
@@ -1502,11 +1485,9 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
                   </Card>
                 ))}
               </div>
-            ) : (
-              <div className={styles.dashedEmptyState}>
-                <Text className={styles.dashedEmptyStateTextAlt}>No questions linked. Click &quot;Add Question&quot; to build questions manually.</Text>
-              </div>
-            )}
+             ) : (
+               <NoData title="No questions linked." description="Click Add Question to build questions manually." icon="book" compact={true} />
+             )}
           </div>
         </DrawerBody>
       </OverlayDrawer>

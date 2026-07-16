@@ -162,7 +162,7 @@ export const useQuizResultsStyles = makeStyles({
   dialogSurface: {
     borderRadius: '12px',
     ...shorthands.padding('24px'),
-    maxWidth: '800px',
+    maxWidth: '1000px',
     width: '90vw',
     "@media (max-width: 480px)": {
       ...shorthands.padding('16px'),
@@ -171,7 +171,7 @@ export const useQuizResultsStyles = makeStyles({
   },
   dialogContent: {
     overflowY: 'auto',
-    maxHeight: '70vh',
+    maxHeight: '85vh',
     paddingTop: '16px',
   },
   drawerBody: {
@@ -323,5 +323,10 @@ export const useQuizResultsStyles = makeStyles({
   },
   markdownContainer: {
     overflowX: "auto",
+  },
+  drawer: {
+    width: "800px",
+    maxWidth: "100%",
+    boxShadow: "-4px 0 24px rgba(0,0,0,0.12)",
   },
 });

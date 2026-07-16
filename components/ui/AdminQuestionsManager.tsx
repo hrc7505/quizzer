@@ -8,10 +8,10 @@ import {
   MessageBar, MessageBarBody,
 } from "@fluentui/react-components";
 import {
-  Add20Regular, Edit20Regular, Delete20Regular, Filter20Regular, Dismiss20Regular,
-  BookOpen24Regular
+  Add20Regular, Edit20Regular, Delete20Regular, Filter20Regular, Dismiss20Regular
 } from "@fluentui/react-icons";
 import { useAdminQuestionsManagerStyles } from "@/components/ui/styles/useAdminQuestionsManagerStyles";
+import NoData from "./NoData";
 
 interface QuizRef {
   id: string;
@@ -244,18 +244,12 @@ export function AdminQuestionsManager({ questions: initial, quizzes }: AdminQues
 
       {/* Empty State */}
       {questions.length === 0 ? (
-        <div className={styles.emptyWrapper}>
-          <Card className={styles.emptyCard}>
-            <BookOpen24Regular className={styles.emptyIcon} />
-            <Text size={500} weight="bold" block className={styles.emptyTitle}>No Questions Found</Text>
-            <Text size={300} className={styles.emptyText}>
-              There are no questions populated in the database. You can generate a quiz with AI or add individual questions manually.
-            </Text>
-            <Button appearance="primary" icon={<Add20Regular />} onClick={handleOpenAdd}>
-              Create First Question
-            </Button>
-          </Card>
-        </div>
+        <NoData 
+          title="No Questions Found" 
+          description="There are no questions populated in the database. You can generate a quiz with AI or add individual questions manually." 
+          icon="book"
+          action={<Button appearance="primary" icon={<Add20Regular />} onClick={handleOpenAdd}>Create First Question</Button>}
+        />
       ) : (
         <div className={styles.listWrapper}>
           {/* Card list of questions */}

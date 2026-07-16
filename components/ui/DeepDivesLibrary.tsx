@@ -6,6 +6,7 @@ import { BookOpenRegular, Brain20Regular, Filter20Regular } from "@fluentui/reac
 import Link from "next/link";
 import { difficultyColor } from "@/lib/format";
 import { useDeepDivesLibraryStyles } from "./styles/useDeepDivesLibraryStyles";
+import NoData from "./NoData";
 
 interface QuestionSummary {
   id: string;
@@ -79,22 +80,12 @@ export function DeepDivesLibrary({ questions }: DeepDivesLibraryProps) {
 
       {/* Empty state */}
       {questions.length === 0 && (
-        <div className={styles.emptyState}>
-          <Brain20Regular className={styles.emptyIcon} />
-          <Text size={500} weight="semibold" block className={styles.emptyTitle}>
-            No Deep Dives Yet
-          </Text>
-          <Text size={300} className={styles.emptyText}>
-            Complete a quiz and click &quot;🤖 AI Deep Dive&quot; on any question to generate and save your first elaboration.
-          </Text>
-        </div>
+        <NoData title="No Deep Dives Yet" description="Complete a quiz and click the 🤖 AI Deep Dive button on any question to generate and save your first elaboration." icon="brain" />
       )}
 
       {/* No search results */}
       {questions.length > 0 && filtered.length === 0 && (
-        <div className={styles.noResults}>
-          <Text size={400} className={styles.emptyText}>No results match your search.</Text>
-        </div>
+        <NoData title="No results match your search." description="Try adjusting your search terms or filters." icon="sparkle" />
       )}
 
       {/* Grouped cards */}

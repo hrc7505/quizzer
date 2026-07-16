@@ -1,16 +1,9 @@
 import { makeStyles, shorthands } from "@fluentui/react-components";
 
-export const useDeepDiveDetailStyles = makeStyles({
-  root: {
-    display: "flex",
-    flexDirection: "column",
-    ...shorthands.gap("28px"),
-    fontFamily: "var(--font-winky)",
-  },
-  backButton: {
-    color: "#667eea",
-    width: "fit-content",
-  },
+/**
+ * Hook to generate Fluent UI styles for the DeepDiveBody component.
+ */
+export const useDeepDiveBodyStyles = makeStyles({
   headerCard: {
     borderRadius: "16px",
     border: "1px solid #e5e7eb",
@@ -78,21 +71,13 @@ export const useDeepDiveDetailStyles = makeStyles({
     border: "1px solid #e5e7eb",
     boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
     padding: "32px",
+    marginTop: "20px",
   },
   markdownBody: {
     lineHeight: "1.7",
     color: "#1f2937",
   },
-  emptyCard: {
-    borderRadius: "16px",
-    padding: "48px",
-    textAlign: "center",
-    border: "1px dashed #d1d5db",
-  },
   metaSeparator: {
-    color: "#9ca3af",
-  },
-  emptyText: {
     color: "#9ca3af",
   },
   badge: {

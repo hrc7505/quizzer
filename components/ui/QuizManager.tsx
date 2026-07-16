@@ -14,7 +14,7 @@ import {
 import {
   Add20Regular, Edit20Regular, Delete20Regular, Link20Regular, LinkDismiss20Regular,
   Filter20Regular, Dismiss20Regular, MoreHorizontal20Regular,
-  Warning48Regular, BookOpen20Regular,
+  BookOpen20Regular,
   Sparkle20Regular
 } from "@fluentui/react-icons";
 import { createTableColumn, TableColumnDefinition } from "@fluentui/react-components";
@@ -22,6 +22,7 @@ import { GenerateQuizForm } from "./GenerateQuizForm";
 import { LinkButton } from "./LinkButton";
 import { difficultyColor } from "@/lib/format";
 import { useQuizManagerStyles } from "./styles/useQuizManagerStyles";
+import NoData from "./NoData";
 
 interface TopicRef {
   id: string;
@@ -506,18 +507,12 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
 
       {/* Empty state */}
       {quizzes.length === 0 ? (
-        <div className={styles.emptyStateWrap}>
-          <Card className={styles.emptyStateCard}>
-            <Warning48Regular className={styles.iconColorPrimary} />
-            <Text size={500} weight="bold" block className={styles.emptyStateTitle}>No Quizzes Yet</Text>
-            <Text size={300} className={styles.emptyStateSubtitle}>
-              Create standalone quizzes here, then link them to subtopics to make them discoverable in the public view.
-            </Text>
-            <Button appearance="primary" icon={<Sparkle20Regular />} onClick={openGenerateDialog}>
-              Generate First Quiz
-            </Button>
-          </Card>
-        </div>
+        <NoData 
+          title="No Quizzes Yet" 
+          description="Create standalone quizzes here, then link them to subtopics to make them discoverable in the public view." 
+          icon="warning"
+          action={<Button appearance="primary" icon={<Sparkle20Regular />} onClick={openGenerateDialog}>Generate First Quiz</Button>}
+        />
       ) : (
         <Card className={styles.tableCard}>
           <div className={styles.tableScrollWrap}>
@@ -723,9 +718,12 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
                 ))}
               </div>
             ) : (
-              <div className={styles.emptyTopicsBox}>
-                <Text className={styles.emptyBoxText}>No topics linked. Click &quot;Link Topics&quot; to associate this quiz with subtopics.</Text>
-              </div>
+              <NoData
+                title="No topics linked."
+                description='Click "Link Topics" to associate this quiz with subtopics.'
+                icon="book"
+                compact={true}
+              />
             )}
           </div>
 
@@ -798,9 +796,12 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
                 ))}
               </div>
             ) : (
-              <div className={styles.emptyQuestionsBox}>
-                <Text className={styles.emptyBoxText}>No questions linked. Click &quot;Add Question&quot; to build questions manually.</Text>
-              </div>
+              <NoData
+                title="No questions linked."
+                description='Click "Add Question" to build questions manually.'
+                icon="book"
+                compact={true}
+              />
             )}
           </div>
         </DrawerBody>

@@ -9,7 +9,6 @@ export const useAdminQuestionsManagerStyles = makeStyles({
     display: "flex",
     flexDirection: "column",
     gap: "28px",
-    fontFamily: "Segoe UI, sans-serif",
   },
   header: {
     display: "flex",

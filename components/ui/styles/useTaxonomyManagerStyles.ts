@@ -10,7 +10,6 @@ export const useTaxonomyManagerStyles = makeStyles({
     display: "flex",
     flexDirection: "column",
     gap: "32px",
-    fontFamily: "Segoe UI, sans-serif",
   },
   loadingContainer: {
     display: "flex",

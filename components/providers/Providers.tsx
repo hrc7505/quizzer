@@ -1,10 +1,20 @@
 "use client";
 
-import { FluentProvider as UIProvider, webLightTheme, webDarkTheme } from "@fluentui/react-components";
+import { FluentProvider as UIProvider, webLightTheme, webDarkTheme, type Theme } from "@fluentui/react-components";
 import { useSyncExternalStore } from "react";
 import { SessionProvider } from "next-auth/react";
 
 const emptySubscribe = () => () => {};
+
+const customLightTheme: Theme = {
+  ...webLightTheme,
+  fontFamilyBase: "var(--font-winky), Segoe UI, sans-serif",
+};
+
+const customDarkTheme: Theme = {
+  ...webDarkTheme,
+  fontFamilyBase: "var(--font-winky), Segoe UI, sans-serif",
+};
 
 export function Providers({ children }: { children: React.ReactNode }) {
   // False during SSR and the initial client render (matches server HTML),
@@ -34,7 +44,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <SessionProvider>
-      <UIProvider theme={isDark ? webDarkTheme : webLightTheme}>
+      <UIProvider theme={isDark ? customDarkTheme : customLightTheme}>
         <div className="providers-shell" data-mounted={mounted ? "true" : undefined}>{children}</div>
       </UIProvider>
     </SessionProvider>

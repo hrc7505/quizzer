@@ -1,21 +1,17 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { 
+import {
   Plus,
   Edit,
-  Trash2,
-  BookOpen,
   Layers,
   ChevronRight,
   MoreHorizontal,
   X,
   Link as LinkIcon,
-  Unlink2,
   Search,
   Sparkles,
   Loader2,
-  AlertTriangle,
 } from "lucide-react";
 import { GenerateQuizForm } from "@/components/forms/GenerateQuizForm";
 import { Alert } from "@/components/ui/Alert";
@@ -28,27 +24,13 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
-import { Dialog, DialogSurface, DialogTitle, DialogContent, DialogActions } from "@/components/ui/Dialog";
-import { Sheet, SheetContent, SheetHeader, SheetBody } from "@/components/ui/Sheet";
+import { useDialog, usePanel } from "@/components/providers/OverlayProvider";
+import { LinkPicker } from "@/components/data-display/LinkPicker";
+import { ExamDrawerBody, TopicDrawerBody, QuizDrawerBody } from "@/components/data-display/TaxonomyDrawers";
 import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from "@/components/ui/Dropdown";
 import { Spinner } from "@/components/ui/Spinner";
-import { cn } from "@/utils/cn";
 
-interface Exam {
-  id: string;
-  title: string;
-  description: string | null;
-  topics: Topic[];
-}
-
-interface QuizSummary {
-  id: string;
-  title: string;
-  quizOrder: number;
-  difficulty: string;
-  topics?: { id: string }[];
-  _count?: { questions: number };
-}
+import type { Exam, Topic, QuizSummary, QuizDetail, QuizQuestionDetail, FlatTopic } from "./TaxonomyManager.types";
 
 const difficultyBadgeVariant = (difficulty: string) => {
   const diff = difficulty.toLowerCase();
@@ -58,36 +40,206 @@ const difficultyBadgeVariant = (difficulty: string) => {
   return "default";
 };
 
-interface QuizQuestionDetail {
+interface ExamForm {
+  id: string;
+  title: string;
+  description: string;
+}
+
+interface TopicForm {
+  id: string;
+  title: string;
+  description: string;
+  examId: string;
+  parentId: string;
+}
+
+interface QuestionForm {
   id: string;
   text: string;
   options: string[];
   correctAnswer: string;
-  hint?: string | null;
-  description?: string | null;
+  hint: string;
+  description: string;
 }
 
-interface QuizDetail {
-  id: string;
-  title: string;
-  difficulty: string;
-  quizOrder: number;
-  questions?: QuizQuestionDetail[];
+interface ExamDialogBodyProps {
+  initialForm: ExamForm;
+  onSave: (form: ExamForm) => Promise<void>;
+  loading: boolean;
 }
 
-interface Topic {
-  id: string;
-  title: string;
-  description: string | null;
-  exams?: Exam[];
-  parentTopics?: Topic[];
-  subtopics?: Topic[];
-  quizzes?: QuizSummary[];
-  _count?: { quizzes: number; questions: number };
+function ExamDialogBody({ initialForm, onSave, loading }: ExamDialogBodyProps) {
+  const [form, setForm] = useState<ExamForm>(initialForm);
+  const dialog = useDialog();
+
+  useEffect(() => { setForm(initialForm); }, [initialForm]);
+
+  return (
+    <div className="flex flex-col gap-4 mt-3">
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Exam Title <span className="text-danger">*</span></label>
+        <Input value={form.title} onChange={e => setForm({...form, title: e.target.value})} required />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Description</label>
+        <Textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={3} />
+      </div>
+      <div className="flex items-center justify-end space-x-2 mt-6 pt-3 border-t border-border/30">
+        <Button variant="outline" onClick={() => dialog.close()}>Cancel</Button>
+        <Button variant="primary" onClick={async () => { await onSave(form); dialog.close(); }} disabled={!form.title || loading}>Save</Button>
+      </div>
+    </div>
+  );
 }
 
-interface FlatTopic extends Topic {
-  displayType: string;
+interface TopicDialogBodyProps {
+  initialForm: TopicForm;
+  onSave: (form: TopicForm) => Promise<void>;
+  loading: boolean;
+}
+
+function TopicDialogBody({ initialForm, onSave, loading }: TopicDialogBodyProps) {
+  const [form, setForm] = useState<TopicForm>(initialForm);
+  const dialog = useDialog();
+
+  useEffect(() => { setForm(initialForm); }, [initialForm]);
+
+  return (
+    <div className="flex flex-col gap-4 mt-3">
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Topic Title <span className="text-danger">*</span></label>
+        <Input value={form.title} onChange={e => setForm({...form, title: e.target.value})} required />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Description</label>
+        <Textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={3} />
+      </div>
+      <div className="flex items-center justify-end space-x-2 mt-6 pt-3 border-t border-border/30">
+        <Button variant="outline" onClick={() => dialog.close()}>Cancel</Button>
+        <Button variant="primary" onClick={async () => { await onSave(form); dialog.close(); }} disabled={!form.title || loading}>Save</Button>
+      </div>
+    </div>
+  );
+}
+
+interface QuizDialogBodyProps {
+  initialTopicId: string;
+  onSuccess: (result: GenerateQuizResponse) => Promise<void>;
+}
+
+function QuizDialogBody({ initialTopicId, onSuccess }: QuizDialogBodyProps) {
+  const dialog = useDialog();
+
+  return (
+    <GenerateQuizForm
+      initialTopicId={initialTopicId}
+      onSuccess={async (result) => {
+        await onSuccess(result);
+        dialog.close();
+      }}
+    />
+  );
+}
+
+interface QuestionDialogBodyProps {
+  initialForm: QuestionForm;
+  onSave: (form: QuestionForm) => Promise<void>;
+  loading: boolean;
+}
+
+function QuestionDialogBody({ initialForm, onSave, loading }: QuestionDialogBodyProps) {
+  const [form, setForm] = useState<QuestionForm>(initialForm);
+  const dialog = useDialog();
+
+  useEffect(() => { setForm(initialForm); }, [initialForm]);
+
+  const handleOptionChange = (idx: number, val: string) => {
+    setForm(prev => {
+      const newOpts = [...prev.options];
+      newOpts[idx] = val;
+      let newCorrect = prev.correctAnswer;
+      if (prev.correctAnswer === prev.options[idx]) {
+        newCorrect = val;
+      }
+      return { ...prev, options: newOpts, correctAnswer: newCorrect };
+    });
+  };
+
+  const handleSave = async () => {
+    await onSave(form);
+    dialog.close();
+  };
+
+  return (
+    <div className="flex flex-col gap-4 mt-3">
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Question Text <span className="text-danger">*</span></label>
+        <Textarea
+          value={form.text}
+          onChange={e => setForm(prev => ({ ...prev, text: e.target.value }))}
+          placeholder="Enter the question text..."
+          rows={3}
+          required
+        />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {form.options.map((opt, idx) => (
+          <div key={idx} className="flex flex-col gap-1.5">
+            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Option {idx + 1} <span className="text-danger">*</span></label>
+            <Input
+              value={opt}
+              onChange={e => handleOptionChange(idx, e.target.value)}
+              placeholder={`Option ${idx + 1}`}
+              required
+            />
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Correct Answer <span className="text-danger">*</span></label>
+        <Select
+          value={form.correctAnswer}
+          onChange={e => setForm(prev => ({ ...prev, correctAnswer: e.target.value }))}
+          required
+        >
+          <option value="">Select correct option...</option>
+          {form.options.map((opt, idx) => (
+            opt.trim() && <option key={idx} value={opt}>{opt}</option>
+          ))}
+        </Select>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Hint (Optional)</label>
+        <Input
+          value={form.hint}
+          onChange={e => setForm(prev => ({ ...prev, hint: e.target.value }))}
+          placeholder="e.g. Think about..."
+        />
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Explanation / Description <span className="text-danger">*</span></label>
+        <Textarea
+          value={form.description}
+          onChange={e => setForm(prev => ({ ...prev, description: e.target.value }))}
+          placeholder="Explain why this option is correct..."
+          rows={3}
+          required
+        />
+      </div>
+
+      <div className="flex items-center justify-end space-x-2 mt-6 pt-3 border-t border-border/30">
+        <Button variant="outline" onClick={() => dialog.close()}>Cancel</Button>
+        <Button variant="primary" onClick={handleSave} disabled={!form.text || !form.correctAnswer || !form.description || loading}>
+          Save
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "subtopics" }) {
@@ -99,23 +251,6 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
   const [error, setError] = useState<string | null>(null);
   
   // Creation/Edit Dialog Controls
-  const [examDialogOpen, setExamDialogOpen] = useState(false);
-  const [topicDialogOpen, setTopicDialogOpen] = useState(false);
-  const [quizDialogOpen, setQuizDialogOpen] = useState(false);
-  
-  // Bulk Linking Dialog Controls
-  const [examLinkDialogOpen, setExamLinkDialogOpen] = useState(false);
-  const [topicLinkDialogOpen, setTopicLinkDialogOpen] = useState(false);
-  const [quizLinkDialogOpen, setQuizLinkDialogOpen] = useState(false);
-
-  // Reusable Confirmation Dialog State
-  const [confirmDialog, setConfirmDialog] = useState<{
-    open: boolean;
-    title: string;
-    description: string;
-    onConfirm: () => Promise<void>;
-  }>({ open: false, title: '', description: '', onConfirm: async () => {} });
-
   const [examForm, setExamForm] = useState({ id: '', title: '', description: '' });
   const [topicForm, setTopicForm] = useState({ id: '', title: '', description: '', examId: '', parentId: '' });
   const [quizForm, setQuizForm] = useState({ id: '', title: '', quizOrder: '', topicId: '', difficulty: 'Medium' });
@@ -127,11 +262,6 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
   const [selectedSubtopicIds, setSelectedSubtopicIds] = useState<string[]>([]);
   const [selectedQuizIds, setSelectedQuizIds] = useState<string[]>([]);
 
-  // Link dialog search states
-  const [examLinkSearch, setExamLinkSearch] = useState("");
-  const [topicLinkSearch, setTopicLinkSearch] = useState("");
-  const [quizLinkSearch, setQuizLinkSearch] = useState("");
-
   // Detail Drawer States
   const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
@@ -139,24 +269,73 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
   const [activeQuizDetail, setActiveQuizDetail] = useState<QuizDetail | null>(null);
   const [activeQuizLoading, setActiveQuizLoading] = useState(false);
 
-  // Question Form / Dialog State
-  const [questionDialogOpen, setQuestionDialogOpen] = useState(false);
-  const [questionForm, setQuestionForm] = useState({
-    id: "",
-    text: "",
-    options: ["", "", "", ""],
-    correctAnswer: "",
-    hint: "",
-    description: ""
-  });
-
   // Pagination & Filtering States
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
   const triggerConfirm = (title: string, description: string, onConfirm: () => Promise<void>) =>
-    setConfirmDialog({ open: true, title, description, onConfirm });
+    dialog.confirm({ title, description, onConfirm });
+
+  const dialog = useDialog();
+  const panel = usePanel();
+
+  const openExamLinkDialog = () =>
+    dialog.open({
+      title: "Link Existing Main Topics",
+      showClose: false,
+      body: (
+        <LinkPicker
+          description="Select standalone main topics to associate with this exam category."
+          label="Main Topics"
+          placeholder="Search topics..."
+          items={availableMainTopics}
+          selectedIds={selectedTopicIds}
+          onSelectionChange={setSelectedTopicIds}
+          emptyHint="Try adjusting your search or add a new topic first."
+        />
+      ),
+      okText: "Save Links",
+      onOk: handleSaveExamLinks,
+    });
+
+  const openTopicLinkDialog = () =>
+    dialog.open({
+      title: "Link Existing Sub Topics",
+      showClose: false,
+      body: (
+        <LinkPicker
+          description="Select existing subtopics to nest under this main topic."
+          label="Subtopics"
+          placeholder="Search subtopics..."
+          items={availableSubtopics}
+          selectedIds={selectedSubtopicIds}
+          onSelectionChange={setSelectedSubtopicIds}
+          emptyHint="Try adjusting your search or add a new subtopic first."
+        />
+      ),
+      okText: "Save Links",
+      onOk: handleSaveTopicLinks,
+    });
+
+  const openQuizLinkDialog = () =>
+    dialog.open({
+      title: "Link Existing Quizzes",
+      showClose: false,
+      body: (
+        <LinkPicker
+          description="Select existing quizzes to pull into this subtopic."
+          label="Quizzes"
+          placeholder="Search quizzes..."
+          items={availableQuizzes}
+          selectedIds={selectedQuizIds}
+          onSelectionChange={setSelectedQuizIds}
+          emptyHint="Try adjusting your search or generate a new quiz first."
+        />
+      ),
+      okText: "Save Links",
+      onOk: handleSaveQuizLinks,
+    });
 
   const fetchData = async () => {
     setLoading(true);
@@ -212,23 +391,95 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
     }
   }, [selectedQuizId]);
 
+  // Drawers rendered via the shared panel host
+  useEffect(() => {
+    if (!selectedExamId) return;
+    const exam = exams.find(e => e.id === selectedExamId);
+    if (!exam) return;
+    panel.open({
+      title: `Exam settings: ${exam.title}`,
+      width: "max-w-2xl",
+      onClose: () => setSelectedExamId(null),
+      body: (
+        <ExamDrawerBody
+          exam={exam}
+          onLinkTopics={(e) => {
+            setLinkExamId(e.id);
+            setSelectedTopicIds(e.topics.map(t => t.id));
+            openExamLinkDialog();
+          }}
+          onUnlinkTopic={handleUnlinkTopicFromExam}
+        />
+      ),
+    });
+  }, [selectedExamId, exams]);
+
+  useEffect(() => {
+    if (!selectedTopicId) return;
+    const topic = topics.find(t => t.id === selectedTopicId) || flatTopics.find(t => t.id === selectedTopicId);
+    if (!topic) return;
+    panel.open({
+      title: `Topic settings: ${topic.title}`,
+      width: "max-w-2xl",
+      onClose: () => setSelectedTopicId(null),
+      body: (
+        <TopicDrawerBody
+          topic={topic}
+          onLinkSubtopics={(t) => {
+            setLinkTopicId(t.id);
+            setSelectedSubtopicIds(t.subtopics?.map(s => s.id) || []);
+            openTopicLinkDialog();
+          }}
+          onLinkQuizzes={(t) => {
+            setLinkTopicId(t.id);
+            setSelectedQuizIds(t.quizzes?.map(q => q.id) || []);
+            openQuizLinkDialog();
+          }}
+          onUnlinkSubtopic={handleUnlinkSubtopicFromParent}
+          onUnlinkQuiz={handleUnlinkQuizFromSubtopic}
+          onDeleteQuiz={handleDeleteQuiz}
+          onCreateQuiz={openNewQuizDialog}
+          difficultyBadgeVariant={difficultyBadgeVariant}
+        />
+      ),
+    });
+  }, [selectedTopicId, topics, flatTopics]);
+
+  useEffect(() => {
+    if (!selectedQuizId) return;
+    panel.open({
+      title: `Quiz details: ${activeQuizDetail?.title ?? ""}`,
+      width: "max-w-2xl",
+      onClose: () => setSelectedQuizId(null),
+      body: (
+        <QuizDrawerBody
+          quiz={activeQuizDetail}
+          loading={activeQuizLoading}
+          onAddQuestion={handleOpenAddQuestion}
+          onEditQuestion={handleOpenEditQuestion}
+          onDeleteQuestion={handleDeleteQuestion}
+          difficultyBadgeVariant={difficultyBadgeVariant}
+        />
+      ),
+    });
+  }, [selectedQuizId, activeQuizDetail, activeQuizLoading]);
+
   // Save / Update Exam
-  const handleSaveExam = async () => {
+  const handleSaveExam = async (form: ExamForm) => {
     setLoading(true);
     setError(null);
-    const isEdit = !!examForm.id;
-    const url = isEdit ? `/api/admin/exams/${examForm.id}` : "/api/admin/exams";
+    const isEdit = !!form.id;
+    const url = isEdit ? `/api/admin/exams/${form.id}` : "/api/admin/exams";
     const method = isEdit ? "PUT" : "POST";
 
     try {
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: examForm.title, description: examForm.description })
+        body: JSON.stringify({ title: form.title, description: form.description })
       });
       const data = await res.json();
       if (!data.error) {
-        setExamDialogOpen(false);
         await fetchData();
       } else {
         setError(data.error);
@@ -315,7 +566,6 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       });
       const data = await res.json();
       if (!data.error) {
-        setExamLinkDialogOpen(false);
         await fetchData();
         if (selectedExamId === linkExamId) {
           // Refresh open drawer state
@@ -366,7 +616,6 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       });
       const data = await res.json();
       if (!data.error) {
-        setTopicLinkDialogOpen(false);
         await fetchData();
         if (selectedTopicId === linkTopicId) {
           setSelectedTopicId(null);
@@ -412,7 +661,6 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       });
       const data = await res.json();
       if (!data.error) {
-        setQuizLinkDialogOpen(false);
         await fetchData();
         if (selectedTopicId === linkTopicId) {
           setSelectedTopicId(null);
@@ -611,9 +859,6 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
     );
   }, [allQuizzes, linkTopicId]);
 
-  const activeExam = exams.find(e => e.id === selectedExamId);
-  const activeTopic = topics.find(t => t.id === selectedTopicId) || flatTopics.find(t => t.id === selectedTopicId);
-
   // Filters
   const filteredExams = exams.filter(item => 
     item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -749,7 +994,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
                               onClick={() => {
                                 setLinkExamId(item.id);
                                 setSelectedTopicIds(item.topics.map(t => t.id));
-                                setExamLinkDialogOpen(true);
+                                openExamLinkDialog();
                               }}
                               className="h-8 w-8 text-muted-foreground hover:bg-surface-hover hover:text-primary rounded-lg border border-border/50 bg-surface"
                             >
@@ -937,7 +1182,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
                                 onClick={() => {
                                   setLinkTopicId(item.id);
                                   setSelectedSubtopicIds(item.subtopics?.map(s => s.id) || []);
-                                  setTopicLinkDialogOpen(true);
+                                  openTopicLinkDialog();
                                 }}
                                 className="h-8 w-8 text-muted-foreground hover:bg-surface-hover hover:text-primary rounded-lg border border-border/50 bg-surface"
                               >
@@ -950,7 +1195,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
                                 onClick={() => {
                                   setLinkTopicId(item.id);
                                   setSelectedQuizIds(item.quizzes?.map(q => q.id) || []);
-                                  setQuizLinkDialogOpen(true);
+                                  openQuizLinkDialog();
                                 }}
                                 className="h-8 w-8 text-muted-foreground hover:bg-surface-hover hover:text-primary rounded-lg border border-border/50 bg-surface"
                               >
@@ -1054,180 +1299,6 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
         </DialogSurface>
       </Dialog>
 
-      {/* Link Topics to Exam Dialog */}
-      <Dialog open={examLinkDialogOpen} onOpenChange={setExamLinkDialogOpen}>
-        <DialogSurface className="max-w-[480px]">
-          <DialogTitle showClose={false}>Link Existing Main Topics</DialogTitle>
-          <DialogContent className="flex flex-col gap-3 mt-3">
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Select standalone main topics to associate with this exam category.
-            </p>
-            
-            <div className="flex flex-col gap-1.5 mt-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Main Topics</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
-                <Input
-                  placeholder="Search topics..."
-                  value={examLinkSearch}
-                  onChange={e => setExamLinkSearch(e.target.value)}
-                  className="pl-9 h-9"
-                />
-              </div>
-              <div className="flex flex-col gap-2 max-h-56 overflow-y-auto border border-border/80 rounded-xl p-3 bg-secondary/5 mt-0.5 select-none">
-                {availableMainTopics
-                  .filter(t => t.title.toLowerCase().includes(examLinkSearch.toLowerCase()))
-                  .map(t => {
-                    const isChecked = selectedTopicIds.includes(t.id);
-                    return (
-                      <label key={t.id} className="flex items-center gap-2.5 p-1.5 hover:bg-surface-hover rounded-lg cursor-pointer text-xs font-semibold text-foreground/90 transition-colors">
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => {
-                            setSelectedTopicIds(prev =>
-                              isChecked ? prev.filter(id => id !== t.id) : [...prev, t.id]
-                            );
-                          }}
-                          className="rounded border-border text-primary focus:ring-primary h-4 w-4"
-                        />
-                        <span className="truncate">{t.title}</span>
-                      </label>
-                    );
-                  })}
-                {availableMainTopics.filter(t => t.title.toLowerCase().includes(examLinkSearch.toLowerCase())).length === 0 && (
-                  <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
-                    <Search className="h-8 w-8 text-muted-foreground/40" />
-                    <p className="text-xs text-muted-foreground font-medium">No topics found</p>
-                    <p className="text-[10px] text-muted-foreground/70">Try adjusting your search or add a new topic first.</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </DialogContent>
-          <DialogActions>
-            <Button variant="outline" onClick={() => { setExamLinkDialogOpen(false); setExamLinkSearch(""); }}>Cancel</Button>
-            <Button variant="primary" onClick={handleSaveExamLinks} disabled={loading}>Save Links</Button>
-          </DialogActions>
-        </DialogSurface>
-      </Dialog>
-
-      {/* Link Subtopics Dialog */}
-      <Dialog open={topicLinkDialogOpen} onOpenChange={setTopicLinkDialogOpen}>
-        <DialogSurface className="max-w-[480px]">
-          <DialogTitle showClose={false}>Link Existing Sub Topics</DialogTitle>
-          <DialogContent className="flex flex-col gap-3 mt-3">
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Select existing subtopics to nest under this main topic.
-            </p>
-            
-            <div className="flex flex-col gap-1.5 mt-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Subtopics</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
-                <Input
-                  placeholder="Search subtopics..."
-                  value={topicLinkSearch}
-                  onChange={e => setTopicLinkSearch(e.target.value)}
-                  className="pl-9 h-9"
-                />
-              </div>
-              <div className="flex flex-col gap-2 max-h-56 overflow-y-auto border border-border/80 rounded-xl p-3 bg-secondary/5 mt-0.5 select-none">
-                {availableSubtopics
-                  .filter(t => t.title.toLowerCase().includes(topicLinkSearch.toLowerCase()))
-                  .map(t => {
-                    const isChecked = selectedSubtopicIds.includes(t.id);
-                    return (
-                      <label key={t.id} className="flex items-center gap-2.5 p-1.5 hover:bg-surface-hover rounded-lg cursor-pointer text-xs font-semibold text-foreground/90 transition-colors">
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => {
-                            setSelectedSubtopicIds(prev =>
-                              isChecked ? prev.filter(id => id !== t.id) : [...prev, t.id]
-                            );
-                          }}
-                          className="rounded border-border text-primary focus:ring-primary h-4 w-4"
-                        />
-                        <span className="truncate">{t.title}</span>
-                      </label>
-                    );
-                  })}
-                {availableSubtopics.filter(t => t.title.toLowerCase().includes(topicLinkSearch.toLowerCase())).length === 0 && (
-                  <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
-                    <Search className="h-8 w-8 text-muted-foreground/40" />
-                    <p className="text-xs text-muted-foreground font-medium">No subtopics found</p>
-                    <p className="text-[10px] text-muted-foreground/70">Try adjusting your search or add a new subtopic first.</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </DialogContent>
-          <DialogActions>
-            <Button variant="outline" onClick={() => { setTopicLinkDialogOpen(false); setTopicLinkSearch(""); }}>Cancel</Button>
-            <Button variant="primary" onClick={handleSaveTopicLinks} disabled={loading}>Save Links</Button>
-          </DialogActions>
-        </DialogSurface>
-      </Dialog>
-
-      {/* Link Quizzes Dialog */}
-      <Dialog open={quizLinkDialogOpen} onOpenChange={setQuizLinkDialogOpen}>
-        <DialogSurface className="max-w-[480px]">
-          <DialogTitle showClose={false}>Link Existing Quizzes</DialogTitle>
-          <DialogContent className="flex flex-col gap-3 mt-3">
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Select existing quizzes to pull into this subtopic.
-            </p>
-            
-            <div className="flex flex-col gap-1.5 mt-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Quizzes</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
-                <Input
-                  placeholder="Search quizzes..."
-                  value={quizLinkSearch}
-                  onChange={e => setQuizLinkSearch(e.target.value)}
-                  className="pl-9 h-9"
-                />
-              </div>
-              <div className="flex flex-col gap-2 max-h-56 overflow-y-auto border border-border/80 rounded-xl p-3 bg-secondary/5 mt-0.5 select-none">
-                {availableQuizzes
-                  .filter(q => q.title.toLowerCase().includes(quizLinkSearch.toLowerCase()))
-                  .map(q => {
-                    const isChecked = selectedQuizIds.includes(q.id);
-                    return (
-                      <label key={q.id} className="flex items-center gap-2.5 p-1.5 hover:bg-surface-hover rounded-lg cursor-pointer text-xs font-semibold text-foreground/90 transition-colors">
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => {
-                            setSelectedQuizIds(prev =>
-                              isChecked ? prev.filter(id => id !== q.id) : [...prev, q.id]
-                            );
-                          }}
-                          className="rounded border-border text-primary focus:ring-primary h-4 w-4"
-                        />
-                        <span className="truncate">{q.title}</span>
-                      </label>
-                    );
-                  })}
-                {availableQuizzes.filter(q => q.title.toLowerCase().includes(quizLinkSearch.toLowerCase())).length === 0 && (
-                  <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
-                    <Search className="h-8 w-8 text-muted-foreground/40" />
-                    <p className="text-xs text-muted-foreground font-medium">No quizzes found</p>
-                    <p className="text-[10px] text-muted-foreground/70">Try adjusting your search or generate a new quiz first.</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </DialogContent>
-          <DialogActions>
-            <Button variant="outline" onClick={() => { setQuizLinkDialogOpen(false); setQuizLinkSearch(""); }}>Cancel</Button>
-            <Button variant="primary" onClick={handleSaveQuizLinks} disabled={loading}>Save Links</Button>
-          </DialogActions>
-        </DialogSurface>
-      </Dialog>
-
       {/* Generate Quiz (AI-powered) Dialog */}
       <Dialog open={quizDialogOpen} onOpenChange={setQuizDialogOpen}>
         <DialogSurface className="max-w-[540px]">
@@ -1266,319 +1337,6 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
           </DialogActions>
         </DialogSurface>
       </Dialog>
-
-      {/* Exam Details Drawer */}
-      <Sheet open={!!selectedExamId} onOpenChange={open => !open && setSelectedExamId(null)}>
-        <SheetContent className="max-w-2xl">
-          <SheetHeader>Exam settings: {activeExam?.title}</SheetHeader>
-          <SheetBody className="flex flex-col gap-6">
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Description</span>
-              <p className="text-sm font-medium text-foreground">
-                {activeExam?.description || "No description provided."}
-              </p>
-            </div>
-            
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center justify-between border-b border-border/40 pb-1.5 select-none">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Linked Topics ({activeExam?.topics?.length || 0})
-                </h3>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-8 font-semibold text-xs gap-1.5"
-                  onClick={() => {
-                    if (activeExam) {
-                      setLinkExamId(activeExam.id);
-                      setSelectedTopicIds(activeExam.topics.map(t => t.id));
-                      setExamLinkDialogOpen(true);
-                    }
-                  }}
-                >
-                  <LinkIcon className="h-3.5 w-3.5" />
-                  <span>Link Topics</span>
-                </Button>
-              </div>
-              
-              {activeExam?.topics && activeExam.topics.length > 0 ? (
-                <div className="flex flex-col gap-3.5 mt-2">
-                  {activeExam.topics.map(t => (
-                    <Card key={t.id} className="p-3.5 border border-border/80 bg-card shadow-xs flex items-center justify-between gap-4 rounded-xl select-none">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <BookOpen className="h-4 w-4 text-primary shrink-0" />
-                        <span className="font-semibold text-xs text-foreground truncate">{t.title}</span>
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8 text-muted-foreground hover:bg-danger/10 hover:text-danger rounded-lg shrink-0"
-                        onClick={() => handleUnlinkTopicFromExam(t.id, t.title, activeExam?.title || '', activeExam?.id)}
-                        aria-label="Unlink topic"
-                      >
-                        <Unlink2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <NoData title="No topics linked to this exam." icon="book" compact={true} />
-              )}
-            </div>
-          </SheetBody>
-        </SheetContent>
-      </Sheet>
-
-      {/* Topic/Subtopic Detail Drawer */}
-      <Sheet open={!!selectedTopicId} onOpenChange={open => !open && setSelectedTopicId(null)}>
-        <SheetContent className="max-w-2xl">
-          <SheetHeader>Topic settings: {activeTopic?.title}</SheetHeader>
-          <SheetBody className="flex flex-col gap-6">
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Description</span>
-              <p className="text-sm font-medium text-foreground">
-                {activeTopic?.description || "No description provided."}
-              </p>
-            </div>
-            
-            {activeTopic && (!activeTopic.parentTopics || activeTopic.parentTopics.length === 0) ? (
-              /* Main Topic => Show linked subtopics */
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between border-b border-border/40 pb-1.5 select-none">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Linked Subtopics ({activeTopic?.subtopics?.length || 0})
-                  </h3>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="h-8 font-semibold text-xs gap-1.5"
-                    onClick={() => {
-                      setLinkTopicId(activeTopic.id);
-                      setSelectedSubtopicIds(activeTopic.subtopics?.map(s => s.id) || []);
-                      setTopicLinkDialogOpen(true);
-                    }}
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    <span>Link Sub Topics</span>
-                  </Button>
-                </div>
-                
-                {activeTopic?.subtopics && activeTopic.subtopics.length > 0 ? (
-                  <div className="flex flex-col gap-3.5 mt-2">
-                    {activeTopic.subtopics.map(t => (
-                      <Card key={t.id} className="p-3.5 border border-border/80 bg-card shadow-xs flex items-center justify-between gap-4 rounded-xl select-none">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <Layers className="h-4 w-4 text-primary shrink-0" />
-                          <span className="font-semibold text-xs text-foreground truncate">{t.title}</span>
-                        </div>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 text-muted-foreground hover:bg-danger/10 hover:text-danger rounded-lg shrink-0"
-                          onClick={() => handleUnlinkSubtopicFromParent(t.id, t.title, activeTopic?.title || '', activeTopic?.id)}
-                          aria-label="Unlink subtopic"
-                        >
-                          <Unlink2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </Card>
-                    ))}
-                  </div>
-                ) : (
-                  <NoData title="No subtopics linked to this topic." icon="book" compact={true} />
-                )}
-              </div>
-            ) : (
-              /* Sub Topic => Show linked quizzes */
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between border-b border-border/40 pb-1.5 select-none">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Linked Quizzes ({activeTopic?.quizzes?.length || 0})
-                  </h3>
-                  <div className="flex items-center gap-1.5">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="h-8 font-semibold text-xs gap-1.5"
-                      onClick={() => {
-                        if (activeTopic) {
-                          setLinkTopicId(activeTopic.id);
-                          setSelectedQuizIds(activeTopic.quizzes?.map(q => q.id) || []);
-                          setQuizLinkDialogOpen(true);
-                        }
-                      }}
-                    >
-                      <LinkIcon className="h-3.5 w-3.5" />
-                      <span>Link Quizzes</span>
-                    </Button>
-                    <Button 
-                      variant="primary" 
-                      size="sm" 
-                      className="h-8 font-semibold text-xs gap-1.5 shadow-xs"
-                      onClick={() => activeTopic && openNewQuizDialog(activeTopic.id)}
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      <span>Create Quiz</span>
-                    </Button>
-                  </div>
-                </div>
-                
-                {activeTopic?.quizzes && activeTopic.quizzes.length > 0 ? (
-                  <div className="flex flex-col gap-3.5 mt-2">
-                    {activeTopic.quizzes.map(q => (
-                      <Card key={q.id} className="p-3.5 border border-border/80 bg-card shadow-xs flex items-center justify-between gap-4 rounded-xl select-none">
-                        <div className="flex flex-col gap-0.5 min-w-0">
-                          <Link href={`/admin/manage/quizzes/${q.id}/questions`}>
-                            <span className="font-semibold text-xs text-foreground truncate hover:text-primary transition-colors block cursor-pointer">
-                              {q.title}
-                            </span>
-                          </Link>
-                          <span className="text-[10px] text-muted-foreground/80 font-medium">
-                            Order: #{q.quizOrder} • {q._count?.questions || 0} Questions
-                          </span>
-                        </div>
-                        
-                        <div className="flex items-center gap-2 shrink-0">
-                          <Badge variant={difficultyBadgeVariant(q.difficulty)} className="capitalize font-bold text-[8px] px-2 py-0.5">
-                            {q.difficulty}
-                          </Badge>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 text-muted-foreground hover:bg-danger/10 hover:text-danger rounded-lg"
-                            onClick={() => handleUnlinkQuizFromSubtopic(q.id, q.title, activeTopic?.title || '')}
-                            aria-label="Unlink quiz"
-                          >
-                            <Unlink2 className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 text-muted-foreground hover:bg-danger/10 hover:text-danger rounded-lg"
-                            onClick={() => handleDeleteQuiz(q.id, q.title)}
-                            aria-label="Delete quiz"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                ) : (
-                  <NoData title="No quizzes linked to this subtopic." icon="book" compact={true} />
-                )}
-              </div>
-            )}
-          </SheetBody>
-        </SheetContent>
-      </Sheet>
-
-      {/* Quiz Detail Drawer Sheet */}
-      <Sheet open={!!selectedQuizId} onOpenChange={open => !open && setSelectedQuizId(null)}>
-        <SheetContent className="max-w-2xl">
-          <SheetHeader>Quiz details: {activeQuizDetail?.title}</SheetHeader>
-          <SheetBody className="flex flex-col gap-6">
-            <div className="flex flex-col gap-1 border-b border-border/40 pb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-muted-foreground">Order #{activeQuizDetail?.quizOrder}</span>
-                {activeQuizDetail && (
-                  <Badge variant={difficultyBadgeVariant(activeQuizDetail.difficulty)} className="capitalize font-bold text-[9px] px-2 py-0.5">
-                    {activeQuizDetail.difficulty}
-                  </Badge>
-                )}
-              </div>
-            </div>
-
-            {/* Questions section */}
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center justify-between border-b border-border/40 pb-1.5 select-none">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Questions ({activeQuizDetail?.questions?.length || 0})
-                </h3>
-                <Button variant="outline" size="sm" className="h-8 font-semibold text-xs gap-1.5" onClick={handleOpenAddQuestion}>
-                  <Plus className="h-3.5 w-3.5" />
-                  <span>Add Question</span>
-                </Button>
-              </div>
-
-              {activeQuizLoading ? (
-                <div className="flex flex-col items-center justify-center py-20 gap-2 text-xs text-muted-foreground select-none">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  <span>Loading questions...</span>
-                </div>
-              ) : activeQuizDetail?.questions && activeQuizDetail.questions.length > 0 ? (
-                <div className="flex flex-col gap-4">
-                  {activeQuizDetail.questions.map((q, idx: number) => (
-                    <Card key={q.id} className="p-5 border border-border/80 bg-card shadow-sm flex flex-col gap-4 rounded-xl">
-                      <div className="flex items-start justify-between gap-4">
-                        <h4 className="text-xs font-bold text-foreground leading-snug">
-                          {idx + 1}. {q.text}
-                        </h4>
-                        <div className="flex items-center gap-1.5 shrink-0 select-none">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 text-muted-foreground hover:bg-surface-hover hover:text-foreground rounded-lg border border-border/50 bg-surface"
-                            onClick={() => handleOpenEditQuestion(q)}
-                            aria-label="Edit question"
-                          >
-                            <Edit className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 text-muted-foreground hover:bg-danger/10 hover:text-danger rounded-lg"
-                            onClick={() => handleDeleteQuestion(q.id, q.text)}
-                            aria-label="Delete question"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1 select-none">
-                        {q.options.map((opt: string, oIdx: number) => {
-                          const isCorrect = opt === q.correctAnswer;
-                          return (
-                            <div 
-                              key={oIdx} 
-                              className={cn(
-                                "flex items-center gap-2 p-2.5 rounded-lg border text-[11px] font-semibold",
-                                isCorrect 
-                                  ? "border-success/20 bg-success/5 text-success" 
-                                  : "border-border/40 bg-card text-foreground/70"
-                              )}
-                            >
-                              <span className="opacity-75">{oIdx + 1}.</span>
-                              <span className="truncate">{opt} {isCorrect && "✓"}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {(q.hint || q.description) && (
-                        <div className="flex flex-col gap-1.5 bg-secondary/10 rounded-lg p-3 text-[10px] text-muted-foreground border border-border/30 select-none">
-                          {q.hint && (
-                            <div>
-                              <strong className="text-foreground/90 font-bold">Hint:</strong> <span className="font-medium text-muted-foreground/95">{q.hint}</span>
-                            </div>
-                          )}
-                          {q.description && (
-                            <div className={cn(q.hint && "border-t border-border/20 pt-1.5 mt-0.5")}>
-                              <strong className="text-foreground/90 font-bold">Explanation:</strong> <span className="font-medium text-muted-foreground/95 whitespace-pre-wrap">{q.description}</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <NoData title="No questions linked." description="Click Add Question to build questions manually." icon="book" compact={true} />
-              )}
-            </div>
-          </SheetBody>
-        </SheetContent>
-      </Sheet>
 
       {/* Add / Edit Question Dialog (nested under drawer context) */}
       <Dialog open={questionDialogOpen} onOpenChange={setQuestionDialogOpen}>
@@ -1651,35 +1409,6 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
             <Button variant="outline" onClick={() => setQuestionDialogOpen(false)}>Cancel</Button>
             <Button variant="primary" onClick={handleSaveQuestion} disabled={!questionForm.text || !questionForm.correctAnswer || !questionForm.description || loading}>
               Save
-            </Button>
-          </DialogActions>
-        </DialogSurface>
-      </Dialog>
-
-      {/* Confirmation Dialog */}
-      <Dialog open={confirmDialog.open} onOpenChange={open => setConfirmDialog(prev => ({ ...prev, open }))}>
-        <DialogSurface className="max-w-[420px]">
-          <DialogTitle>{confirmDialog.title}</DialogTitle>
-          <DialogContent>
-            <div className="flex gap-3.5 items-start mt-2">
-              <AlertTriangle className="h-5 w-5 text-danger shrink-0 mt-0.5" />
-              <span className="text-sm text-muted-foreground leading-relaxed">
-                {confirmDialog.description}
-              </span>
-            </div>
-          </DialogContent>
-          <DialogActions>
-            <Button variant="outline" onClick={() => setConfirmDialog(prev => ({ ...prev, open: false }))}>
-              Cancel
-            </Button>
-            <Button 
-              variant="danger" 
-              onClick={async () => {
-                await confirmDialog.onConfirm();
-                setConfirmDialog(prev => ({ ...prev, open: false }));
-              }}
-            >
-              Confirm
             </Button>
           </DialogActions>
         </DialogSurface>

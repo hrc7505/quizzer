@@ -7,20 +7,16 @@ import {
   Trash2,
   RefreshCw,
   Eye,
-  Search,
   Loader2,
-  AlertTriangle,
 } from "lucide-react";
 import { LinkButton } from "@/components/ui/LinkButton";
 import NoData from "@/components/feedback/NoData";
 import { difficultyColor } from "@/lib/format";
-import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
-import { Dialog, DialogSurface, DialogTitle, DialogContent, DialogActions } from "@/components/ui/Dialog";
-import { cn } from "@/utils/cn";
+import { useDialog } from "@/components/providers/OverlayProvider";
+import { Pagination } from "@/components/data-display/Pagination";
+import { SearchFilterBar } from "@/components/data-display/SearchFilterBar";
 
 interface QuestionRecord {
   id: string;
@@ -48,16 +44,10 @@ export function AdminDeepDivesManager({ questions: initialQuestions }: AdminDeep
   const [topicFilter, setTopicFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-
-  const [confirmDialog, setConfirmDialog] = useState<{
-    open: boolean;
-    title: string;
-    description: string;
-    onConfirm: () => Promise<void>;
-  }>({ open: false, title: "", description: "", onConfirm: async () => {} });
+  const dialog = useDialog();
 
   const triggerConfirm = (title: string, description: string, onConfirm: () => Promise<void>) =>
-    setConfirmDialog({ open: true, title, description, onConfirm });
+    dialog.confirm({ title, description, onConfirm });
 
   const uniqueTopics = Array.from(new Set(questions.map(q => q.topic.title))).sort();
 
@@ -122,14 +112,6 @@ export function AdminDeepDivesManager({ questions: initialQuestions }: AdminDeep
     );
   };
 
-  const difficultyBadgeVariant = (difficulty: string) => {
-    const diff = difficulty.toLowerCase();
-    if (diff === "easy") return "success";
-    if (diff === "medium") return "warning";
-    if (diff === "hard") return "danger";
-    return "default";
-  };
-
   return (
     <div className="flex flex-col gap-6 py-4 w-full">
       {/* Page header */}
@@ -172,27 +154,15 @@ export function AdminDeepDivesManager({ questions: initialQuestions }: AdminDeep
 
       {/* Toolbar Search & Filter Box */}
       {questions.length > 0 && (
-        <div className="flex flex-col sm:flex-row items-center gap-3 bg-card border border-border/80 p-4 rounded-xl shadow-xs">
-          <div className="relative flex-1 w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
-            <Input
-              placeholder="Search question, topic, quiz..."
-              value={searchQuery}
-              onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-              className="pl-9 h-10 w-full"
-            />
-          </div>
-          <div className="w-full sm:w-48 shrink-0">
-            <Select
-              value={topicFilter}
-              onChange={e => { setTopicFilter(e.target.value); setCurrentPage(1); }}
-              className="h-10"
-            >
-              <option value="">All Topics</option>
-              {uniqueTopics.map(t => <option key={t} value={t}>{t}</option>)}
-            </Select>
-          </div>
-        </div>
+        <SearchFilterBar
+          searchValue={searchQuery}
+          onSearchChange={v => { setSearchQuery(v); setCurrentPage(1); }}
+          searchPlaceholder="Search question, topic, quiz..."
+          filterValue={topicFilter}
+          onFilterChange={v => { setTopicFilter(v); setCurrentPage(1); }}
+          filterOptions={uniqueTopics.map(t => ({ value: t, label: t }))}
+          filterPlaceholder="All Topics"
+        />
       )}
 
       {/* Main Table or Empty State */}
@@ -227,7 +197,7 @@ export function AdminDeepDivesManager({ questions: initialQuestions }: AdminDeep
                       {item.quiz ? (
                         <div className="flex flex-col gap-1 min-w-0">
                           <span className="text-[10px] text-foreground font-bold truncate leading-none">{item.quiz.title}</span>
-                          <Badge variant={difficultyBadgeVariant(item.quiz.difficulty)} className="capitalize text-[8px] font-bold px-1 py-0 w-fit">
+                          <Badge variant={difficultyColor(item.quiz.difficulty)} className="capitalize text-[8px] font-bold px-1 py-0 w-fit">
                             {item.quiz.difficulty}
                           </Badge>
                         </div>
@@ -274,78 +244,15 @@ export function AdminDeepDivesManager({ questions: initialQuestions }: AdminDeep
           </div>
 
           {/* Pagination Footer */}
-          <div className="flex flex-col sm:flex-row items-center justify-between p-4 border-t border-border/40 gap-4 bg-secondary/5 text-xs select-none">
-            <div className="flex items-center gap-2 text-muted-foreground/80 font-medium">
-              <span>Show</span>
-              <Select 
-                value={pageSize.toString()} 
-                onChange={e => { setPageSize(parseInt(e.target.value)); setCurrentPage(1); }} 
-                className="h-8 w-16"
-              >
-                <option value="5">5</option>
-                <option value="10">10</option>
-                <option value="20">20</option>
-                <option value="50">50</option>
-              </Select>
-              <span>entries</span>
-            </div>
-
-            <span className="text-muted-foreground/80 font-medium">
-              Showing {totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, totalItems)} of {totalItems} entries
-            </span>
-
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                disabled={currentPage === 1} 
-                onClick={() => setCurrentPage(p => p - 1)}
-                className="h-8 font-semibold text-xs"
-              >
-                Previous
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                disabled={currentPage === totalPages} 
-                onClick={() => setCurrentPage(p => p + 1)}
-                className="h-8 font-semibold text-xs"
-              >
-                Next
-              </Button>
-            </div>
-          </div>
+          <Pagination
+            totalItems={totalItems}
+            pageSize={pageSize}
+            currentPage={currentPage}
+            onPageSizeChange={v => { setPageSize(v); setCurrentPage(1); }}
+            onPageChange={setCurrentPage}
+          />
         </Card>
       )}
-
-      {/* Confirmation dialog */}
-      <Dialog open={confirmDialog.open} onOpenChange={open => setConfirmDialog(p => ({ ...p, open }))}>
-        <DialogSurface className="max-w-[420px]">
-          <DialogTitle>{confirmDialog.title}</DialogTitle>
-          <DialogContent>
-            <div className="flex gap-3.5 items-start mt-2">
-              <AlertTriangle className="h-5 w-5 text-danger shrink-0 mt-0.5" />
-              <span className="text-sm text-muted-foreground leading-relaxed">
-                {confirmDialog.description}
-              </span>
-            </div>
-          </DialogContent>
-          <DialogActions>
-            <Button variant="outline" onClick={() => setConfirmDialog(p => ({ ...p, open: false }))}>
-              Cancel
-            </Button>
-            <Button
-              variant="danger"
-              onClick={async () => {
-                await confirmDialog.onConfirm();
-                setConfirmDialog(p => ({ ...p, open: false }));
-              }}
-            >
-              Confirm
-            </Button>
-          </DialogActions>
-        </DialogSurface>
-      </Dialog>
     </div>
   );
 }

@@ -66,19 +66,16 @@ function useDropdown() {
 
 export function DropdownTrigger({ children }: { children: React.ReactElement }) {
   const { open, setOpen, triggerRef } = useDropdown();
-  const childProps = children.props as {
-    onClick?: (e: React.MouseEvent) => void;
-    ref?: React.Ref<HTMLElement>;
-  };
+  const childRef = (children.props as { ref?: React.Ref<HTMLElement> }).ref;
+  const childOnClick = (children.props as { onClick?: (e: React.MouseEvent) => void }).onClick;
   return React.cloneElement(children, {
     ref: (node: HTMLElement | null) => {
       triggerRef.current = node;
-      const { ref } = childProps;
-      if (typeof ref === "function") ref(node);
-      else if (ref) (ref as React.MutableRefObject<HTMLElement | null>).current = node;
+      if (typeof childRef === "function") childRef(node);
+      else if (childRef) (childRef as React.MutableRefObject<HTMLElement | null>).current = node;
     },
     onClick: (e: React.MouseEvent) => {
-      if (childProps.onClick) childProps.onClick(e);
+      if (childOnClick) childOnClick(e);
       setOpen(!open);
     },
   } as Record<string, unknown>);

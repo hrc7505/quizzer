@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 import { Input } from "@/components/ui/Input";
-import { Dialog, DialogSurface, DialogTitle, DialogContent, DialogActions } from "@/components/ui/Dialog";
+import { useDialog } from "@/components/providers/OverlayProvider";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/utils/cn";
 
@@ -27,8 +27,8 @@ export function AdminUsersManager({ initialUsers }: AdminUsersManagerProps) {
   const [error, setError] = useState<string | null>(null);
 
   /** Delete Confirmation Dialog State */
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<UserData | null>(null);
+  const dialog = useDialog();
 
   const currentUserId = (session?.user as { id?: string | null } | null)?.id;
 
@@ -43,7 +43,22 @@ export function AdminUsersManager({ initialUsers }: AdminUsersManagerProps) {
 
   const handleDeleteClick = (user: UserData) => {
     setUserToDelete(user);
-    setDeleteConfirmOpen(true);
+    dialog.open({
+      title: "Delete User",
+      okText: "Delete User",
+      okVariant: "danger",
+      onOk: handleConfirmDelete,
+      body: (
+        <div className="flex gap-3.5 items-start mt-2">
+          <AlertTriangle className="h-5 w-5 text-danger shrink-0 mt-0.5" />
+          <span className="text-sm text-muted-foreground leading-relaxed">
+            Are you sure you want to delete{" "}
+            <strong className="text-foreground font-semibold">{user.name || user.email}</strong>?{" "}
+            This will permanently erase their profile, all their quiz attempts, and answers. This action cannot be undone.
+          </span>
+        </div>
+      ),
+    });
   };
 
   /** Confirms and executes the user deletion via UserService */
@@ -51,7 +66,6 @@ export function AdminUsersManager({ initialUsers }: AdminUsersManagerProps) {
     if (!userToDelete) return;
     setLoading(true);
     setError(null);
-    setDeleteConfirmOpen(false);
 
     try {
       await UserService.deleteUser(userToDelete.id);
@@ -164,31 +178,6 @@ export function AdminUsersManager({ initialUsers }: AdminUsersManagerProps) {
           </div>
         )}
       </Card>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <DialogSurface className="max-w-[440px]">
-          <DialogTitle>Delete User</DialogTitle>
-          <DialogContent>
-            <div className="flex gap-3.5 items-start mt-2">
-              <AlertTriangle className="h-5 w-5 text-danger shrink-0 mt-0.5" />
-              <span className="text-sm text-muted-foreground leading-relaxed">
-                Are you sure you want to delete{" "}
-                <strong className="text-foreground font-semibold">{userToDelete?.name || userToDelete?.email}</strong>?{" "}
-                This will permanently erase their profile, all their quiz attempts, and answers. This action cannot be undone.
-              </span>
-            </div>
-          </DialogContent>
-          <DialogActions>
-            <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="danger" onClick={handleConfirmDelete}>
-              Delete User
-            </Button>
-          </DialogActions>
-        </DialogSurface>
-      </Dialog>
     </div>
   );
 }

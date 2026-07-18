@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { useRef, useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { GState } from "jspdf";
@@ -30,8 +31,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Progress } from "@/components/ui/Progress";
-import { Dialog, DialogSurface, DialogTitle, DialogContent, DialogActions } from "@/components/ui/Dialog";
-import { Sheet, SheetContent, SheetHeader, SheetBody } from "@/components/ui/Sheet";
+import { usePanel, useDialog } from "@/components/providers/OverlayProvider";
 import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from "@/components/ui/Dropdown";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/utils/cn";
@@ -150,7 +150,6 @@ export function QuizResults({ attempt }: QuizResultsProps) {
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
 
@@ -180,23 +179,10 @@ export function QuizResults({ attempt }: QuizResultsProps) {
   }, [attempt.quiz.questions]);
 
   const [elaborations, setElaborations] = useState<Record<string, { loading: boolean, data?: string, error?: string }>>(initialElaborations);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [activeElaborationId, setActiveElaborationId] = useState<string | null>(null);
 
-  const questionObj = useMemo(() => {
-    if (!activeElaborationId) return null;
-    const q = attempt.quiz.questions.find((qi: QuestionData) => qi.id === activeElaborationId);
-    if (!q) return null;
-    return {
-      ...q,
-      quiz: {
-        id: attempt.quiz.id,
-        title: attempt.quiz.title,
-        difficulty: attempt.quiz.difficulty || "Medium",
-      },
-      topic: q.topic || { id: "", title: "General" },
-    };
-  }, [activeElaborationId, attempt.quiz]);
+  const panel = usePanel();
+  const dialog = useDialog();
 
   const handleDownloadPDF = async () => {
     setDownloading(true);
@@ -426,8 +412,21 @@ export function QuizResults({ attempt }: QuizResultsProps) {
 
   const handleElaborate = async (questionId: string) => {
     setActiveElaborationId(questionId);
-    setIsDrawerOpen(true);
-    if (elaborations[questionId]?.data || elaborations[questionId]?.loading) return;
+    const question = attempt.quiz.questions.find((qi: QuestionData) => qi.id === questionId) ?? null;
+    const cached = elaborations[questionId];
+    panel.open({
+      title: "AI Deep Dive",
+      width: "max-w-2xl",
+      body: (
+        <DeepDivePanel
+          question={question}
+          quiz={attempt.quiz}
+          initialElaboration={cached?.data}
+          initialError={cached?.error}
+        />
+      ),
+    });
+    if (cached?.data || cached?.loading) return;
     
     setElaborations(prev => ({ ...prev, [questionId]: { loading: true } }));
     try {
@@ -527,7 +526,19 @@ export function QuizResults({ attempt }: QuizResultsProps) {
               </Button>
             </DropdownTrigger>
             <DropdownContent align="right" className="w-44">
-              <DropdownItem onClick={() => setIsReviewOpen(true)}>
+              <DropdownItem onClick={() => dialog.open({
+                title: "Detailed Review",
+                className: "max-w-[720px] p-6",
+                body: (
+                  <DetailedReviewBody
+                    questions={attempt.quiz.questions}
+                    answers={attempt.answers}
+                    elaborations={elaborations}
+                    activeElaborationId={activeElaborationId}
+                    handleElaborate={handleElaborate}
+                  />
+                ),
+              })}>
                 <span className="flex items-center gap-2">
                   <Eye className="h-3.5 w-3.5" />
                   Detailed Review
@@ -660,69 +671,97 @@ export function QuizResults({ attempt }: QuizResultsProps) {
           )}
         </Card>
       </div>
+    </div>
+  );
+}
 
-      {/* Detailed Review Modal Dialog */}
-      <Dialog open={isReviewOpen} onOpenChange={setIsReviewOpen}>
-        <DialogSurface className="max-w-[720px] p-6">
-          <DialogTitle>Detailed Review</DialogTitle>
-          <DialogContent className="max-h-[60vh] overflow-y-auto pr-1 mt-4">
-            <div className="flex flex-col">
-              {attempt.quiz.questions.map((question: QuestionData, index: number) => {
-                const answer = attempt.answers.find((a: UserAnswerData) => a.questionId === question.id);
-                return (
-                  <DetailedQuestionAccordionItem
-                    key={question.id}
-                    question={question}
-                    index={index}
-                    answer={answer}
-                    elaborations={elaborations}
-                    activeElaborationId={activeElaborationId}
-                    handleElaborate={handleElaborate}
-                    onOpenFullPage={`/deep-dives/${question.id}`}
-                  />
-                );
-              })}
-            </div>
-          </DialogContent>
-          <DialogActions>
-            <Button variant="outline" onClick={() => setIsReviewOpen(false)}>
-              Close Review
-            </Button>
-          </DialogActions>
-        </DialogSurface>
-      </Dialog>
+interface DetailedReviewBodyProps {
+  questions: QuestionData[];
+  answers: UserAnswerData[];
+  elaborations: Record<string, { loading: boolean; data?: string; error?: string }>;
+  activeElaborationId: string | null;
+  handleElaborate: (questionId: string) => void;
+}
 
-      {/* AI Deep Dive Overlay Drawer Sheet */}
-      <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-        <SheetContent className="max-w-2xl">
-          <SheetHeader>AI Deep Dive</SheetHeader>
-          <SheetBody>
-            {activeElaborationId && (
-              <div className="flex flex-col h-full">
-                {elaborations[activeElaborationId]?.loading && (
-                  <div className="flex flex-col items-center justify-center py-20 gap-3 text-sm text-muted-foreground">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <span>AI is formulating detailed concept breakdown…</span>
-                  </div>
-                )}
-                
-                {elaborations[activeElaborationId]?.error && (
-                  <Alert variant="danger" title="Error">
-                    {elaborations[activeElaborationId].error}
-                  </Alert>
-                )}
-                
-                {elaborations[activeElaborationId]?.data && questionObj && (
-                  <DeepDiveBody question={{
-                    ...questionObj,
-                    elaboration: elaborations[activeElaborationId].data as string
-                  }} />
-                )}
-              </div>
-            )}
-          </SheetBody>
-        </SheetContent>
-      </Sheet>
+function DetailedReviewBody({ questions, answers, elaborations, activeElaborationId, handleElaborate }: DetailedReviewBodyProps) {
+  return (
+    <div className="flex flex-col max-h-[60vh] overflow-y-auto pr-1">
+      {questions.map((question: QuestionData, index: number) => {
+        const answer = answers.find((a: UserAnswerData) => a.questionId === question.id);
+        return (
+          <DetailedQuestionAccordionItem
+            key={question.id}
+            question={question}
+            index={index}
+            answer={answer}
+            elaborations={elaborations}
+            activeElaborationId={activeElaborationId}
+            handleElaborate={handleElaborate}
+            onOpenFullPage={`/deep-dives/${question.id}`}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+interface DeepDivePanelProps {
+  question: QuestionData | null;
+  quiz: { id: string; title: string; difficulty?: string };
+  initialElaboration?: string;
+  initialError?: string;
+}
+
+function DeepDivePanel({ question, quiz, initialElaboration, initialError }: DeepDivePanelProps) {
+  const [loading, setLoading] = React.useState(!initialElaboration && !initialError);
+  const [data, setData] = React.useState<string | undefined>(initialElaboration);
+  const [error, setError] = React.useState<string | undefined>(initialError);
+
+  React.useEffect(() => {
+    if (initialElaboration || initialError) return;
+    if (!question) return;
+    const controller = new AbortController();
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/elaborate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ questionId: question.id }),
+          signal: controller.signal,
+        });
+        const json = await res.json();
+        if (json.success) setData(json.markdown);
+        else setError(json.error);
+      } catch {
+        setError("Failed to load deep dive.");
+      } finally {
+        setLoading(false);
+      }
+    })();
+    return () => controller.abort();
+  }, [question, initialElaboration, initialError]);
+
+  if (!question) return null;
+
+  return (
+    <div className="flex flex-col h-full">
+      {loading && (
+        <div className="flex flex-col items-center justify-center py-20 gap-3 text-sm text-muted-foreground">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span>AI is formulating detailed concept breakdown…</span>
+        </div>
+      )}
+      {error && <Alert variant="danger" title="Error">{error}</Alert>}
+      {data && question && (
+        <DeepDiveBody
+          question={{
+            ...question,
+            elaboration: data,
+            quiz: { id: quiz.id, title: quiz.title, difficulty: quiz.difficulty || "Medium" },
+            topic: question.topic || { id: "", title: "General" },
+          }}
+        />
+      )}
     </div>
   );
 }

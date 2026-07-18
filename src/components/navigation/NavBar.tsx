@@ -26,7 +26,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { Dialog, DialogSurface, DialogTitle, DialogContent, DialogActions } from "@/components/ui/Dialog";
+import { useDialog } from "@/components/providers/OverlayProvider";
 import { cn } from "@/utils/cn";
 
 export function NavBar({ maxWidth = "1200px" }: { maxWidth?: string }) {
@@ -34,11 +34,11 @@ export function NavBar({ maxWidth = "1200px" }: { maxWidth?: string }) {
   const pathname = usePathname();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
+  const dialog = useDialog();
 
   const [isAdminDrawerOpen, setIsAdminDrawerOpen] = useState(false);
   const [adminDrawerSide, setAdminDrawerSide] = useState<"left" | "right">("left");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false);
   
   // State for Admin sub-menu dropdown
   const [isTaxonomyOpen, setIsTaxonomyOpen] = useState(true);
@@ -425,7 +425,13 @@ export function NavBar({ maxWidth = "1200px" }: { maxWidth?: string }) {
               <Button
                 variant="secondary"
                 className="w-full justify-start gap-3 text-sm text-danger hover:bg-danger/10 hover:border-danger/20 font-medium h-10 px-3"
-                onClick={() => setConfirmLogoutOpen(true)}
+                onClick={() => dialog.confirm({
+                  title: "Confirm logout",
+                  description: "Are you sure you want to log out of the admin portal?",
+                  okText: "Logout",
+                  okVariant: "danger",
+                  onConfirm: () => signOut({ callbackUrl: "/auth/admin-signin" }),
+                })}
               >
                 <LogOut className="h-4 w-4" />
                 <span>Logout Admin</span>
@@ -434,30 +440,6 @@ export function NavBar({ maxWidth = "1200px" }: { maxWidth?: string }) {
           </div>
         </div>
       )}
-
-      {/* Logout dialog portal */}
-      <Dialog open={confirmLogoutOpen} onOpenChange={setConfirmLogoutOpen}>
-        <DialogSurface>
-          <DialogTitle>Confirm logout</DialogTitle>
-          <DialogContent>
-            Are you sure you want to log out of the admin portal?
-          </DialogContent>
-          <DialogActions>
-            <Button variant="outline" onClick={() => setConfirmLogoutOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="danger"
-              onClick={() => {
-                setConfirmLogoutOpen(false);
-                signOut({ callbackUrl: "/auth/admin-signin" });
-              }}
-            >
-              Logout
-            </Button>
-          </DialogActions>
-        </DialogSurface>
-      </Dialog>
     </>
   );
 }

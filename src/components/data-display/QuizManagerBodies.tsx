@@ -1,13 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { BookOpen, Plus, X } from "lucide-react";
+import { BookOpen, Plus, X, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
-import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import { NoData } from "@/components/feedback/NoData";
-import { QuestionCard, type QuestionCardData } from "@/components/data-display/QuestionCard";
+import { QuestionCard } from "@/components/data-display/QuestionCard";
 
 const DIFFICULTIES = ["Easy", "Medium", "Hard"];
 

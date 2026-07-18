@@ -38,8 +38,14 @@ export function OverlayProvider({ children }: OverlayProviderProps) {
   const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
+    let active = true;
+    Promise.resolve().then(() => {
+      if (active) setMounted(true);
+    });
+    return () => {
+      active = false;
+      setMounted(false);
+    };
   }, []);
 
   const closeDialog = React.useCallback(() => {

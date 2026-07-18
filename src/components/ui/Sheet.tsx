@@ -68,8 +68,14 @@ export const SheetContent = React.forwardRef<HTMLDivElement, SheetContentProps>(
     const [mounted, setMounted] = React.useState(false);
 
     React.useEffect(() => {
-      setMounted(true);
-      return () => setMounted(false);
+      let active = true;
+      Promise.resolve().then(() => {
+        if (active) setMounted(true);
+      });
+      return () => {
+        active = false;
+        setMounted(false);
+      };
     }, []);
 
     if (!open || !mounted) return null;

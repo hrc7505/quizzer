@@ -64,6 +64,14 @@ function useDropdown() {
   return context;
 }
 
+function setRef<T>(ref: React.Ref<T> | undefined, value: T) {
+  if (typeof ref === "function") {
+    ref(value);
+  } else if (ref && "current" in ref) {
+    (ref as React.MutableRefObject<T>).current = value;
+  }
+}
+
 export function DropdownTrigger({ children }: { children: React.ReactElement }) {
   const { open, setOpen, triggerRef } = useDropdown();
   const childRef = (children.props as { ref?: React.Ref<HTMLElement> }).ref;
@@ -71,8 +79,7 @@ export function DropdownTrigger({ children }: { children: React.ReactElement }) 
   return React.cloneElement(children, {
     ref: (node: HTMLElement | null) => {
       triggerRef.current = node;
-      if (typeof childRef === "function") childRef(node);
-      else if (childRef) (childRef as React.MutableRefObject<HTMLElement | null>).current = node;
+      setRef(childRef, node);
     },
     onClick: (e: React.MouseEvent) => {
       if (childOnClick) childOnClick(e);
@@ -86,7 +93,7 @@ interface DropdownContentProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 export function DropdownContent({ className, align = "right", children, ...props }: DropdownContentProps) {
-  const { open, setOpen, triggerRef, contentRef } = useDropdown();
+  const { open, triggerRef, contentRef } = useDropdown();
   const [pos, setPos] = React.useState<{ top: number; left: number }>({ top: -9999, left: -9999 });
 
   const recalc = React.useCallback(() => {
@@ -103,7 +110,7 @@ export function DropdownContent({ className, align = "right", children, ...props
       top = rect.top - h - 6;
     }
     setPos({ top, left });
-  }, [triggerRef, align]);
+  }, [triggerRef, align, contentRef]);
 
   React.useEffect(() => {
     if (!open) return;

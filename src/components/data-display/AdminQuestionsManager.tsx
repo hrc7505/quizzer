@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Plus, Edit, Trash2, Loader2 } from "lucide-react";
 import NoData from "@/components/feedback/NoData";
 import { Badge } from "@/components/ui/Badge";
@@ -10,7 +10,7 @@ import { useDialog } from "@/components/providers/OverlayProvider";
 import { Pagination } from "@/components/data-display/Pagination";
 import { SearchFilterBar } from "@/components/data-display/SearchFilterBar";
 import { QuestionCard } from "@/components/data-display/QuestionCard";
-import { QuestionEditorBody } from "@/components/data-display/QuestionEditorBody";
+import { QuestionEditorBody, type QuestionEditorForm } from "@/components/data-display/QuestionEditorBody";
 
 interface QuizRef {
   id: string;
@@ -43,28 +43,18 @@ interface AdminQuestionsManagerProps {
   quizzes: QuizRef[];
 }
 
-interface QuestionForm {
-  id: string;
-  quizId: string;
-  text: string;
-  options: string[];
-  correctAnswer: string;
-  hint: string;
-  description: string;
-}
+
 
 interface QuestionDialogBodyProps {
-  initialForm: QuestionForm;
+  initialForm: QuestionEditorForm;
   quizzes: QuizRef[];
-  onSave: (form: QuestionForm) => Promise<void>;
+  onSave: (form: QuestionEditorForm) => Promise<void>;
   loading: boolean;
 }
 
 function QuestionDialogBody({ initialForm, quizzes, onSave, loading }: QuestionDialogBodyProps) {
-  const [form, setForm] = useState<QuestionForm>(initialForm);
+  const [form, setForm] = useState<QuestionEditorForm>(initialForm);
   const dialog = useDialog();
-
-  useEffect(() => { setForm(initialForm); }, [initialForm]);
 
   const handleSave = async () => {
     await onSave(form);
@@ -118,6 +108,10 @@ export function AdminQuestionsManager({ questions: initial, quizzes }: AdminQues
   const [questions, setQuestions] = useState<Question[]>(initial);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [quizFilter, setQuizFilter] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const dialog = useDialog();
 
@@ -139,7 +133,6 @@ export function AdminQuestionsManager({ questions: initial, quizzes }: AdminQues
   });
 
   const totalItems = filtered.length;
-  const totalPages = Math.ceil(totalItems / pageSize) || 1;
   const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const handleOpenAdd = () => {
@@ -172,7 +165,7 @@ export function AdminQuestionsManager({ questions: initial, quizzes }: AdminQues
     });
   };
 
-  const handleSaveQuestion = async (form: QuestionForm) => {
+  const handleSaveQuestion = async (form: QuestionEditorForm) => {
     setLoading(true);
     const isEdit = !!form.id;
     const url = isEdit ? `/api/admin/questions/${form.id}` : "/api/admin/questions";

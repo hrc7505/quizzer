@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
-  Edit,
   Link as LinkIcon,
   MoreHorizontal,
   Sparkles,
@@ -136,39 +135,22 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
   });
 
   const totalItems = filtered.length;
-  const totalPages = Math.ceil(totalItems / pageSize) || 1;
   const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   // Load active quiz details when drawer opens
   useEffect(() => {
     if (selectedQuizId) {
-      fetchActiveQuizDetail(selectedQuizId);
+      Promise.resolve().then(() => {
+        fetchActiveQuizDetail(selectedQuizId);
+      });
     } else {
-      setActiveQuizDetail(null);
+      Promise.resolve().then(() => {
+        setActiveQuizDetail(null);
+      });
     }
   }, [selectedQuizId]);
 
-  // Open quiz detail drawer via the shared panel host
-  useEffect(() => {
-    if (!selectedQuizId) return;
-    const quiz = quizzes.find(q => q.id === selectedQuizId) || null;
-    panel.open({
-      title: `Quiz details: ${quiz?.title ?? ""}`,
-      width: "max-w-2xl",
-      onClose: () => setSelectedQuizId(null),
-      body: (
-        <QuizDrawerBody
-          quiz={quiz}
-          detail={activeQuizDetail}
-          loading={activeQuizLoading}
-          onUnlinkTopic={handleUnlinkTopic}
-          onAddQuestion={handleOpenAddQuestion}
-          onEditQuestion={handleOpenEditQuestion}
-          onDeleteQuestion={handleDeleteQuestion}
-        />
-      ),
-    });
-  }, [selectedQuizId, activeQuizDetail, activeQuizLoading, quizzes]);
+
 
   // Available subtopics (topics that have a parent - not root curriculums)
   const availableSubtopics = useMemo(() => {
@@ -426,6 +408,44 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
       }
     );
   };
+  interface QuizManagerCallbacks {
+    handleUnlinkTopic: (quizId: string, quizTitle: string, topicId: string, topicTitle: string) => Promise<void>;
+    handleOpenAddQuestion: () => void;
+    handleOpenEditQuestion: (q: QuizQuestionDetail) => void;
+    handleDeleteQuestion: (questionId: string, text: string) => void;
+  }
+
+  const callbacksRef = useRef<QuizManagerCallbacks | null>(null);
+  useEffect(() => {
+    callbacksRef.current = {
+      handleUnlinkTopic,
+      handleOpenAddQuestion,
+      handleOpenEditQuestion,
+      handleDeleteQuestion,
+    };
+  });
+
+  // Open quiz detail drawer via the shared panel host
+  useEffect(() => {
+    if (!selectedQuizId) return;
+    const quiz = quizzes.find(q => q.id === selectedQuizId) || null;
+    panel.open({
+      title: `Quiz details: ${quiz?.title ?? ""}`,
+      width: "max-w-2xl",
+      onClose: () => setSelectedQuizId(null),
+      body: (
+        <QuizDrawerBody
+          quiz={quiz}
+          detail={activeQuizDetail}
+          loading={activeQuizLoading}
+          onUnlinkTopic={(...args) => callbacksRef.current?.handleUnlinkTopic(...args)}
+          onAddQuestion={() => callbacksRef.current?.handleOpenAddQuestion()}
+          onEditQuestion={(...args) => callbacksRef.current?.handleOpenEditQuestion(...args)}
+          onDeleteQuestion={(...args) => callbacksRef.current?.handleDeleteQuestion(...args)}
+        />
+      ),
+    });
+  }, [selectedQuizId, activeQuizDetail, activeQuizLoading, quizzes, panel]);
 
   return (
     <div className="flex flex-col gap-6 py-4 w-full">

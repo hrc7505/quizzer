@@ -51,10 +51,9 @@ function useDialog() {
 
 interface DialogTriggerProps {
   children: React.ReactElement;
-  asChild?: boolean;
 }
 
-function DialogTrigger({ children, asChild }: DialogTriggerProps) {
+function DialogTrigger({ children }: DialogTriggerProps) {
   const { onOpenChange } = useDialog();
   const childProps = children.props as { onClick?: (e: React.MouseEvent) => void };
   return React.cloneElement(children, {
@@ -65,18 +64,22 @@ function DialogTrigger({ children, asChild }: DialogTriggerProps) {
   } as Record<string, unknown>);
 }
 
-interface DialogSurfaceProps extends React.HTMLAttributes<HTMLDivElement> {
-  containerClassName?: string;
-}
+type DialogSurfaceProps = React.HTMLAttributes<HTMLDivElement>;
 
 const DialogSurface = React.forwardRef<HTMLDivElement, DialogSurfaceProps>(
-  ({ className, containerClassName, children, ...props }, ref) => {
+  ({ className, children, ...props }, ref) => {
     const { open, onOpenChange } = useDialog();
     const [mounted, setMounted] = React.useState(false);
 
     React.useEffect(() => {
-      setMounted(true);
-      return () => setMounted(false);
+      let active = true;
+      Promise.resolve().then(() => {
+        if (active) setMounted(true);
+      });
+      return () => {
+        active = false;
+        setMounted(false);
+      };
     }, []);
 
     if (!open || !mounted) return null;

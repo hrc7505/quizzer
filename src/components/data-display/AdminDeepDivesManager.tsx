@@ -14,6 +14,7 @@ import NoData from "@/components/feedback/NoData";
 import { difficultyColor } from "@/lib/format";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import { useDialog } from "@/components/providers/OverlayProvider";
 import { Pagination } from "@/components/data-display/Pagination";
 import { SearchFilterBar } from "@/components/data-display/SearchFilterBar";
@@ -61,7 +62,6 @@ export function AdminDeepDivesManager({ questions: initialQuestions }: AdminDeep
   });
 
   const totalItems = filtered.length;
-  const totalPages = Math.ceil(totalItems / pageSize) || 1;
   const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const handleRegenerate = async (q: QuestionRecord) => {

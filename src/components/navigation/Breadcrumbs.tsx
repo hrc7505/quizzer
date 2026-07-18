@@ -6,7 +6,6 @@ import Link from "next/link";
 import { MoreHorizontal, ChevronRight } from "lucide-react";
 import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from "@/components/ui/Dropdown";
 import { Button } from "@/components/ui/Button";
-import { cn } from "@/utils/cn";
 
 interface BreadcrumbItem {
   label: string;

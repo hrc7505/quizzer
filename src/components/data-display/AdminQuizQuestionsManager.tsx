@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Edit, Trash2, ArrowLeft } from "lucide-react";
+import { Plus, ArrowLeft } from "lucide-react";
 import { difficultyColor } from "@/lib/format";
 import NoData from "@/components/feedback/NoData";
 import { Badge } from "@/components/ui/Badge";
@@ -11,7 +11,6 @@ import { Alert } from "@/components/ui/Alert";
 import { useDialog } from "@/components/providers/OverlayProvider";
 import { QuestionCard } from "@/components/data-display/QuestionCard";
 import { QuestionEditorBody } from "@/components/data-display/QuestionEditorBody";
-import { cn } from "@/utils/cn";
 
 interface QuestionForm {
   id: string;
@@ -27,8 +26,8 @@ interface Question {
   text: string;
   options: string[];
   correctAnswer: string;
-  hint: string;
-  description: string;
+  hint?: string | null;
+  description?: string | null;
 }
 
 interface QuizDetail {

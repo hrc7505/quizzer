@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
 import { 
@@ -22,11 +22,10 @@ import { splitSentences, formatTime } from "@/lib/text";
 import { ShareButton } from "@/components/ui/ShareButton";
 import { Alert } from "@/components/ui/Alert";
 import NoData from "@/components/feedback/NoData";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
+import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Progress } from "@/components/ui/Progress";
-import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/utils/cn";
 
 interface QuizWizardQuestion {

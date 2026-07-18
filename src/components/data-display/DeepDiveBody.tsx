@@ -2,7 +2,6 @@
 
 import { Brain, BookOpen } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import { difficultyColor } from "@/lib/format";
 import { NoData } from "@/components/feedback/NoData";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";

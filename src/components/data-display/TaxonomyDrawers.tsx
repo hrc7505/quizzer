@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge, type BadgeProps } from "@/components/ui/Badge";
 import { NoData } from "@/components/feedback/NoData";
 import { cn } from "@/utils/cn";
-import type { Exam, Topic, QuizSummary, QuizDetail, QuizQuestionDetail } from "./TaxonomyManager.types";
+import type { Exam, Topic, QuizDetail, QuizQuestionDetail } from "./TaxonomyManager.types";
 
 interface ExamDrawerBodyProps {
   exam: Exam;

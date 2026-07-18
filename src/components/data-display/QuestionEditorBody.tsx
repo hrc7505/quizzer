@@ -21,7 +21,7 @@ interface QuizOption {
   title: string;
 }
 
-interface QuestionEditorBodyProps {
+export interface QuestionEditorBodyProps {
   form: QuestionEditorForm;
   onChange: (updater: (prev: QuestionEditorForm) => QuestionEditorForm) => void;
   onOptionChange: (idx: number, val: string) => void;

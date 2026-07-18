@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Search, ArrowRight, Share2 } from "lucide-react";
 import { ShareButton } from "@/components/ui/ShareButton";
-import { difficultyColor } from "@/lib/format";
 import NoData from "@/components/feedback/NoData";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -39,6 +38,15 @@ export function QuizCardGrid({ quizzes, subtopicTitle, basePath }: QuizCardGridP
   const [visibleCount, setVisibleCount] = useState(12);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
+  const [prevSearchQuery, setPrevSearchQuery] = useState(searchQuery);
+  const [prevDifficultyFilter, setPrevDifficultyFilter] = useState(difficultyFilter);
+
+  if (searchQuery !== prevSearchQuery || difficultyFilter !== prevDifficultyFilter) {
+    setVisibleCount(12);
+    setPrevSearchQuery(searchQuery);
+    setPrevDifficultyFilter(difficultyFilter);
+  }
+
   // Filter quizzes
   const filtered = quizzes.filter(quiz => {
     const matchesSearch = quiz.title.toLowerCase().includes(searchQuery.toLowerCase());
@@ -48,11 +56,6 @@ export function QuizCardGrid({ quizzes, subtopicTitle, basePath }: QuizCardGridP
 
   const paginated = filtered.slice(0, visibleCount);
   const hasMore = filtered.length > visibleCount;
-
-  // Reset pagination count on search or filter change
-  useEffect(() => {
-    setVisibleCount(12);
-  }, [searchQuery, difficultyFilter]);
 
   // Infinite scroll intersection observer
   useEffect(() => {

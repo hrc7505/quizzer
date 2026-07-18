@@ -11,8 +11,6 @@ import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 import { Input } from "@/components/ui/Input";
 import { useDialog } from "@/components/providers/OverlayProvider";
-import { Spinner } from "@/components/ui/Spinner";
-import { cn } from "@/utils/cn";
 
 /**
  * AdminUsersManager Component. Provides the user interface for listing and deleting users.

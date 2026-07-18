@@ -9,16 +9,13 @@ import {
   Trophy,
   Share2,
   FileDown,
-  X,
   ChevronDown,
   ChevronUp,
   MoreHorizontal,
   Sparkles,
-  Clock,
   ArrowRight,
   Eye,
   Loader2,
-  CheckCircle,
 } from "lucide-react";
 import { AttemptService, LeaderboardEntry } from "@/lib/services/attempt.service";
 import { splitSentences, formatTime } from "@/lib/text";
@@ -27,13 +24,12 @@ import { ShareButton } from "@/components/ui/ShareButton";
 import { Alert } from "@/components/ui/Alert";
 import { NoData } from "@/components/feedback/NoData";
 import { DeepDiveBody } from "./DeepDiveBody";
-import { Card, CardContent } from "@/components/ui/Card";
+import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Progress } from "@/components/ui/Progress";
 import { usePanel, useDialog } from "@/components/providers/OverlayProvider";
 import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from "@/components/ui/Dropdown";
-import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/utils/cn";
 
 /**
@@ -475,18 +471,6 @@ export function QuizResults({ attempt }: QuizResultsProps) {
     }
 
     return shareUrl;
-  };
-
-  const handleMobileShare = async () => {
-    const shareUrl = await handleShareUrl();
-    const text = `${attempt.quiz.title} — I scored ${Math.round(attempt.scorePercentage)}% on Quizzer!`;
-    try {
-      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
-        await navigator.share({ title: text, text, url: shareUrl });
-      }
-    } catch {
-      // user cancelled or unsupported
-    }
   };
 
   return (

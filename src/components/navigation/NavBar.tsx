@@ -74,9 +74,11 @@ export function NavBar({ maxWidth = "1200px" }: { maxWidth?: string }) {
               className="lg:hidden h-8 w-8 text-muted-foreground hover:bg-surface-hover hover:text-foreground"
               onClick={() => {
                 setAdminDrawerSide("left");
-                isAdminRoute
-                  ? setIsAdminDrawerOpen(true)
-                  : setIsMobileMenuOpen(true);
+                if (isAdminRoute) {
+                  setIsAdminDrawerOpen(true);
+                } else {
+                  setIsMobileMenuOpen(true);
+                }
               }}
               aria-label="Open navigation menu"
             >

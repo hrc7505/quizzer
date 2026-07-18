@@ -26,7 +26,12 @@ interface DialogHostProps {
 
 export function DialogHost({ config, onClose }: DialogHostProps) {
   const [okBusy, setOkBusy] = React.useState(false);
-  React.useEffect(() => setOkBusy(false), [config]);
+  const [prevConfig, setPrevConfig] = React.useState<DialogConfig | null>(config);
+
+  if (config !== prevConfig) {
+    setOkBusy(false);
+    setPrevConfig(config);
+  }
 
   if (!config) return null;
 

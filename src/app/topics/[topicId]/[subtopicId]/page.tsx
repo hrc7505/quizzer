@@ -3,7 +3,7 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Breadcrumbs } from "@/components/navigation/Breadcrumbs";
 import { ContentHeader } from "@/components/layouts/ContentHeader";
 import { QuizCardGrid } from "@/components/data-display/QuizCardGrid";
-import { BookOpen24Regular } from "@/design-system/icons/Icons";
+import { BookOpen } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 
@@ -70,7 +70,7 @@ function StandaloneQuizzesPageClient({ topicId, subtopicId, topic, subtopic }: {
     <PageLayout>
       <Breadcrumbs items={breadcrumbItems} />
       <ContentHeader
-        icon={<BookOpen24Regular />}
+        icon={<BookOpen />}
         variant="quiz"
         title={subtopic.title}
         description={subtopic.description}

@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useRef } from "react";
-import {
-  Button, Input, Textarea, Field, Spinner, MessageBar,
-  MessageBarBody, MessageBarTitle, Select, TabList, Tab, Text
-} from "@fluentui/react-components";
-import type { SelectTabData, SelectTabEvent } from "@fluentui/react-components";
 import { GenerateQuizResponse, GenerateQuizPayload } from "./interfaces/GenerateQuizForm.interface";
 import { QuizService } from "@/lib/services/quiz.service";
-import { useGenerateQuizFormStyles } from "./styles/useGenerateQuizFormStyles";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/Textarea";
+import { Alert } from "@/components/ui/Alert";
+import { Select } from "@/components/ui/Select";
+import { Spinner } from "@/components/ui/Spinner";
+import { cn } from "@/utils/cn";
 
 interface GenerateQuizFormProps {
   /** Called after a successful generation — parent can close dialog / refresh state. */
@@ -22,7 +23,6 @@ interface GenerateQuizFormProps {
  * After creation the quiz is standalone; admin links it to subtopics via QuizManager.
  */
 export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizFormProps = {}) {
-  const styles = useGenerateQuizFormStyles();
   const [mode, setMode] = useState<"title" | "text" | "pdf">("title");
   const [quizTitle, setQuizTitle] = useState("");
   const [topicText, setTopicText] = useState("");
@@ -33,12 +33,6 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<GenerateQuizResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  const handleTabSelect = (_: SelectTabEvent, data: SelectTabData) => {
-    setMode(data.value as "title" | "text" | "pdf");
-    setError(null);
-    setResult(null);
-  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -103,96 +97,125 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
     } catch (err) {
       const message = err instanceof Error ? err.message : undefined;
       setError(message || "An unexpected error occurred while communicating with Gemini API.");
-
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleGenerate} className={styles.form}>
-
+    <form onSubmit={handleGenerate} className="flex flex-col gap-5 w-full">
       {error && (
-        <MessageBar intent="error">
-          <MessageBarBody>
-            <MessageBarTitle>Error</MessageBarTitle>
-            {error}
-          </MessageBarBody>
-        </MessageBar>
+        <Alert variant="danger" title="Error">
+          {error}
+        </Alert>
       )}
 
       {result && (
-        <MessageBar intent="success">
-          <MessageBarBody>
-            <MessageBarTitle>Success</MessageBarTitle>
-            Generated {result.totalQuestions} questions across {result.quizzesCreated} quiz{result.quizzesCreated > 1 ? "zes" : ""}! Link them to subtopics from Quizzes → Link Topics.
-          </MessageBarBody>
-        </MessageBar>
+        <Alert variant="success" title="Success">
+          Generated {result.totalQuestions} questions across {result.quizzesCreated} quiz{result.quizzesCreated > 1 ? "zes" : ""}! Link them to subtopics from Quizzes → Link Topics.
+        </Alert>
       )}
 
       {/* Mode tabs */}
-      <TabList selectedValue={mode} onTabSelect={handleTabSelect} className={styles.tabList}>
-        <Tab value="title">From Title Only</Tab>
-        <Tab value="text">From Text</Tab>
-        <Tab value="pdf">From PDF</Tab>
-      </TabList>
+      <div className="flex border-b border-border/80 gap-6">
+        {([
+          { id: "title", label: "From Title Only" },
+          { id: "text", label: "From Text" },
+          { id: "pdf", label: "From PDF" },
+        ] as const).map((tab) => {
+          const isActive = mode === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => {
+                setMode(tab.id);
+                setError(null);
+                setResult(null);
+              }}
+              className={cn(
+                "pb-2.5 text-sm font-semibold border-b-2 -mb-[2px] transition-all cursor-pointer",
+                isActive 
+                  ? "border-primary text-primary" 
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
 
       {/* Quiz Title — always shown; used as AI context prompt */}
-      <Field
-        label="Quiz Title"
-        required
-        hint="The title is used by AI to generate relevant questions. The quiz will be created standalone — link it to subtopics afterwards."
-      >
+      <div className="flex flex-col gap-1.5">
+        <label className="text-sm font-semibold text-foreground/90">Quiz Title <span className="text-danger">*</span></label>
         <Input
           placeholder="e.g. History of Rome"
           value={quizTitle}
           onChange={e => setQuizTitle(e.target.value)}
           disabled={loading}
-          className={styles.fullWidthInput}
+          required
         />
-      </Field>
+        <span className="text-xs text-muted-foreground/70">
+          The title is used by AI to generate relevant questions. The quiz will be created standalone — link it to subtopics afterwards.
+        </span>
+      </div>
 
-      <Field label="Difficulty Level" required>
-        <Select value={difficulty} onChange={(_, d) => setDifficulty(d.value)} disabled={loading} className={styles.fullWidthInput}>
+      <div className="flex flex-col gap-1.5">
+        <label className="text-sm font-semibold text-foreground/90">Difficulty Level <span className="text-danger">*</span></label>
+        <Select 
+          value={difficulty} 
+          onChange={(e) => setDifficulty(e.target.value)} 
+          disabled={loading}
+        >
           <option value="Easy">Easy</option>
           <option value="Medium">Medium</option>
           <option value="Hard">Hard</option>
         </Select>
-      </Field>
+      </div>
 
       {mode === "text" && (
-        <Field label="Content (Text)" required hint="Paste the text you want to generate questions from.">
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-semibold text-foreground/90">Content (Text) <span className="text-danger">*</span></label>
           <Textarea
             placeholder="Paste text here..."
             value={topicText}
             onChange={e => setTopicText(e.target.value)}
             disabled={loading}
-            rows={10}
-            className={styles.fullWidthTextarea}
+            rows={8}
+            required
           />
-        </Field>
+          <span className="text-xs text-muted-foreground/70">Paste the text you want to generate questions from.</span>
+        </div>
       )}
 
       {mode === "pdf" && (
-        <Field label="Upload PDF" required hint="Upload a PDF document to generate questions from.">
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-semibold text-foreground/90">Upload PDF <span className="text-danger">*</span></label>
           <div
-            className={`${styles.dropzone} ${isDragging ? styles.dropzoneActive : ""}`}
+            className={cn(
+              "flex flex-col items-center justify-center p-8 border-2 border-dashed border-border rounded-xl cursor-pointer hover:bg-surface-hover hover:border-primary/50 transition-colors duration-150 text-center gap-1.5 select-none",
+              isDragging && "border-primary bg-primary/5",
+              file && "border-solid border-success/30 bg-success/5"
+            )}
             onDragOver={onDragOver}
             onDragLeave={onDragLeave}
             onDrop={onDrop}
             onClick={() => fileInputRef.current?.click()}
           >
-            <input type="file" accept=".pdf" onChange={handleFileUpload} disabled={loading} ref={fileInputRef} style={{ display: "none" }} />
-            <Text size={400} weight="semibold" className={styles.dropzoneTitle}>
+            <input type="file" accept=".pdf" onChange={handleFileUpload} disabled={loading} ref={fileInputRef} className="hidden" />
+            <span className="text-sm font-semibold text-foreground">
               {file ? `📄 ${file.name}` : isDragging ? "Drop PDF here" : "Drag & drop a PDF, or click to browse"}
-            </Text>
-            {!file && !isDragging && <Text size={200} className={styles.dropzoneHint}>Supports .pdf files only</Text>}
+            </span>
+            {!file && !isDragging && (
+              <span className="text-xs text-muted-foreground/70">Supports .pdf files only</span>
+            )}
           </div>
-        </Field>
+        </div>
       )}
 
-      <Button appearance="primary" type="submit" disabled={loading || !isFormValid()} className={styles.submitButton}>
-        {loading ? <><Spinner size="tiny" className={styles.spinner} /> Generating…</> : "Generate Quiz"}
+      <Button variant="primary" type="submit" disabled={loading || !isFormValid()} className="h-10 mt-2 font-semibold gap-2">
+        {loading ? <><Spinner size="sm" className="text-primary-foreground" /> Generating…</> : "Generate Quiz"}
       </Button>
     </form>
   );

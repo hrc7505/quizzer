@@ -15,9 +15,10 @@ export const GEMINI_MODEL = "gemini-2.5-flash";
  * Keeps model/transport details out of what's shown to end users.
  */
 export function describeAiError(error: unknown): string {
-  const message = error instanceof Error ? error.message : String(error);
+  const raw = error instanceof Error ? error.message : String(error);
+  const message = typeof raw === "string" ? raw : "";
 
-  if (/image input|does not support image|unsupported.*(image|file)/i.test(message)) {
+  if (/cannot read|does not support image|image input|unsupported.*(image|file)/i.test(message)) {
     return "This model can only process text. Upload a text-based PDF or use the text/topic input instead.";
   }
   if (/timeout|aborted|deadline/i.test(message)) {

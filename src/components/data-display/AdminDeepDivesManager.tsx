@@ -3,21 +3,24 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Text, Button, Badge, Input, Card, Spinner,
-  Dialog, DialogSurface, DialogBody, DialogTitle, DialogContent, DialogActions, DialogTrigger,
-  Popover, PopoverTrigger, PopoverSurface, Field, Select,
-  DataGrid, DataGridHeader, DataGridHeaderCell, DataGridRow, DataGridBody, DataGridCell,
-  Tooltip
-} from "@fluentui/react-components";
-import {
-  Brain20Regular, Delete20Regular, ArrowSync20Regular, Eye20Regular,
-  Filter20Regular, Dismiss20Regular
-} from "@fluentui/react-icons";
-import { createTableColumn, TableColumnDefinition } from "@fluentui/react-components";
+  Brain,
+  Trash2,
+  RefreshCw,
+  Eye,
+  Search,
+  Loader2,
+  AlertTriangle,
+} from "lucide-react";
 import { LinkButton } from "@/components/ui/LinkButton";
 import NoData from "@/components/feedback/NoData";
 import { difficultyColor } from "@/lib/format";
-import { useAdminDeepDivesManagerStyles } from "./styles/useAdminDeepDivesManagerStyles";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
+import { Dialog, DialogSurface, DialogTitle, DialogContent, DialogActions } from "@/components/ui/Dialog";
+import { cn } from "@/utils/cn";
 
 interface QuestionRecord {
   id: string;
@@ -38,7 +41,6 @@ interface AdminDeepDivesManagerProps {
  * Supports per-item regenerate/delete, bulk delete-all, search, and pagination.
  */
 export function AdminDeepDivesManager({ questions: initialQuestions }: AdminDeepDivesManagerProps) {
-  const styles = useAdminDeepDivesManagerStyles();
   const router = useRouter();
   const [questions, setQuestions] = useState<QuestionRecord[]>(initialQuestions);
   const [loadingId, setLoadingId] = useState<string | null>(null);
@@ -120,135 +122,80 @@ export function AdminDeepDivesManager({ questions: initialQuestions }: AdminDeep
     );
   };
 
-  const columns: TableColumnDefinition<QuestionRecord>[] = [
-    createTableColumn<QuestionRecord>({
-      columnId: "question",
-      compare: (a, b) => a.text.localeCompare(b.text),
-      renderHeaderCell: () => "Question",
-      renderCell: (item) => (
-        <Text size={200} className={styles.questionCell}>
-          {item.text}
-        </Text>
-      )
-    }),
-    createTableColumn<QuestionRecord>({
-      columnId: "topic",
-      compare: (a, b) => a.topic.title.localeCompare(b.topic.title),
-      renderHeaderCell: () => "Topic",
-      renderCell: (item) => (
-        <Text size={200} className={styles.topicCell}>{item.topic.title}</Text>
-      )
-    }),
-    createTableColumn<QuestionRecord>({
-      columnId: "quiz",
-      renderHeaderCell: () => "Quiz",
-      renderCell: (item) => item.quiz ? (
-        <div className={styles.quizCellColumn}>
-          <Text size={100} className={styles.quizTitle}>{item.quiz.title}</Text>
-          <Badge appearance="filled" color={difficultyColor(item.quiz.difficulty)} className={styles.quizBadge}>
-            {item.quiz.difficulty}
-          </Badge>
-        </div>
-      ) : <Text size={100} className={styles.quizUnlinked}>Unlinked</Text>
-    }),
-    createTableColumn<QuestionRecord>({
-      columnId: "actions",
-      renderHeaderCell: () => "Actions",
-      renderCell: (item) => (
-        <div className={styles.actionsCell}>
-          <Tooltip content="View full page" relationship="label">
-            <LinkButton href={`/deep-dives/${item.id}`} size="small" appearance="outline" icon={<Eye20Regular />} />
-          </Tooltip>
-          <Tooltip content="Regenerate with AI" relationship="label">
-            <Button
-              size="small"
-              appearance="outline"
-              icon={loadingId === item.id ? <Spinner size="tiny" /> : <ArrowSync20Regular />}
-              onClick={() => handleRegenerate(item)}
-              disabled={!!loadingId}
-            />
-          </Tooltip>
-          <Tooltip content="Delete elaboration" relationship="label">
-            <Button
-              size="small"
-              appearance="subtle"
-              icon={loadingId === item.id ? <Spinner size="tiny" /> : <Delete20Regular />}
-              className={styles.deleteActionButton}
-              onClick={() => handleDelete(item)}
-              disabled={loadingId === item.id || loadingId === "bulk"}
-            />
-          </Tooltip>
-        </div>
-      )
-    })
-  ];
+  const difficultyBadgeVariant = (difficulty: string) => {
+    const diff = difficulty.toLowerCase();
+    if (diff === "easy") return "success";
+    if (diff === "medium") return "warning";
+    if (diff === "hard") return "danger";
+    return "default";
+  };
 
   return (
-    <div className={styles.pageRoot}>
-
+    <div className="flex flex-col gap-6 py-4 w-full">
       {/* Page header */}
-      <div className={styles.header}>
-        <div className={styles.headerLeft}>
-          <div className={styles.headerIconContainer}>
-            <Brain20Regular className={styles.headerIcon} />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/80 pb-5">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary border border-primary/10 flex items-center justify-center shrink-0 shadow-xs">
+            <Brain className="h-5 w-5" />
           </div>
           <div>
-            <Text size={700} weight="bold" className={styles.headerTitle}>
-              Deep Dives
-              <Badge appearance="filled" color="informative" className={styles.headerCountBadge}>
+            <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+              <span>Deep Dives</span>
+              <Badge variant="secondary" className="px-2 py-0.5 font-bold text-[10px]">
                 {questions.length}
               </Badge>
-            </Text>
-            <Text size={200} className={styles.headerSubtitle}>Manage saved AI elaborations</Text>
+            </h1>
+            <p className="text-xs text-muted-foreground mt-0.5">Manage saved AI elaborations</p>
           </div>
         </div>
 
-        <div className={styles.headerRight}>
-          <Popover>
-            <PopoverTrigger disableButtonEnhancement>
-              <Button size="small" icon={<Filter20Regular />}>Filter</Button>
-            </PopoverTrigger>
-            <PopoverSurface className={styles.popoverSurface}>
-              <Text size={300} weight="semibold">Search & Filter</Text>
-              <Field label="Search">
-                <Input
-                  placeholder="Question, topic, quiz…"
-                  value={searchQuery}
-                  onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                />
-              </Field>
-              <Field label="Topic">
-                <Select
-                  value={topicFilter}
-                  onChange={e => { setTopicFilter(e.target.value); setCurrentPage(1); }}
-                >
-                  <option value="">All Topics</option>
-                  {uniqueTopics.map(t => <option key={t} value={t}>{t}</option>)}
-                </Select>
-              </Field>
-            </PopoverSurface>
-          </Popover>
-
+        <div className="flex items-center gap-2 flex-wrap">
           {questions.length > 0 && (
             <Button
-              size="small"
-              appearance="outline"
-              icon={loadingId === "bulk" ? <Spinner size="tiny" /> : <Delete20Regular />}
-              className={styles.bulkDeleteButton}
+              variant="outline"
+              size="sm"
               onClick={handleBulkDelete}
               disabled={loadingId === "bulk"}
+              className="text-danger border-danger/20 hover:bg-danger/10 hover:border-danger/40 h-9 font-semibold text-xs gap-1.5"
             >
-              {loadingId === "bulk" ? "Deleting..." : "Delete All"}
+              {loadingId === "bulk" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+              <span>{loadingId === "bulk" ? "Deleting..." : "Delete All"}</span>
             </Button>
           )}
 
-          <LinkButton href="/deep-dives" size="small" appearance="primary" icon={<Eye20Regular />}>
-            View Public Library
+          <LinkButton href="/deep-dives" variant="primary" className="h-9 px-4 font-semibold text-xs gap-1.5">
+            <Eye className="h-3.5 w-3.5" />
+            <span>View Public Library</span>
           </LinkButton>
         </div>
       </div>
 
-      {/* Empty state */}
+      {/* Toolbar Search & Filter Box */}
+      {questions.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center gap-3 bg-card border border-border/80 p-4 rounded-xl shadow-xs">
+          <div className="relative flex-1 w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+            <Input
+              placeholder="Search question, topic, quiz..."
+              value={searchQuery}
+              onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              className="pl-9 h-10 w-full"
+            />
+          </div>
+          <div className="w-full sm:w-48 shrink-0">
+            <Select
+              value={topicFilter}
+              onChange={e => { setTopicFilter(e.target.value); setCurrentPage(1); }}
+              className="h-10"
+            >
+              <option value="">All Topics</option>
+              {uniqueTopics.map(t => <option key={t} value={t}>{t}</option>)}
+            </Select>
+          </div>
+        </div>
+      )}
+
+      {/* Main Table or Empty State */}
       {questions.length === 0 ? (
         <NoData 
           title="No Saved Deep Dives" 
@@ -256,84 +203,150 @@ export function AdminDeepDivesManager({ questions: initialQuestions }: AdminDeep
           icon="brain" 
         />
       ) : (
-        <Card className={styles.tableCard}>
-          <div className={styles.tableScroll}>
-            <DataGrid items={paginated} columns={columns} className={styles.dataGrid}>
-              <DataGridHeader className={styles.dataGridHeader}>
-                <DataGridRow>
-                  {({ renderHeaderCell }) => (
-                    <DataGridHeaderCell className={styles.dataGridHeaderCell}>
-                      {renderHeaderCell()}
-                    </DataGridHeaderCell>
-                  )}
-                </DataGridRow>
-              </DataGridHeader>
-              <DataGridBody<QuestionRecord>>
-                {({ item, rowId }) => (
-                  <DataGridRow<QuestionRecord> key={rowId} className={styles.dataGridRow}>
-                    {({ renderCell }) => (
-                      <DataGridCell className={styles.dataGridCell}>{renderCell(item)}</DataGridCell>
-                    )}
-                  </DataGridRow>
-                )}
-              </DataGridBody>
-            </DataGrid>
+        <Card className="border-border/80 shadow-xs overflow-hidden p-0">
+          <div className="overflow-x-auto w-full">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-border/40 text-muted-foreground font-bold bg-secondary/10">
+                  <th scope="col" className="py-3 px-4 font-bold max-w-md">Question</th>
+                  <th scope="col" className="py-3 px-4 font-bold">Topic</th>
+                  <th scope="col" className="py-3 px-4 font-bold">Quiz</th>
+                  <th scope="col" className="py-3 px-4 font-bold text-center w-36">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginated.map((item) => (
+                  <tr key={item.id} className="border-b border-border/20 hover:bg-secondary/20 transition-colors">
+                    <td className="py-3 px-4 text-foreground/90 font-medium leading-relaxed max-w-md truncate">
+                      {item.text}
+                    </td>
+                    <td className="py-3 px-4 text-foreground/80 font-medium whitespace-nowrap">
+                      {item.topic.title === "__internal__" ? "General" : item.topic.title}
+                    </td>
+                    <td className="py-3 px-4">
+                      {item.quiz ? (
+                        <div className="flex flex-col gap-1 min-w-0">
+                          <span className="text-[10px] text-foreground font-bold truncate leading-none">{item.quiz.title}</span>
+                          <Badge variant={difficultyBadgeVariant(item.quiz.difficulty)} className="capitalize text-[8px] font-bold px-1 py-0 w-fit">
+                            {item.quiz.difficulty}
+                          </Badge>
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground font-medium italic">Unlinked</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <LinkButton 
+                          href={`/deep-dives/${item.id}`} 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-muted-foreground hover:bg-surface-hover hover:text-foreground rounded-lg"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </LinkButton>
+
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRegenerate(item)}
+                          disabled={!!loadingId}
+                          className="h-8 w-8 text-muted-foreground hover:bg-surface-hover hover:text-primary rounded-lg"
+                        >
+                          {loadingId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                        </Button>
+
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(item)}
+                          disabled={loadingId === item.id || loadingId === "bulk"}
+                          className="h-8 w-8 text-muted-foreground hover:bg-danger/10 hover:text-danger rounded-lg"
+                        >
+                          {loadingId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
-          {/* Pagination footer */}
-          <div className={styles.paginationFooter}>
-            <div className={styles.paginationLeft}>
-              <Text size={200} className={styles.paginationLabel}>Show</Text>
-              <Select value={pageSize.toString()} onChange={e => { setPageSize(parseInt(e.target.value)); setCurrentPage(1); }} size="small" className={styles.pageSizeSelect}>
+          {/* Pagination Footer */}
+          <div className="flex flex-col sm:flex-row items-center justify-between p-4 border-t border-border/40 gap-4 bg-secondary/5 text-xs select-none">
+            <div className="flex items-center gap-2 text-muted-foreground/80 font-medium">
+              <span>Show</span>
+              <Select 
+                value={pageSize.toString()} 
+                onChange={e => { setPageSize(parseInt(e.target.value)); setCurrentPage(1); }} 
+                className="h-8 w-16"
+              >
                 <option value="5">5</option>
                 <option value="10">10</option>
                 <option value="20">20</option>
                 <option value="50">50</option>
               </Select>
-              <Text size={200} className={styles.paginationLabel}>entries</Text>
+              <span>entries</span>
             </div>
-            <Text size={200} className={styles.paginationRange}>
-              {totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, totalItems)} of {totalItems}
-            </Text>
-            <div className={styles.paginationButtons}>
-              <Button size="small" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>Previous</Button>
-              <Button size="small" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>Next</Button>
+
+            <span className="text-muted-foreground/80 font-medium">
+              Showing {totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, totalItems)} of {totalItems} entries
+            </span>
+
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                disabled={currentPage === 1} 
+                onClick={() => setCurrentPage(p => p - 1)}
+                className="h-8 font-semibold text-xs"
+              >
+                Previous
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                disabled={currentPage === totalPages} 
+                onClick={() => setCurrentPage(p => p + 1)}
+                className="h-8 font-semibold text-xs"
+              >
+                Next
+              </Button>
             </div>
           </div>
         </Card>
       )}
 
       {/* Confirmation dialog */}
-      <Dialog open={confirmDialog.open} onOpenChange={(_, d) => setConfirmDialog(p => ({ ...p, open: d.open }))}>
-        <DialogSurface className={styles.dialogSurface}>
-          <DialogBody>
-            <DialogTitle action={<DialogTrigger action="close"><Button appearance="subtle" aria-label="close" icon={<Dismiss20Regular />} /></DialogTrigger>}>
-              {confirmDialog.title}
-            </DialogTitle>
-            <DialogContent className={styles.dialogContent}>
-              <Text className={styles.dialogText}>
+      <Dialog open={confirmDialog.open} onOpenChange={open => setConfirmDialog(p => ({ ...p, open }))}>
+        <DialogSurface className="max-w-[420px]">
+          <DialogTitle>{confirmDialog.title}</DialogTitle>
+          <DialogContent>
+            <div className="flex gap-3.5 items-start mt-2">
+              <AlertTriangle className="h-5 w-5 text-danger shrink-0 mt-0.5" />
+              <span className="text-sm text-muted-foreground leading-relaxed">
                 {confirmDialog.description}
-              </Text>
-            </DialogContent>
-            <DialogActions className={styles.dialogActions}>
-              <DialogTrigger disableButtonEnhancement>
-                <Button appearance="secondary">Cancel</Button>
-              </DialogTrigger>
-              <Button
-                appearance="primary"
-                className={styles.dialogConfirmButton}
-                onClick={async () => {
-                  await confirmDialog.onConfirm();
-                  setConfirmDialog(p => ({ ...p, open: false }));
-                }}
-              >
-                Confirm
-              </Button>
-            </DialogActions>
-          </DialogBody>
+              </span>
+            </div>
+          </DialogContent>
+          <DialogActions>
+            <Button variant="outline" onClick={() => setConfirmDialog(p => ({ ...p, open: false }))}>
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              onClick={async () => {
+                await confirmDialog.onConfirm();
+                setConfirmDialog(p => ({ ...p, open: false }));
+              }}
+            >
+              Confirm
+            </Button>
+          </DialogActions>
         </DialogSurface>
       </Dialog>
-
     </div>
   );
 }
+export default AdminDeepDivesManager;

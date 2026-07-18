@@ -1,13 +1,16 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Card, Text, Badge, Input, Select, Spinner, makeStyles } from "@fluentui/react-components";
-import { Search24Regular, ArrowRight16Regular } from "@fluentui/react-icons";
 import Link from "next/link";
+import { Search, ArrowRight, Share2 } from "lucide-react";
 import { ShareButton } from "@/components/ui/ShareButton";
-import { Share24Regular } from "@fluentui/react-icons";
 import { difficultyColor } from "@/lib/format";
 import NoData from "@/components/feedback/NoData";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
+import { Spinner } from "@/components/ui/Spinner";
 
 interface QuizItem {
   id: string;
@@ -26,154 +29,11 @@ interface QuizCardGridProps {
   basePath: string;
 }
 
-const useStyles = makeStyles({
-  wrap: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "24px",
-  },
-  toolbar: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "12px",
-    backgroundColor: "#ffffff",
-    padding: "14px 20px",
-    borderRadius: "14px",
-    border: "1px solid #e2e8f0",
-    boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
-  },
-  searchIcon: {
-    fontSize: "18px",
-    color: "#64748b",
-  },
-  searchInput: {
-    minWidth: "220px",
-    flex: 1,
-  },
-  filterSelect: {
-    width: "160px",
-  },
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-    gap: "16px",
-    "@media (min-width: 640px)": {
-      gap: "20px",
-    },
-  },
-  card: {
-    borderRadius: "16px",
-    border: "1px solid #e2e8f0",
-    boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
-    padding: "22px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "14px",
-    backgroundColor: "#ffffff",
-    transitionProperty: "transform, box-shadow, border-color",
-    transitionDuration: "0.2s",
-    ":hover": {
-      transform: "translateY(-3px)",
-      boxShadow: "0 14px 30px rgba(15, 23, 42, 0.10)",
-    },
-    "@media (max-width: 480px)": {
-      padding: "18px",
-      gap: "12px",
-    },
-  },
-  quizNo: {
-    color: "#64748b",
-    fontWeight: 600,
-    display: "block",
-    marginBottom: "4px",
-    textTransform: "uppercase",
-    letterSpacing: "0.04em",
-    fontSize: "12px",
-  },
-  title: {
-    color: "#0f172a",
-    lineHeight: 1.3,
-    display: "block",
-  },
-  badgeRow: {
-    display: "flex",
-    gap: "8px",
-    flexWrap: "wrap",
-    marginTop: "auto",
-  },
-  badgeRounded: {
-    borderRadius: "6px",
-  },
-  actionRow: {
-    display: "flex",
-    gap: "10px",
-    marginTop: "8px",
-    alignItems: "center",
-  },
-  startBtn: {
-    flex: 1,
-    height: "40px",
-    textDecoration: "none",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "8px",
-    backgroundColor: "#4f46e5",
-    color: "#ffffff",
-    borderRadius: "10px",
-    fontWeight: 600,
-    fontSize: "14px",
-    padding: "0 14px",
-    boxShadow: "0 2px 4px rgba(79, 70, 229, 0.18)",
-    transitionProperty: "background-color",
-    transitionDuration: "0.2s",
-    ":hover": {
-      backgroundColor: "#4338ca",
-    },
-  },
-  shareBtn: {
-    height: "40px",
-    width: "40px",
-    borderRadius: "10px",
-    border: "1px solid #cbd5e1",
-    backgroundColor: "#ffffff",
-    padding: "0",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  emptyState: {
-    textAlign: "center",
-    padding: "64px 24px",
-    backgroundColor: "#ffffff",
-    borderRadius: "16px",
-    border: "1px dashed #cbd5e1",
-  },
-  emptyIcon: {
-    fontSize: "36px",
-    color: "#94a3b8",
-    marginBottom: "12px",
-  },
-  emptyTitle: {
-    color: "#1e293b",
-    marginBottom: "6px",
-  },
-  emptyText: {
-    color: "#64748b",
-  },
-  loadMore: {
-    display: "flex",
-    justifyContent: "center",
-    padding: "16px 0",
-  },
-});
-
 /**
  * Reusable Card Grid component for Quizzes.
  * Features search filtering, difficulty filtering, and infinite scroll paging.
  */
 export function QuizCardGrid({ quizzes, subtopicTitle, basePath }: QuizCardGridProps) {
-  const styles = useStyles();
   const [searchQuery, setSearchQuery] = useState("");
   const [difficultyFilter, setDifficultyFilter] = useState("");
   const [visibleCount, setVisibleCount] = useState(12);
@@ -191,7 +51,6 @@ export function QuizCardGrid({ quizzes, subtopicTitle, basePath }: QuizCardGridP
 
   // Reset pagination count on search or filter change
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setVisibleCount(12);
   }, [searchQuery, difficultyFilter]);
 
@@ -215,87 +74,98 @@ export function QuizCardGrid({ quizzes, subtopicTitle, basePath }: QuizCardGridP
     };
   }, [hasMore]);
 
-  return (
-    <div className={styles.wrap}>
-      {/* Filtering Toolbar */}
-      <div className={styles.toolbar}>
-        <Input
-          contentBefore={<Search24Regular className={styles.searchIcon} />}
-          placeholder="Search quizzes by title..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className={styles.searchInput}
-        />
+  const difficultyBadgeVariant = (difficulty: string) => {
+    const diff = difficulty.toLowerCase();
+    if (diff === "easy") return "success";
+    if (diff === "medium") return "warning";
+    if (diff === "hard") return "danger";
+    return "default";
+  };
 
-        <Select
-          value={difficultyFilter}
-          onChange={(e, data) => setDifficultyFilter(data.value)}
-          className={styles.filterSelect}
-        >
-          <option value="">All Difficulties</option>
-          <option value="Easy">Easy</option>
-          <option value="Medium">Medium</option>
-          <option value="Hard">Hard</option>
-        </Select>
+  return (
+    <div className="flex flex-col gap-6 w-full">
+      {/* Filtering Toolbar */}
+      <div className="flex flex-col sm:flex-row items-center gap-3.5 bg-card border border-border/80 p-4 rounded-xl shadow-xs transition-colors duration-200">
+        <div className="relative flex-1 w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+          <Input
+            placeholder="Search quizzes by title..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 h-10 w-full"
+          />
+        </div>
+
+        <div className="w-full sm:w-44 shrink-0">
+          <Select
+            value={difficultyFilter}
+            onChange={(e) => setDifficultyFilter(e.target.value)}
+            className="h-10"
+          >
+            <option value="">All Difficulties</option>
+            <option value="Easy">Easy</option>
+            <option value="Medium">Medium</option>
+            <option value="Hard">Hard</option>
+          </Select>
+        </div>
       </div>
 
       {/* Grid of Quizzes */}
       {paginated.length > 0 ? (
-        <div className={styles.grid}>
-           {paginated.map((quiz) => (
-             <Card key={quiz.id} className={styles.card}>
-               <div>
-                 <Text size={100} className={styles.quizNo}>
-                   Quiz #{quiz.quizOrder}
-                 </Text>
-               <Text size={400} weight="bold" className={styles.title}>
-                 {quiz.title}
-               </Text>
-             </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {paginated.map((quiz) => (
+            <Card key={quiz.id} className="p-5 flex flex-col justify-between hover:border-primary/40 hover:shadow-md transition-all duration-200 bg-card border-border/80">
+              <div className="flex flex-col gap-2">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none">
+                  Quiz #{quiz.quizOrder}
+                </span>
+                <h3 className="text-sm font-bold text-foreground leading-snug line-clamp-2">
+                  {quiz.title}
+                </h3>
+              </div>
 
-             <div className={styles.badgeRow}>
-               <Badge color={difficultyColor(quiz.difficulty)} className={styles.badgeRounded}>
-                 {quiz.difficulty}
-               </Badge>
-               <Badge appearance="tint" color="informative" className={styles.badgeRounded}>
-                 {quiz._count?.questions || 0} questions
-               </Badge>
-             </div>
+              <div className="flex items-center gap-1.5 flex-wrap mt-4 select-none">
+                <Badge variant={difficultyBadgeVariant(quiz.difficulty)} className="capitalize font-bold text-[10px] px-2 py-0.5">
+                  {quiz.difficulty}
+                </Badge>
+                <Badge variant="default" className="bg-primary/5 text-primary border-primary/20 text-[10px] px-2 py-0.5">
+                  {quiz._count?.questions || 0} questions
+                </Badge>
+              </div>
 
-             <div className={styles.actionRow}>
-               <Link
-                 href={`${basePath}/quiz/${quiz.id}`}
-                 className={styles.startBtn}
-               >
-                 Start Quiz
-                 <ArrowRight16Regular />
-               </Link>
+              <div className="flex items-center gap-2.5 mt-5 pt-3.5 border-t border-border/30">
+                <Link
+                  href={`${basePath}/quiz/${quiz.id}`}
+                  className="flex-1 inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg bg-primary text-primary-foreground font-semibold text-xs shadow-xs hover:bg-primary-hover active:scale-[0.98] transition-all no-underline duration-150 cursor-pointer"
+                >
+                  <span>Start Quiz</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
 
-               {/* Sharing button (mobile-safe: no hover) */}
-               <ShareButton
-                 icon={<Share24Regular />}
-                 buttonAppearance="outline"
-                 buttonSize="large"
-                 buttonClassName={styles.shareBtn}
-                 shareText={`${quiz.title} — Take this quiz on Quizzer!`}
-                 defaultUrl={`${typeof window !== "undefined" ? window.location.origin : ""}${basePath}/quiz/${quiz.id}`}
-                 resolveUrl={async () => {
-                   try {
-                     const res = await fetch(`/api/quiz/${quiz.id}/share-url`);
-                     if (res.ok) {
-                       const json = await res.json();
-                       return json?.url ? `${window.location.origin}${json.url}` : undefined;
-                     }
-                   } catch {
-                     return undefined;
-                   }
-                   return undefined;
-                 }}
-               />
-             </div>
-           </Card>
-         ))}
-       </div>
+                <ShareButton
+                  icon={<Share2 className="h-4 w-4" />}
+                  buttonAppearance="outline"
+                  buttonSize="icon"
+                  buttonClassName="h-10 w-10 shrink-0 border border-border/80 bg-surface rounded-lg"
+                  shareText={`${quiz.title} — Take this quiz on Quizzer!`}
+                  defaultUrl={`${typeof window !== "undefined" ? window.location.origin : ""}${basePath}/quiz/${quiz.id}`}
+                  resolveUrl={async () => {
+                    try {
+                      const res = await fetch(`/api/quiz/${quiz.id}/share-url`);
+                      if (res.ok) {
+                        const json = await res.json();
+                        return json?.url ? `${window.location.origin}${json.url}` : undefined;
+                      }
+                    } catch {
+                      return undefined;
+                    }
+                    return undefined;
+                  }}
+                />
+              </div>
+            </Card>
+          ))}
+        </div>
       ) : (
         <NoData 
           title={`No quizzes found in "${subtopicTitle}"`} 
@@ -304,12 +174,15 @@ export function QuizCardGrid({ quizzes, subtopicTitle, basePath }: QuizCardGridP
         />
       )}
 
-     {/* Infinite Scroll Spinner */}
-     {hasMore && (
-       <div ref={sentinelRef} className={styles.loadMore}>
-         <Spinner label="Loading more quizzes..." />
-       </div>
-     )}
-   </div>
- );
+      {/* Infinite Scroll Spinner */}
+      {hasMore && (
+        <div ref={sentinelRef} className="flex justify-center py-6 select-none">
+          <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground/80">
+            <Spinner size="sm" />
+            <span>Loading more quizzes...</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }

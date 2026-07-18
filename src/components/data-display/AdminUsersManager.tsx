@@ -2,26 +2,23 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
-import {
-  Text, Button, Badge, Input, Card, Spinner, Avatar,
-  Dialog, DialogSurface, DialogBody, DialogTitle, DialogContent, DialogActions,
-  DataGrid, DataGridHeader, DataGridRow, DataGridHeaderCell,
-  DataGridBody, DataGridCell, TableCellLayout, TableColumnDefinition,
-  createTableColumn,
-} from "@fluentui/react-components";
-import { Delete20Regular, Search24Regular, Warning48Regular } from "@fluentui/react-icons";
+import { Trash2, Search, AlertTriangle, Loader2 } from "lucide-react";
 import { AdminUsersManagerProps, UserData } from "./interfaces/AdminUsersManager.interface";
-import { useAdminUsersManagerStyles } from "./styles/useAdminUsersManagerStyles";
 import { UserService } from "@/lib/services/user.service";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Alert } from "@/components/ui/Alert";
+import { Input } from "@/components/ui/Input";
+import { Dialog, DialogSurface, DialogTitle, DialogContent, DialogActions } from "@/components/ui/Dialog";
+import { Spinner } from "@/components/ui/Spinner";
+import { cn } from "@/utils/cn";
 
 /**
  * AdminUsersManager Component. Provides the user interface for listing and deleting users.
- * Accessible to admins only. Uses Fluent UI DataGrid for proper column alignment.
- *
- * @param props - The properties for the component containing the initial list of users.
+ * Accessible to admins only.
  */
 export function AdminUsersManager({ initialUsers }: AdminUsersManagerProps) {
-  const styles = useAdminUsersManagerStyles();
   const { data: session } = useSession();
 
   const [users, setUsers] = useState<UserData[]>(initialUsers);
@@ -34,7 +31,6 @@ export function AdminUsersManager({ initialUsers }: AdminUsersManagerProps) {
   const [userToDelete, setUserToDelete] = useState<UserData | null>(null);
 
   const currentUserId = (session?.user as { id?: string | null } | null)?.id;
-
 
   /** Filter users based on search query */
   const filteredUsers = users.filter((user) => {
@@ -63,192 +59,137 @@ export function AdminUsersManager({ initialUsers }: AdminUsersManagerProps) {
     } catch (err) {
       const message = err instanceof Error ? err.message : undefined;
       setError(message || "Failed to delete user");
-
     } finally {
       setLoading(false);
       setUserToDelete(null);
     }
   };
 
-  /** DataGrid column definitions using Fluent UI createTableColumn */
-  const columns: TableColumnDefinition<UserData>[] = [
-    createTableColumn<UserData>({
-      columnId: "user",
-      renderHeaderCell: () => "User Details",
-      renderCell: (user) => (
-        <TableCellLayout
-          media={
-            <Avatar
-              name={user.name || user.email || "Anonymous"}
-              image={{ src: user.image || undefined }}
-              size={28}
-            />
-          }
-        >
-          <Text weight="semibold">{user.name || "Anonymous User"}</Text>
-        </TableCellLayout>
-      ),
-    }),
-    createTableColumn<UserData>({
-      columnId: "email",
-      renderHeaderCell: () => "Email",
-      renderCell: (user) => (
-        <TableCellLayout>
-          <Text>{user.email || "N/A"}</Text>
-        </TableCellLayout>
-      ),
-    }),
-    createTableColumn<UserData>({
-      columnId: "phone",
-      renderHeaderCell: () => "Phone Number",
-      renderCell: (user) => (
-        <TableCellLayout>
-              <Text>
-                {("phoneNumber" in user && typeof (user as { phoneNumber?: string }).phoneNumber === "string")
-                  ? (user as { phoneNumber?: string }).phoneNumber
-                  : "N/A"}
-              </Text>
-
-
-        </TableCellLayout>
-      ),
-    }),
-    createTableColumn<UserData>({
-      columnId: "role",
-      renderHeaderCell: () => "Role",
-      renderCell: (user) => (
-        <TableCellLayout>
-          <Badge
-            appearance="filled"
-            color={user.role === "ADMIN" ? "brand" : "subtle"}
-            className={styles.roleBadge}
-          >
-            {user.role}
-          </Badge>
-        </TableCellLayout>
-      ),
-    }),
-    createTableColumn<UserData>({
-      columnId: "attempts",
-      renderHeaderCell: () => "Quiz Attempts",
-      renderCell: (user) => (
-        <TableCellLayout>
-          <Text>{user._count.attempts}</Text>
-        </TableCellLayout>
-      ),
-    }),
-    createTableColumn<UserData>({
-      columnId: "actions",
-      renderHeaderCell: () => "Actions",
-      renderCell: (user) => {
-        const isSelf = user.id === currentUserId;
-        return (
-          <TableCellLayout>
-            <Button
-              icon={loading ? <Spinner size="tiny" /> : <Delete20Regular />}
-              appearance="subtle"
-              disabled={isSelf || loading}
-              onClick={() => handleDeleteClick(user)}
-              aria-label={`Delete ${user.name || "user"}`}
-            />
-          </TableCellLayout>
-        );
-      },
-    }),
-  ];
-
-  /** Column width sizing options for DataGrid */
-  const columnSizingOptions = {
-    user:     { minWidth: 180, defaultWidth: 220 },
-    email:    { minWidth: 160, defaultWidth: 210 },
-    phone:    { minWidth: 120, defaultWidth: 150 },
-    role:     { minWidth:  80, defaultWidth: 110 },
-    attempts: { minWidth:  80, defaultWidth: 130 },
-    actions:  { minWidth:  60, defaultWidth:  80 },
-  };
-
   return (
-    <div className={styles.container}>
+    <div className="flex flex-col gap-6 py-4">
       {/* Controls Row: Title + Search */}
-      <div className={styles.controlsRow}>
-        <Text size={700} weight="bold">User Management</Text>
-        <Input
-          contentBefore={<Search24Regular />}
-          placeholder="Search by name or email..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className={styles.searchBar}
-          aria-label="Search users"
-        />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/80 pb-4">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">User Management</h1>
+        <div className="relative w-full sm:w-80">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+          <Input
+            placeholder="Search by name or email..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 h-10 w-full"
+            aria-label="Search users"
+          />
+        </div>
       </div>
 
-      {error && <Text className={styles.errorText}>{error}</Text>}
-
-      <Card className={styles.tableCard}>
-        {loading ? (
-          <div className={styles.spinnerContainer}>
-            <Spinner label="Updating..." />
-          </div>
-        ) : (
-          <DataGrid
-            items={filteredUsers}
-            columns={columns}
-            getRowId={(user) => user.id}
-            resizableColumns
-            columnSizingOptions={columnSizingOptions}
-            focusMode="composite"
-            aria-label="Users list"
-          >
-            <DataGridHeader>
-              <DataGridRow>
-                {({ renderHeaderCell }) => (
-                  <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
-                )}
-              </DataGridRow>
-            </DataGridHeader>
-            <DataGridBody<UserData>>
-              {({ item, rowId }) => (
-                <DataGridRow<UserData> key={rowId}>
-                  {({ renderCell }) => (
-                    <DataGridCell>{renderCell(item)}</DataGridCell>
-                  )}
-                </DataGridRow>
-              )}
-            </DataGridBody>
-          </DataGrid>
+        {error && (
+          <Alert variant="danger" title="Error">
+            {error}
+          </Alert>
         )}
 
-        {!loading && filteredUsers.length === 0 && (
-          <Text className={styles.emptyRowCell} italic>
-            No users found matching search criteria.
-          </Text>
+      <Card className="border-border/80 shadow-xs overflow-hidden p-0">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-2 text-xs text-muted-foreground select-none">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <span>Updating user records…</span>
+          </div>
+        ) : filteredUsers.length === 0 ? (
+          <div className="py-16 text-center select-none">
+            <p className="text-sm font-semibold text-foreground">No users found</p>
+            <p className="text-xs text-muted-foreground mt-1">Try adjusting your search query.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto w-full">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-border/40 text-muted-foreground font-bold bg-secondary/10">
+                  <th scope="col" className="py-3.5 px-4 font-bold">User Details</th>
+                  <th scope="col" className="py-3.5 px-4 font-bold">Email</th>
+                  <th scope="col" className="py-3.5 px-4 font-bold">Phone Number</th>
+                  <th scope="col" className="py-3.5 px-4 font-bold text-center">Role</th>
+                  <th scope="col" className="py-3.5 px-4 font-bold text-center">Quiz Attempts</th>
+                  <th scope="col" className="py-3.5 px-4 font-bold text-center w-24">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUsers.map((user) => {
+                  const isSelf = user.id === currentUserId;
+                  const phoneNumber = ("phoneNumber" in user && typeof (user as { phoneNumber?: string }).phoneNumber === "string")
+                    ? (user as { phoneNumber?: string }).phoneNumber
+                    : "N/A";
+
+                  return (
+                    <tr key={user.id} className="border-b border-border/20 hover:bg-secondary/20 transition-colors">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          {user.image ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={user.image} alt={user.name || "User"} className="h-7 w-7 rounded-full object-cover border border-border/40 shrink-0" />
+                          ) : (
+                            <div className="h-7 w-7 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-[10px] shrink-0">
+                              {(user.name || user.email || "U").slice(0, 2).toUpperCase()}
+                            </div>
+                          )}
+                          <span className="font-semibold text-foreground truncate">
+                            {user.name || "Anonymous User"}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-foreground/80 font-medium">{user.email || "N/A"}</td>
+                      <td className="py-3 px-4 text-foreground/85 font-medium">{phoneNumber}</td>
+                      <td className="py-3 px-4 text-center">
+                        <Badge variant={user.role === "ADMIN" ? "default" : "secondary"} className="capitalize font-bold text-[9px] px-2 py-0.5">
+                          {user.role}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4 text-center font-bold text-foreground/90">{user._count.attempts}</td>
+                      <td className="py-3 px-4 text-center">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          disabled={isSelf || loading}
+                          onClick={() => handleDeleteClick(user)}
+                          className="h-8 w-8 text-muted-foreground hover:bg-danger/10 hover:text-danger hover:border-danger/20 rounded-lg"
+                          aria-label={`Delete ${user.name || "user"}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </Card>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteConfirmOpen} onOpenChange={(_, data) => setDeleteConfirmOpen(data.open)}>
-        <DialogSurface>
-          <DialogBody>
-            <DialogTitle>Delete User</DialogTitle>
-            <DialogContent>
-              <div className={styles.dialogBodyRow}>
-                <Warning48Regular className={styles.warningIcon} />
-                <Text>
-                  Are you sure you want to delete{" "}
-                  <strong>{userToDelete?.name || userToDelete?.email}</strong>?{" "}
-                  This will permanently erase their profile, all their quiz attempts, and answers. This action cannot be undone.
-                </Text>
-              </div>
-            </DialogContent>
-            <DialogActions className={styles.dialogActionsRow}>
-              <Button appearance="secondary" onClick={() => setDeleteConfirmOpen(false)}>Cancel</Button>
-              <Button appearance="primary" onClick={handleConfirmDelete} className={styles.btnConfirmDelete}>
-                Delete User
-              </Button>
-            </DialogActions>
-          </DialogBody>
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogSurface className="max-w-[440px]">
+          <DialogTitle>Delete User</DialogTitle>
+          <DialogContent>
+            <div className="flex gap-3.5 items-start mt-2">
+              <AlertTriangle className="h-5 w-5 text-danger shrink-0 mt-0.5" />
+              <span className="text-sm text-muted-foreground leading-relaxed">
+                Are you sure you want to delete{" "}
+                <strong className="text-foreground font-semibold">{userToDelete?.name || userToDelete?.email}</strong>?{" "}
+                This will permanently erase their profile, all their quiz attempts, and answers. This action cannot be undone.
+              </span>
+            </div>
+          </DialogContent>
+          <DialogActions>
+            <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handleConfirmDelete}>
+              Delete User
+            </Button>
+          </DialogActions>
         </DialogSurface>
       </Dialog>
     </div>
   );
 }
+export default AdminUsersManager;

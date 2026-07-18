@@ -1,7 +1,116 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-winky);
-  --font-serif: var(--font-winky);
-  --font-mono: var(--font-geist-mono);
+  
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-active: var(--surface-active);
+  
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-navigation: var(--navigation);
+  --color-header: var(--header);
+  --color-footer: var(--footer);
+  
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-foreground: var(--accent-foreground);
+  
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  
+  --color-card: var(--card);
+  --color-popover: var(--popover);
+  --color-dialog: var(--dialog);
+  --color-overlay: var(--overlay);
+  
+  --color-tooltip: var(--tooltip);
+  --color-tooltip-foreground: var(--tooltip-foreground);
+  
+  --color-selection: var(--selection);
+  --color-scrollbar-thumb: var(--scrollbar-thumb);
+  --color-scrollbar-thumb-hover: var(--scrollbar-thumb-hover);
+  --color-charts: var(--charts);
+  --color-charts-secondary: var(--charts-secondary);
+  
+  --color-skeleton: var(--skeleton);
+  --color-disabled: var(--disabled);
+  --color-disabled-foreground: var(--disabled-foreground);
+
+  --color-brand-whatsapp: var(--brand-whatsapp);
+  --color-brand-facebook: var(--brand-facebook);
+  --color-brand-telegram: var(--brand-telegram);
+  
+  --color-markdown-code-bg: var(--markdown-code-bg);
+  --color-markdown-pre-bg: var(--markdown-pre-bg);
+  --color-markdown-pre-fg: var(--markdown-pre-fg);
+  --color-markdown-quote-fg: var(--markdown-quote-fg);
+  --color-markdown-quote-border: var(--markdown-quote-border);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
+
+  --blur-sm: var(--blur-sm);
+  --blur-md: var(--blur-md);
+  --blur-lg: var(--blur-lg);
+
+  --z-base: var(--z-base);
+  --z-sticky: var(--z-sticky);
+  --z-header: var(--z-header);
+  --z-dropdown: var(--z-dropdown);
+  --z-overlay: var(--z-overlay);
+  --z-dialog: var(--z-dialog);
+  --z-tooltip: var(--z-tooltip);
+  --z-toast: var(--z-toast);
+
+  --animate-shimmer: shimmer 1.6s linear infinite;
+
+  --animate-fade-in: fade-in 150ms ease-out;
+  --animate-fade-out: fade-out 150ms ease-in;
+  --animate-popover-in: popover-in 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-scale-in: scale-in 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-slide-in-top: slide-in-top 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-slide-in-bottom: slide-in-bottom 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-slide-in-left: slide-in-left 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-slide-in-right: slide-in-right 200ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  --font-sans: var(--font-winky), Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-winky), ui-serif, Georgia, serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }

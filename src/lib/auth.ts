@@ -3,17 +3,9 @@ import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "./prisma";
+import type { UserRole, SessionUser } from "./session";
 
-export type UserRole = "USER" | "ADMIN";
-
-export interface SessionUser {
-  id: string;
-  name?: string | null;
-  email?: string | null;
-  image?: string | null;
-  role: UserRole;
-  phoneNumber?: string | null;
-}
+export type { UserRole, SessionUser };
 
 export const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || "admin@quizzer.com").trim().toLowerCase();
 export const MASTER_OTP = process.env.MASTER_OTP || "123456";

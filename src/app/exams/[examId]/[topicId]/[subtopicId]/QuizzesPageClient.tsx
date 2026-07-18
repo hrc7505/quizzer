@@ -5,7 +5,7 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Breadcrumbs } from "@/components/navigation/Breadcrumbs";
 import { ContentHeader } from "@/components/layouts/ContentHeader";
 import { QuizCardGrid } from "@/components/data-display/QuizCardGrid";
-import { BookOpen24Regular } from "@/design-system/icons/Icons";
+import { BookOpen } from "lucide-react";
 
 interface QuizzesPageClientProps {
   examId: string;
@@ -42,7 +42,7 @@ function QuizzesPageClient({ examId, topicId, subtopicId, exam, topic, subtopic 
     <PageLayout>
       <Breadcrumbs items={breadcrumbItems} />
       <ContentHeader
-        icon={<BookOpen24Regular />}
+        icon={<BookOpen />}
         variant="quiz"
         title={subtopic.title}
         description={subtopic.description}

@@ -1,7 +1,7 @@
 "use client";
 
-import { makeStyles } from "@fluentui/react-components";
 import type { ReactNode } from "react";
+import { cn } from "@/utils/cn";
 
 export type ContentHeaderVariant = "exam" | "topic" | "subtopic" | "quiz";
 
@@ -12,61 +12,43 @@ interface ContentHeaderProps {
   description?: string | null;
 }
 
-const GRADIENTS: Record<ContentHeaderVariant, string> = {
-  exam: "linear-gradient(135deg, #0078d4 0%, #00bcf2 100%)",
-  topic: "linear-gradient(135deg, #4f46e5 0%, #818cf8 100%)",
-  subtopic: "linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)",
-  quiz: "linear-gradient(135deg, #10b981 0%, #34d399 100%)",
+const GRADIENT_CLASSES: Record<ContentHeaderVariant, string> = {
+  exam: "from-info to-primary",
+  topic: "from-primary to-accent",
+  subtopic: "from-info to-accent",
+  quiz: "from-success to-primary",
 };
 
-const useStyles = makeStyles({
-  root: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: "12px",
-    marginBottom: "32px",
-  },
-  badge: {
-    width: "44px",
-    height: "44px",
-    flexShrink: 0,
-    borderRadius: "10px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    lineHeight: 0,
-    color: "#fff",
-  },
-  title: {
-    fontSize: "28px",
-    fontWeight: 700,
-    lineHeight: 1.2,
-    color: "#242424",
-    margin: 0,
-  },
-   titleWrap: {
-     minWidth: 0,
-   },
-   description: {
-     color: "#616161",
-     fontSize: "14px",
-     lineHeight: 1.5,
-     margin: "6px 0 0 0",
-   },
-});
-
-export function ContentHeader({ icon, variant = "exam", title, description }: ContentHeaderProps) {
-  const styles = useStyles();
-  const gradient = GRADIENTS[variant];
+export function ContentHeader({ 
+  icon, 
+  variant = "exam", 
+  title, 
+  description 
+}: ContentHeaderProps) {
+  
+  const gradientClass = GRADIENT_CLASSES[variant];
 
   return (
-    <div className={styles.root}>
-      <div className={styles.badge} style={{ background: gradient }}>
-        {icon}
+    <div className="flex items-start gap-4 mb-8">
+      {/* Icon badge with gradient backdrop */}
+      <div 
+        className={cn(
+          "w-11 h-11 shrink-0 rounded-xl flex items-center justify-center text-white bg-gradient-to-br shadow-sm border border-white/10",
+          gradientClass
+        )}
+      >
+        <span className="scale-110">{icon}</span>
       </div>
-      <div className={styles.titleWrap}>
-        <h1 className={styles.title}>{title}</h1>
-        {description ? <p className={styles.description}>{description}</p> : null}
+      
+      <div className="min-w-0">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground leading-snug">
+          {title}
+        </h1>
+        {description && (
+          <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed max-w-2xl">
+            {description}
+          </p>
+        )}
       </div>
     </div>
   );

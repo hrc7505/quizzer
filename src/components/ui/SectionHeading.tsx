@@ -1,18 +1,7 @@
 "use client";
 
 import { type ReactNode } from "react";
-import { makeStyles } from "@fluentui/react-components";
-
-const useStyles = makeStyles({
-  heading: {
-    fontSize: "20px",
-    fontWeight: "bold",
-    color: "#0f172a",
-    marginBottom: "16px",
-    borderBottom: "2px solid #eaeaea",
-    paddingBottom: "8px",
-  },
-});
+import { cn } from "@/utils/cn";
 
 interface SectionHeadingProps {
   children: ReactNode;
@@ -20,10 +9,12 @@ interface SectionHeadingProps {
 }
 
 export function SectionHeading({ children, className }: SectionHeadingProps) {
-  const styles = useStyles();
   return (
     <h2
-      className={`${styles.heading} ${className ?? ""}`}
+      className={cn(
+        "text-lg font-bold text-foreground border-b border-border/80 pb-2 mb-4 tracking-tight animate-fade-in-up",
+        className
+      )}
     >
       {children}
     </h2>

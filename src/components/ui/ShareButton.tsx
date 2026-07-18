@@ -1,19 +1,11 @@
 "use client";
 
-import { useState, type CSSProperties, type ReactElement, type ReactNode } from "react";
-import {
-  Button,
-  Menu,
-  MenuTrigger,
-  MenuPopover,
-  Spinner,
-  Text,
-  makeStyles,
-  mergeClasses,
-  shorthands,
-} from "@fluentui/react-components";
-import { Share24Regular, ShareAndroid24Regular } from "@fluentui/react-icons";
+import { useState, type CSSProperties, type ReactNode } from "react";
+import { Share2, Share, Loader2 } from "lucide-react";
 import { WhatsAppIcon, FacebookIcon, TelegramIcon } from "@/design-system/icons/socialIcons";
+import { Dropdown, DropdownTrigger, DropdownContent } from "@/components/ui/Dropdown";
+import { Button, type ButtonProps } from "@/components/ui/Button";
+import { cn } from "@/utils/cn";
 
 type SharePlatform = "whatsapp" | "facebook" | "telegram";
 
@@ -25,144 +17,11 @@ export interface ShareButtonProps {
   label?: string;
   /** Custom trigger icon. Defaults to the share glyph. */
   icon?: ReactNode;
-  buttonAppearance?: "primary" | "secondary" | "outline" | "subtle" | "transparent";
-  buttonSize?: "small" | "medium" | "large";
+  buttonAppearance?: ButtonProps["variant"];
+  buttonSize?: ButtonProps["size"];
   buttonStyle?: CSSProperties;
   buttonClassName?: string;
 }
-
-const useStyles = makeStyles({
-  trigger: {
-    ...shorthands.padding("0"),
-  },
-
-  popover: {
-    ...shorthands.borderRadius("16px"),
-    ...shorthands.padding("0"),
-    boxShadow: "0 12px 32px rgba(15, 23, 42, 0.18)",
-    border: "1px solid #e2e8f0",
-    overflow: "hidden",
-  },
-
-  sheet: {
-    width: "248px",
-    ...shorthands.padding("16px"),
-    display: "flex",
-    flexDirection: "column",
-    ...shorthands.gap("12px"),
-  },
-
-  sheetHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-
-  sheetTitle: {
-    color: "#0f172a",
-    fontSize: "14px",
-  },
-
-  nativeRow: {
-    display: "flex",
-    alignItems: "center",
-    ...shorthands.gap("12px"),
-    width: "100%",
-    ...shorthands.border("none"),
-    background: "transparent",
-    cursor: "pointer",
-    ...shorthands.padding("8px", "10px"),
-    ...shorthands.borderRadius("12px"),
-    fontWeight: "600",
-    fontSize: "14px",
-    color: "#0f172a",
-    textAlign: "left",
-    transitionProperty: "background-color, color",
-    transitionDuration: "0.15s",
-    ":hover": {
-      backgroundColor: "rgba(79, 70, 229, 0.10)",
-      color: "#4f46e5",
-    },
-  },
-
-  nativeIcon: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "36px",
-    height: "36px",
-    ...shorthands.borderRadius("50%"),
-    backgroundColor: "#eef2ff",
-    color: "#4f46e5",
-    ...shorthands.flex(0, 0, "auto"),
-  },
-
-  divider: {
-    height: "1px",
-    backgroundColor: "#e2e8f0",
-    width: "100%",
-  },
-
-  iconRow: {
-    display: "flex",
-    justifyContent: "space-around",
-    alignItems: "flex-start",
-    ...shorthands.gap("8px"),
-  },
-
-  iconBtn: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    ...shorthands.gap("6px"),
-    ...shorthands.border("none"),
-    background: "transparent",
-    cursor: "pointer",
-    ...shorthands.padding("4px"),
-    ...shorthands.borderRadius("12px"),
-    minWidth: "64px",
-  },
-
-  iconCircle: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "52px",
-    height: "52px",
-    ...shorthands.borderRadius("50%"),
-    color: "#ffffff",
-    transitionProperty: "transform, box-shadow",
-    transitionDuration: "0.15s",
-  },
-
-  iconLabel: {
-    fontSize: "12px",
-    fontWeight: "600",
-    color: "#475569",
-  },
-
-  whatsappCircle: {
-    backgroundColor: "#25D366",
-    ":hover": {
-      boxShadow: "0 6px 16px rgba(37, 211, 102, 0.45)",
-      transform: "translateY(-2px)",
-    },
-  },
-  facebookCircle: {
-    backgroundColor: "#1877F2",
-    ":hover": {
-      boxShadow: "0 6px 16px rgba(24, 119, 242, 0.45)",
-      transform: "translateY(-2px)",
-    },
-  },
-  telegramCircle: {
-    backgroundColor: "#229ED9",
-    ":hover": {
-      boxShadow: "0 6px 16px rgba(34, 158, 217, 0.45)",
-      transform: "translateY(-2px)",
-    },
-  },
-});
 
 const shareUrlForPlatform = (platform: SharePlatform, encodedText: string, encodedUrl: string) => {
   switch (platform) {
@@ -188,10 +47,10 @@ const isMobileNativeShareAvailable = () => {
   );
 };
 
-const PLATFORMS: { key: SharePlatform; label: string; Icon: typeof WhatsAppIcon; circleClass: string }[] = [
-  { key: "whatsapp", label: "WhatsApp", Icon: WhatsAppIcon, circleClass: "whatsappCircle" },
-  { key: "facebook", label: "Facebook", Icon: FacebookIcon, circleClass: "facebookCircle" },
-  { key: "telegram", label: "Telegram", Icon: TelegramIcon, circleClass: "telegramCircle" },
+const PLATFORMS: { key: SharePlatform; label: string; Icon: typeof WhatsAppIcon; colorClass: string }[] = [
+  { key: "whatsapp", label: "WhatsApp", Icon: WhatsAppIcon, colorClass: "bg-brand-whatsapp hover:shadow-[0_6px_16px_var(--brand-whatsapp-shadow)]" },
+  { key: "facebook", label: "Facebook", Icon: FacebookIcon, colorClass: "bg-brand-facebook hover:shadow-[0_6px_16px_var(--brand-facebook-shadow)]" },
+  { key: "telegram", label: "Telegram", Icon: TelegramIcon, colorClass: "bg-brand-telegram hover:shadow-[0_6px_16px_var(--brand-telegram-shadow)]" },
 ];
 
 export function ShareButton({
@@ -200,14 +59,12 @@ export function ShareButton({
   resolveUrl,
   label = "Share",
   icon,
-  buttonAppearance = "subtle",
-  buttonSize = "medium",
+  buttonAppearance = "ghost",
+  buttonSize = "icon",
   buttonStyle,
   buttonClassName,
 }: ShareButtonProps) {
-  const styles = useStyles();
   const [isLoading, setIsLoading] = useState(false);
-  const [open, setOpen] = useState(false);
 
   const resolveShareUrl = async () => {
     if (!resolveUrl) {
@@ -233,7 +90,6 @@ export function ShareButton({
       }
     } finally {
       setIsLoading(false);
-      setOpen(false);
     }
   };
 
@@ -246,67 +102,73 @@ export function ShareButton({
       // user cancelled or unsupported — ignored
     } finally {
       setIsLoading(false);
-      setOpen(false);
     }
   };
 
-  const triggerIcon = isLoading ? <Spinner size="tiny" /> : (icon ?? <Share24Regular />);
+  const triggerIcon = isLoading ? (
+    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+  ) : (
+    icon ?? <Share2 className="h-4 w-4" />
+  );
   const showNative = isMobileNativeShareAvailable();
 
   return (
-    <Menu open={open} onOpenChange={(_, data) => setOpen(data.open)} positioning="below-end">
-      <MenuTrigger disableButtonEnhancement>
+    <Dropdown>
+      <DropdownTrigger>
         <Button
-          appearance={buttonAppearance}
+          variant={buttonAppearance}
           size={buttonSize}
-          className={mergeClasses(styles.trigger, buttonClassName)}
+          className={cn("h-9 w-9 rounded-lg border border-border/80 bg-surface", buttonClassName)}
           style={buttonStyle}
           aria-label={label}
-          icon={triggerIcon as ReactElement}
-        />
-      </MenuTrigger>
-      <MenuPopover className={styles.popover}>
-        <div className={styles.sheet}>
-          <div className={styles.sheetHeader}>
-            <Text weight="semibold" className={styles.sheetTitle}>
-              Share this quiz
-            </Text>
-          </div>
-
-          {showNative && (
-            <button
-              type="button"
-              className={styles.nativeRow}
-              onClick={handleNativeShare}
-              aria-label="Share via device"
-            >
-              <span className={styles.nativeIcon}>
-                <ShareAndroid24Regular />
-              </span>
-              Share via device…
-            </button>
-          )}
-
-          {showNative && <div className={styles.divider} />}
-
-          <div className={styles.iconRow}>
-            {PLATFORMS.map(({ key, label: platformLabel, Icon, circleClass }) => (
-              <button
-                key={key}
-                type="button"
-                className={styles.iconBtn}
-                onClick={() => handleShare(key)}
-                aria-label={platformLabel}
-              >
-                <span className={mergeClasses(styles.iconCircle, styles[circleClass as keyof typeof styles])}>
-                  <Icon size={26} />
-                </span>
-                <span className={styles.iconLabel}>{platformLabel}</span>
-              </button>
-            ))}
-          </div>
+          disabled={isLoading}
+        >
+          {triggerIcon}
+        </Button>
+      </DropdownTrigger>
+      
+      <DropdownContent align="right" className="w-[240px] p-4 flex flex-col gap-3.5">
+        <div className="flex items-center justify-between pb-1">
+          <span className="text-xs font-bold text-foreground select-none">
+            Share this quiz
+          </span>
         </div>
-      </MenuPopover>
-    </Menu>
+
+        {showNative && (
+          <Button
+            variant="secondary"
+            onClick={handleNativeShare}
+            className="w-full justify-start gap-2.5 h-9 px-2.5 font-semibold text-xs border border-border/60 hover:bg-surface-hover hover:border-border"
+          >
+            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary shrink-0">
+              <Share className="h-3.5 w-3.5" />
+            </span>
+            <span>Share via device…</span>
+          </Button>
+        )}
+
+        {showNative && <div className="h-px bg-border/80 w-full" />}
+
+        <div className="flex items-center justify-around gap-1.5 select-none">
+          {PLATFORMS.map(({ key, label: platformLabel, Icon, colorClass }) => (
+            <button
+              key={key}
+              type="button"
+              className="flex flex-col items-center gap-1.5 border-0 bg-transparent cursor-pointer p-1 rounded-xl w-16 active:scale-95 transition-transform"
+              onClick={() => handleShare(key)}
+              aria-label={platformLabel}
+            >
+              <span className={cn(
+                "inline-flex items-center justify-center w-11 h-11 rounded-full text-white transition-all duration-150 shadow-xs",
+                colorClass
+              )}>
+                <Icon size={20} />
+              </span>
+              <span className="text-[10px] font-bold text-muted-foreground/90">{platformLabel}</span>
+            </button>
+          ))}
+        </div>
+      </DropdownContent>
+    </Dropdown>
   );
 }

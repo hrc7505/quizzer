@@ -33,7 +33,7 @@ export default async function DeepDiveDetailPage({ params }: { params: Promise<{
   if (!question || question.topic.title === INTERNAL_TOPIC_TITLE) return notFound();
 
   return (
-    <PageLayout variant="deep-dives-detail" navMaxWidth="900px" mainMaxWidth="900px">
+    <PageLayout variant="deep-dives-detail" navMaxWidth="1100px" mainMaxWidth="1100px">
       <DeepDiveDetail question={question} />
     </PageLayout>
   );

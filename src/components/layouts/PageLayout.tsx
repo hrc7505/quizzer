@@ -1,29 +1,10 @@
 "use client";
 
 import { type ReactNode } from "react";
-import type { CSSProperties } from "react";
 import NavBar from "@/components/navigation/NavBar";
+import { cn } from "@/utils/cn";
 
 type PageLayoutVariant = "public" | "admin" | "deep-dives" | "deep-dives-detail";
-
-const VARIANT_STYLES: Record<PageLayoutVariant, { wrapper: CSSProperties; main: CSSProperties }> = {
-  public: {
-    wrapper: { display: "flex", flexDirection: "column", minHeight: "100vh", backgroundColor: "#f9f9f9" },
-    main: { padding: "24px 16px", maxWidth: "1200px", margin: "0 auto", width: "100%" },
-  },
-  admin: {
-    wrapper: { display: "flex", flexDirection: "column", height: "100vh", backgroundColor: "#f9f9f9" },
-    main: { flex: 1, overflowY: "auto", padding: "24px 16px", maxWidth: "1200px", margin: "0 auto", width: "100%" },
-  },
-  "deep-dives": {
-    wrapper: { display: "flex", flexDirection: "column", height: "100vh", backgroundColor: "#f0f2f5" },
-    main: { flex: 1, overflowY: "auto", padding: "24px 16px", maxWidth: "1100px", margin: "0 auto", width: "100%" },
-  },
-  "deep-dives-detail": {
-    wrapper: { display: "flex", flexDirection: "column", minHeight: "100vh", backgroundColor: "#f0f2f5" },
-    main: { padding: "24px 16px", maxWidth: "900px", margin: "0 auto", width: "100%" },
-  },
-};
 
 interface PageLayoutProps {
   children: ReactNode;
@@ -33,13 +14,35 @@ interface PageLayoutProps {
   className?: string;
 }
 
-export function PageLayout({ children, variant = "public", navMaxWidth, mainMaxWidth, className }: PageLayoutProps) {
-  const { wrapper, main } = VARIANT_STYLES[variant];
+export function PageLayout({ 
+  children, 
+  variant = "public", 
+  navMaxWidth, 
+  mainMaxWidth, 
+  className 
+}: PageLayoutProps) {
+  
+  const isScrollContainer = variant === "admin" || variant === "deep-dives";
 
   return (
-    <div style={wrapper} className={className}>
+    <div 
+      className={cn(
+        "flex flex-col min-h-screen bg-background text-foreground transition-colors duration-200",
+        isScrollContainer && "h-screen overflow-hidden",
+        className
+      )}
+    >
       <NavBar maxWidth={navMaxWidth} />
-      <main style={{ ...main, maxWidth: mainMaxWidth ?? main.maxWidth }}>{children}</main>
+      <main 
+        className={cn(
+          "w-full px-4 py-6 sm:px-6 lg:px-8 mx-auto flex-1",
+          isScrollContainer && "overflow-y-auto",
+          variant === "deep-dives-detail" && !mainMaxWidth ? "max-w-4xl" : "max-w-7xl"
+        )}
+        style={mainMaxWidth ? { maxWidth: mainMaxWidth } : undefined}
+      >
+        {children}
+      </main>
     </div>
   );
 }

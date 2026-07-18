@@ -67,21 +67,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${winkySans.variable}`}>
+    <html lang="en" className={`${winkySans.variable}`} suppressHydrationWarning>
       <head>
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
-      <body className="antialiased">
+      <body className="antialiased" id="__next_ssr_loader_body">
         <Providers>
           <NextTopLoader
             color="#4f46e5"
             height={3}
             showSpinner={false}
             shadow={false}
+            initialPosition={0}
           />
           {children}
         </Providers>
-        <div className="page-watermark" aria-hidden="true" />
         {/* Service Worker Registration */}
         <Script id="service-worker-register" strategy="afterInteractive">
           {`
@@ -92,6 +92,21 @@ export default function RootLayout({
                 });
               });
             }
+          `}
+        </Script>
+        <Script id="ssr-loader-hide" strategy="afterInteractive">
+          {`
+            (function() {
+              var body = document.body;
+              function hide() {
+                body.classList.add('ssr-loader-done');
+              }
+              if (document.readyState === 'complete') {
+                hide();
+              } else {
+                window.addEventListener('load', hide);
+              }
+            })();
           `}
         </Script>
       </body>

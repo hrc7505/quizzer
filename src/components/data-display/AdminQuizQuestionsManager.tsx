@@ -1,18 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Text, Button, Badge, Card, Spinner, Field, Input, Textarea, Select, Tooltip,
-  Dialog, DialogSurface, DialogBody, DialogTitle, DialogContent, DialogActions, DialogTrigger,
-  MessageBar, MessageBarBody,
-} from "@fluentui/react-components";
-import {
-  Add20Regular, Edit20Regular, Delete20Regular, ArrowLeft20Regular, Dismiss20Regular
-} from "@fluentui/react-icons";
 import { useRouter } from "next/navigation";
+import { Plus, Edit, Trash2, ArrowLeft, X, AlertTriangle, Loader2 } from "lucide-react";
 import { difficultyColor } from "@/lib/format";
 import NoData from "@/components/feedback/NoData";
-import { useAdminQuizQuestionsManagerStyles } from "./styles/useAdminQuizQuestionsManagerStyles";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Alert } from "@/components/ui/Alert";
+import { Input } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/Textarea";
+import { Select } from "@/components/ui/Select";
+import { Dialog, DialogSurface, DialogTitle, DialogContent, DialogActions } from "@/components/ui/Dialog";
+import { Spinner } from "@/components/ui/Spinner";
+import { cn } from "@/utils/cn";
 
 interface Question {
   id: string;
@@ -43,7 +45,6 @@ interface AdminQuizQuestionsManagerProps {
  */
 export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuestionsManagerProps) {
   const router = useRouter();
-  const styles = useAdminQuizQuestionsManagerStyles();
   const [quiz, setQuiz] = useState<QuizDetail>(initialQuiz);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -175,50 +176,59 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
     );
   };
 
+  const difficultyBadgeVariant = (difficulty: string) => {
+    const diff = difficulty.toLowerCase();
+    if (diff === "easy") return "success";
+    if (diff === "medium") return "warning";
+    if (diff === "hard") return "danger";
+    return "default";
+  };
+
   return (
-    <div className={styles.root}>
-      {error && (
-        <MessageBar intent="error">
-          <MessageBarBody>{error}</MessageBarBody>
-        </MessageBar>
-      )}
-      {/* Back button & Breadcrumbs */}
-      <div>
+    <div className="flex flex-col gap-6 py-4 w-full">
+        {error && (
+          <Alert variant="danger" title="Error">
+            {error}
+          </Alert>
+        )}
+
+      {/* Back navigation & breadcrumbs */}
+      <div className="flex flex-col gap-3 select-none">
         <Button
-          appearance="subtle"
-          icon={<ArrowLeft20Regular />}
+          variant="ghost"
           onClick={() => router.back()}
-          className={styles.backButton}
+          className="w-fit gap-1.5 h-8 px-3 font-semibold text-xs border border-border/40 hover:bg-surface-hover"
         >
-          Back
+          <ArrowLeft className="h-3.5 w-3.5" />
+          <span>Back</span>
         </Button>
-        <div className={styles.breadcrumbsRow}>
-          <Text size={200} className={styles.breadcrumbMuted}>Manage Quizzes</Text>
-          <span className={styles.breadcrumbSeparator}>/</span>
-          <Text size={200} weight="semibold" className={styles.breadcrumbActive}>{quiz.title}</Text>
-          <span className={styles.breadcrumbSeparator}>/</span>
-          <Text size={200} className={styles.breadcrumbMuted}>Questions</Text>
+
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold flex-wrap">
+          <span>Manage Quizzes</span>
+          <span>/</span>
+          <span className="text-foreground">{quiz.title}</span>
+          <span>/</span>
+          <span>Questions</span>
         </div>
       </div>
 
       {/* Header section */}
-      <div className={styles.headerRow}>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/80 pb-5">
         <div>
-          <div className={styles.titleRow}>
-            <Text size={700} weight="bold" className={styles.titlePrimary}>
-              {quiz.title} Questions
-            </Text>
-            <Badge appearance="filled" color={difficultyColor(quiz.difficulty)}>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">{quiz.title} Questions</h1>
+            <Badge variant={difficultyBadgeVariant(quiz.difficulty)} className="capitalize font-bold text-[10px] px-2 py-0.5 select-none">
               {quiz.difficulty}
             </Badge>
           </div>
-          <Text size={200} className={styles.subtitle}>
+          <p className="text-xs text-muted-foreground mt-0.5">
             Compose, modify, or remove questions linked to this quiz.
-          </Text>
+          </p>
         </div>
 
-        <Button appearance="primary" icon={<Add20Regular />} onClick={handleOpenAdd}>
-          Add Question
+        <Button variant="primary" className="h-9 px-4 font-semibold text-xs gap-1.5 shadow-xs" onClick={handleOpenAdd}>
+          <Plus className="h-3.5 w-3.5" />
+          <span>Add Question</span>
         </Button>
       </div>
 
@@ -228,54 +238,84 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
           title="No Questions Yet" 
           description="This quiz has no questions. Click Add Question below to add a question manually." 
           icon="book"
-          action={<Button appearance="primary" icon={<Add20Regular />} onClick={handleOpenAdd}>Add First Question</Button>}
+          action={
+            <Button variant="primary" className="gap-1.5 font-semibold text-xs h-9 px-4" onClick={handleOpenAdd}>
+              <Plus className="h-3.5 w-3.5" />
+              <span>Add First Question</span>
+            </Button>
+          }
         />
       ) : (
-        <div className={styles.questionsList}>
+        <div className="flex flex-col gap-6">
           {quiz.questions.map((q, idx) => (
-            <Card key={q.id} className={styles.questionCard}>
-              <div className={styles.questionHeaderRow}>
-                <Text size={400} weight="semibold" className={styles.questionText}>
+            <Card key={q.id} className="p-6 border border-border/80 bg-card shadow-sm flex flex-col gap-5 rounded-2xl">
+              <div className="flex items-start justify-between gap-4">
+                <h3 className="text-sm font-semibold text-foreground leading-snug">
                   {idx + 1}. {q.text}
-                </Text>
+                </h3>
 
-                <div className={styles.actionsRow}>
-                  <Tooltip content="Edit Question" relationship="label">
-                    <Button size="small" icon={<Edit20Regular />} onClick={() => handleOpenEdit(q)} />
-                  </Tooltip>
-                  <Tooltip content="Delete Question" relationship="label">
-                    <Button size="small" icon={<Delete20Regular />} className={styles.deleteButton} onClick={() => handleDelete(q.id, q.text)} />
-                  </Tooltip>
+                <div className="flex items-center gap-1.5 shrink-0 select-none">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 text-muted-foreground hover:bg-surface-hover hover:text-foreground rounded-lg border border-border/50 bg-surface"
+                    onClick={() => handleOpenEdit(q)}
+                    aria-label="Edit Question"
+                  >
+                    <Edit className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 text-muted-foreground hover:bg-danger/10 hover:text-danger rounded-lg"
+                    onClick={() => handleDelete(q.id, q.text)}
+                    aria-label="Delete Question"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
               </div>
 
-              <div className={styles.optionsGrid}>
+              {/* Options Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 {q.options.map((opt, oIdx) => {
                   const isCorrect = opt === q.correctAnswer;
                   return (
-                    <div key={oIdx} className={styles.optionItem}>
-                      <span className={`${styles.optionCircle} ${isCorrect ? styles.optionCircleCorrect : styles.optionCircleDefault}`}>
+                    <div 
+                      key={oIdx} 
+                      className={cn(
+                        "flex items-center gap-3 p-3.5 rounded-xl border text-xs font-semibold select-none",
+                        isCorrect 
+                          ? "border-success/30 bg-success/10 text-success" 
+                          : "border-border/60 bg-card text-foreground/80"
+                      )}
+                    >
+                      <span className={cn(
+                        "inline-flex items-center justify-center w-5 h-5 rounded-full font-bold text-[9px] border",
+                        isCorrect 
+                          ? "bg-success text-white border-success/10" 
+                          : "bg-secondary text-muted-foreground/80 border-border/80"
+                      )}>
                         {oIdx + 1}
                       </span>
-                      <Text size={200} className={isCorrect ? styles.optionLabelCorrect : styles.optionLabel}>
-                        {opt} {isCorrect && "✓"}
-                      </Text>
+                      <span className="truncate">{opt} {isCorrect && "✓"}</span>
                     </div>
                   );
                 })}
               </div>
 
+              {/* Hint and Description Extras */}
               {(q.hint || q.description) && (
-                <div className={styles.extrasBox}>
+                <div className="flex flex-col gap-2 bg-secondary/20 rounded-xl p-4 text-xs text-muted-foreground border border-border/40 select-none">
                   {q.hint && (
-                    <Text size={100} className={styles.hintText}>
-                      Hint: {q.hint}
-                    </Text>
+                    <div>
+                      <strong className="text-foreground/90 font-bold">Hint:</strong> <span className="font-medium text-muted-foreground/95">{q.hint}</span>
+                    </div>
                   )}
                   {q.description && (
-                    <Text size={100} className={styles.descriptionText}>
-                      Explanation: {q.description}
-                    </Text>
+                    <div className={cn(q.hint && "border-t border-border/30 pt-2 mt-1")}>
+                      <strong className="text-foreground/90 font-bold">Explanation:</strong> <span className="font-medium text-muted-foreground/95 whitespace-pre-wrap">{q.description}</span>
+                    </div>
                   )}
                 </div>
               )}
@@ -285,112 +325,116 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
       )}
 
       {/* ── Add / Edit Question Dialog ── */}
-      <Dialog open={questionDialogOpen} onOpenChange={(_, d) => setQuestionDialogOpen(d.open)}>
-        <DialogSurface className={styles.addEditDialogSurface}>
-          <DialogBody>
-            <DialogTitle action={<DialogTrigger action="close"><Button appearance="subtle" aria-label="close" icon={<Dismiss20Regular />} /></DialogTrigger>}>
-              {questionForm.id ? "Edit Question" : "Add Question"}
-            </DialogTitle>
-            <DialogContent className={styles.addEditDialogContent}>
-              <Field label="Question Text" required>
-                <Textarea
-                  value={questionForm.text}
-                  onChange={e => setQuestionForm(prev => ({ ...prev, text: e.target.value }))}
-                  placeholder="Enter the question text..."
-                  className={styles.textareaFull}
-                />
-              </Field>
+      <Dialog open={questionDialogOpen} onOpenChange={setQuestionDialogOpen}>
+        <DialogSurface className="max-w-[640px]">
+          <DialogTitle>{questionForm.id ? "Edit Question" : "Add Question"}</DialogTitle>
+          <DialogContent className="max-h-[60vh] overflow-y-auto pr-1 flex flex-col gap-4 mt-3">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Question Text <span className="text-danger">*</span></label>
+              <Textarea
+                value={questionForm.text}
+                onChange={e => setQuestionForm(prev => ({ ...prev, text: e.target.value }))}
+                placeholder="Enter the question text..."
+                rows={3}
+                required
+              />
+            </div>
 
-              <div className={styles.optionsFormGrid}>
-                {questionForm.options.map((opt, idx) => (
-                  <Field key={idx} label={`Option ${idx + 1}`} required>
-                    <Input
-                      value={opt}
-                      onChange={e => handleOptionChange(idx, e.target.value)}
-                      placeholder={`Option ${idx + 1}`}
-                      className={styles.inputFull}
-                    />
-                  </Field>
-                ))}
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {questionForm.options.map((opt, idx) => (
+                <div key={idx} className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Option {idx + 1} <span className="text-danger">*</span></label>
+                  <Input
+                    value={opt}
+                    onChange={e => handleOptionChange(idx, e.target.value)}
+                    placeholder={`Option ${idx + 1}`}
+                    required
+                  />
+                </div>
+              ))}
+            </div>
 
-              <Field label="Correct Answer" required>
-                <Select
-                  value={questionForm.correctAnswer}
-                  onChange={(e, data) => setQuestionForm(prev => ({ ...prev, correctAnswer: data.value }))}
-                  className={styles.inputFull}
-                >
-                  <option value="">Select correct option...</option>
-                  {questionForm.options.filter(Boolean).map((opt, idx) => (
-                    <option key={idx} value={opt}>{opt}</option>
-                  ))}
-                </Select>
-              </Field>
-
-              <Field label="Hint (Optional)">
-                <Input
-                  value={questionForm.hint}
-                  onChange={e => setQuestionForm(prev => ({ ...prev, hint: e.target.value }))}
-                  placeholder="Enter a brief hint..."
-                  className={styles.inputFull}
-                />
-              </Field>
-
-              <Field label="Explanation / Description" required>
-                <Textarea
-                  value={questionForm.description}
-                  onChange={e => setQuestionForm(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Explain why this answer is correct..."
-                  className={styles.textareaFull}
-                />
-              </Field>
-            </DialogContent>
-            <DialogActions className={styles.dialogActions}>
-              <DialogTrigger disableButtonEnhancement>
-                <Button appearance="secondary">Cancel</Button>
-              </DialogTrigger>
-              <Button
-                appearance="primary"
-                onClick={handleSaveQuestion}
-                disabled={!questionForm.text || questionForm.options.some(o => !o.trim()) || !questionForm.correctAnswer || !questionForm.description || loading}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Correct Answer <span className="text-danger">*</span></label>
+              <Select
+                value={questionForm.correctAnswer}
+                onChange={e => setQuestionForm(prev => ({ ...prev, correctAnswer: e.target.value }))}
+                required
               >
-                {loading ? <Spinner size="tiny" /> : "Save"}
-              </Button>
-            </DialogActions>
-          </DialogBody>
+                <option value="">Select correct option...</option>
+                {questionForm.options.filter(Boolean).map((opt, idx) => (
+                  <option key={idx} value={opt}>{opt}</option>
+                ))}
+              </Select>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Hint (Optional)</label>
+              <Input
+                value={questionForm.hint}
+                onChange={e => setQuestionForm(prev => ({ ...prev, hint: e.target.value }))}
+                placeholder="Enter a brief hint..."
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Explanation / Description <span className="text-danger">*</span></label>
+              <Textarea
+                value={questionForm.description}
+                onChange={e => setQuestionForm(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Explain why this answer is correct..."
+                rows={3}
+                required
+              />
+            </div>
+          </DialogContent>
+          
+          <DialogActions>
+            <Button variant="outline" onClick={() => setQuestionDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleSaveQuestion}
+              disabled={!questionForm.text || questionForm.options.some(o => !o.trim()) || !questionForm.correctAnswer || !questionForm.description || loading}
+              className="gap-1.5"
+            >
+              {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              <span>Save</span>
+            </Button>
+          </DialogActions>
         </DialogSurface>
       </Dialog>
 
       {/* ── Confirmation Dialog ── */}
-      <Dialog open={confirmDialog.open} onOpenChange={(_, d) => setConfirmDialog(p => ({ ...p, open: d.open }))}>
-        <DialogSurface className={styles.confirmDialogSurface}>
-          <DialogBody>
-            <DialogTitle action={<DialogTrigger action="close"><Button appearance="subtle" aria-label="close" icon={<Dismiss20Regular />} /></DialogTrigger>}>
-              {confirmDialog.title}
-            </DialogTitle>
-            <DialogContent className={styles.confirmDialogContent}>
-              <Text className={styles.confirmText}>
+      <Dialog open={confirmDialog.open} onOpenChange={open => setConfirmDialog(p => ({ ...p, open }))}>
+        <DialogSurface className="max-w-[420px]">
+          <DialogTitle>{confirmDialog.title}</DialogTitle>
+          <DialogContent>
+            <div className="flex gap-3.5 items-start mt-2">
+              <AlertTriangle className="h-5 w-5 text-danger shrink-0 mt-0.5" />
+              <span className="text-sm text-muted-foreground leading-relaxed">
                 {confirmDialog.description}
-              </Text>
-            </DialogContent>
-            <DialogActions className={styles.dialogActions}>
-              <DialogTrigger disableButtonEnhancement>
-                <Button appearance="secondary">Cancel</Button>
-              </DialogTrigger>
-              <Button
-                appearance="primary"
-                className={styles.confirmButtonDanger}
-                onClick={async () => {
-                  await confirmDialog.onConfirm();
-                  setConfirmDialog(p => ({ ...p, open: false }));
-                }}
-              >
-                Confirm
-              </Button>
-            </DialogActions>
-          </DialogBody>
+              </span>
+            </div>
+          </DialogContent>
+          <DialogActions>
+            <Button variant="outline" onClick={() => setConfirmDialog(p => ({ ...p, open: false }))}>
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              onClick={async () => {
+                await confirmDialog.onConfirm();
+                setConfirmDialog(p => ({ ...p, open: false }));
+              }}
+            >
+              Confirm
+            </Button>
+          </DialogActions>
         </DialogSurface>
       </Dialog>
     </div>
   );
 }
+export default AdminQuizQuestionsManager;

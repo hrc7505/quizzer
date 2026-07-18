@@ -1,5 +1,5 @@
 /**
- * Shared UI helper: maps a quiz difficulty label to a Fluent UI Badge/color token.
+ * Shared UI helper: maps a quiz difficulty label to a semantic Badge token.
  * Centralized so every admin/public surface renders consistent colors.
  */
 export type DifficultyTone = "success" | "warning" | "danger";
@@ -22,9 +22,10 @@ export function sanitizeImageText(text: string): string {
     .replace(/\[.*?\]\(.*?\.(png|jpg|jpeg|gif|bmp|webp|svg).*?\)/gi, "")
     .replace(/data:image\/[a-zA-Z]+;base64,[a-zA-Z0-9+/=\s]+/gi, "")
     .replace(/\b(image|img|figure|photo|picture)\d*\s*(\.\s*(png|jpg|jpeg|gif|bmp|webp|svg))?\b/gi, "")
-    .replace(/\b(image|img|figure|photo|picture)\s*(file|png|jpg|jpeg|gif|bmp|webp|svg)\b/gi, "")
+    .replace(/\b(image|img|figure|photo|picture)[\w-]*\.(png|jpg|jpeg|gif|bmp|webp|svg)\b/gi, "")
     .replace(/\b\d+\.(png|jpg|jpeg|gif|bmp|webp|svg)\b/gi, "")
     .replace(/\b(image|img|figure|photo|picture)\d*\b/gi, "")
+    .replace(/\b\w+\.(png|jpg|jpeg|gif|bmp|webp|svg)\b/gi, "")
     .replace(/\(\s*(png|jpg|jpeg|gif|bmp|webp|svg)\s*\)/gi, "")
     .replace(/\[\s*(png|jpg|jpeg|gif|bmp|webp|svg)\s*\]/gi, "")
     .trim();

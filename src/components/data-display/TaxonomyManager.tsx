@@ -1,28 +1,39 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { 
-  Button, Card, Text, Input, Field, Dialog, DialogTrigger, 
-  DialogSurface, DialogTitle, DialogBody, DialogActions, DialogContent, 
-  Spinner, Select, Textarea, Badge, Tooltip, MessageBar, MessageBarBody,
-  Combobox, Option,
-  Menu, MenuTrigger, MenuPopover, MenuList, MenuItem,
-  OverlayDrawer, DrawerHeader, DrawerHeaderTitle, DrawerBody,
-  Popover, PopoverTrigger, PopoverSurface
-} from "@fluentui/react-components";
-import { 
-  Edit20Regular, Delete20Regular, Add20Regular, 
-  BookOpen24Regular, DocumentDatabase24Regular, 
-  ChevronRight20Regular, Branch20Regular,
-  MoreHorizontal20Regular, Dismiss20Regular, LinkDismiss20Regular, Link20Regular,
-  Filter20Regular, Sparkle20Regular
-} from "@fluentui/react-icons";
-import { TableColumnDefinition, createTableColumn, DataGrid, DataGridHeader, DataGridHeaderCell, DataGridRow, DataGridBody, DataGridCell } from "@fluentui/react-components";
+  Plus,
+  Edit,
+  Trash2,
+  BookOpen,
+  Layers,
+  ChevronRight,
+  MoreHorizontal,
+  X,
+  Link as LinkIcon,
+  Unlink2,
+  Search,
+  Sparkles,
+  Loader2,
+  AlertTriangle,
+} from "lucide-react";
 import { GenerateQuizForm } from "@/components/forms/GenerateQuizForm";
 import { LinkButton } from "@/components/ui/LinkButton";
+import { Alert } from "@/components/ui/Alert";
+import Link from "next/link";
 import NoData from "@/components/feedback/NoData";
 import { difficultyColor } from "@/lib/format";
-import { useTaxonomyManagerStyles } from "./styles/useTaxonomyManagerStyles";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
+import { Textarea } from "@/components/ui/Textarea";
+import { Dialog, DialogSurface, DialogTitle, DialogContent, DialogActions } from "@/components/ui/Dialog";
+import { Sheet, SheetContent, SheetHeader, SheetBody } from "@/components/ui/Sheet";
+import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from "@/components/ui/Dropdown";
+import { Spinner } from "@/components/ui/Spinner";
+import { cn } from "@/utils/cn";
 
 interface Exam {
   id: string;
@@ -39,6 +50,14 @@ interface QuizSummary {
   topics?: { id: string }[];
   _count?: { questions: number };
 }
+
+const difficultyBadgeVariant = (difficulty: string) => {
+  const diff = difficulty.toLowerCase();
+  if (diff === "easy") return "success";
+  if (diff === "medium") return "warning";
+  if (diff === "hard") return "danger";
+  return "default";
+};
 
 interface QuizQuestionDetail {
   id: string;
@@ -73,7 +92,6 @@ interface FlatTopic extends Topic {
 }
 
 export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "subtopics" }) {
-  const styles = useTaxonomyManagerStyles();
   const [exams, setExams] = useState<Exam[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [flatTopics, setFlatTopics] = useState<FlatTopic[]>([]);
@@ -91,7 +109,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
   const [topicLinkDialogOpen, setTopicLinkDialogOpen] = useState(false);
   const [quizLinkDialogOpen, setQuizLinkDialogOpen] = useState(false);
 
-  // Reusable Fluent UI Confirmation Dialog State
+  // Reusable Confirmation Dialog State
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
     title: string;
@@ -109,6 +127,11 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
   const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
   const [selectedSubtopicIds, setSelectedSubtopicIds] = useState<string[]>([]);
   const [selectedQuizIds, setSelectedQuizIds] = useState<string[]>([]);
+
+  // Link dialog search states
+  const [examLinkSearch, setExamLinkSearch] = useState("");
+  const [topicLinkSearch, setTopicLinkSearch] = useState("");
+  const [quizLinkSearch, setQuizLinkSearch] = useState("");
 
   // Detail Drawer States
   const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
@@ -133,87 +156,353 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
+  const triggerConfirm = (title: string, description: string, onConfirm: () => Promise<void>) =>
+    setConfirmDialog({ open: true, title, description, onConfirm });
+
   const fetchData = async () => {
     setLoading(true);
     try {
       const examsRes = await fetch("/api/admin/exams");
       const examsData = await examsRes.json();
-      const validExams = Array.isArray(examsData) ? examsData : [];
-      setExams(validExams);
-      
+      if (Array.isArray(examsData)) setExams(examsData);
+
       const topicsRes = await fetch("/api/admin/topics?all=true");
       const topicsData = await topicsRes.json();
-      const validTopics = Array.isArray(topicsData) ? topicsData : [];
-      setTopics(validTopics);
+      if (Array.isArray(topicsData)) {
+        setTopics(topicsData);
+        const flats: FlatTopic[] = topicsData.map((t: Topic) => ({
+          ...t,
+          displayType: (t.parentTopics && t.parentTopics.length > 0) ? "Sub Topic" : "Main Topic"
+        }));
+        setFlatTopics(flats);
+      }
 
       const quizzesRes = await fetch("/api/admin/quizzes");
       const quizzesData = await quizzesRes.json();
-      const validQuizzes = Array.isArray(quizzesData) ? quizzesData : [];
-      setAllQuizzes(validQuizzes);
-
-      const flattened: FlatTopic[] = [];
-      validTopics.forEach((t: Topic) => {
-        const isSub = t.parentTopics && t.parentTopics.length > 0;
-        if (isSub) {
-          const parentNames = t.parentTopics?.map((p: Topic) => p.title).join(", ") || "Unknown";
-          flattened.push({ ...t, displayType: `Subtopic (of: ${parentNames})` });
-        } else {
-          const examNames = t.exams?.map((e: Exam) => e.title).join(", ") || "Standalone";
-          flattened.push({ ...t, displayType: `Main Topic (Exam: ${examNames})` });
-        }
-      });
-      setFlatTopics(flattened);
-    } catch (e) {
-      console.error("fetchData failed:", e);
-      setExams([]);
-      setTopics([]);
-      setAllQuizzes([]);
-      setFlatTopics([]);
+      if (Array.isArray(quizzesData)) setAllQuizzes(quizzesData);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load taxonomy metadata.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      await fetchData();
-      if (!cancelled) {
-        // fetchData handles its own loading state
-      }
-    })();
-    return () => { cancelled = true; };
+    fetchData();
   }, []);
 
-
-  const triggerConfirm = useCallback((title: string, description: string, onConfirm: () => Promise<void>) => {
-    setConfirmDialog({ open: true, title, description, onConfirm });
-  }, []);
-
-  const loadQuizDetails = async (id: string) => {
+  const refreshActiveQuizDetail = async (id: string) => {
     setActiveQuizLoading(true);
     try {
       const res = await fetch(`/api/admin/quizzes/${id}`);
       const data = await res.json();
-      if (!data.error) {
-        setActiveQuizDetail(data);
-      }
+      if (!data.error) setActiveQuizDetail(data);
     } catch (e) {
-      console.error("Error loading quiz details:", e);
+      console.error("Failed to load quiz details inside drawer:", e);
     } finally {
       setActiveQuizLoading(false);
     }
   };
 
   useEffect(() => {
-    if (!selectedQuizId) {
-      return;
+    if (selectedQuizId) {
+      refreshActiveQuizDetail(selectedQuizId);
+    } else {
+      setActiveQuizDetail(null);
     }
-    void (async () => {
-      await loadQuizDetails(selectedQuizId);
-    })();
   }, [selectedQuizId]);
 
+  // Save / Update Exam
+  const handleSaveExam = async () => {
+    setLoading(true);
+    setError(null);
+    const isEdit = !!examForm.id;
+    const url = isEdit ? `/api/admin/exams/${examForm.id}` : "/api/admin/exams";
+    const method = isEdit ? "PUT" : "POST";
 
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: examForm.title, description: examForm.description })
+      });
+      const data = await res.json();
+      if (!data.error) {
+        setExamDialogOpen(false);
+        await fetchData();
+      } else {
+        setError(data.error);
+      }
+    } catch {
+      setError("Failed to save exam settings.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Delete Exam
+  const handleDeleteExam = (examId: string, title: string) => {
+    triggerConfirm(
+      "Delete Exam",
+      `Permanently delete exam "${title}"? This unlinks all associated topics, but does not delete them.`,
+      async () => {
+        setLoading(true);
+        await fetch(`/api/admin/exams/${examId}`, { method: "DELETE" });
+        await fetchData();
+      }
+    );
+  };
+
+  // Save / Update Topic (or Subtopic)
+  const handleSaveTopic = async () => {
+    setLoading(true);
+    setError(null);
+    const isEdit = !!topicForm.id;
+    const url = isEdit ? `/api/admin/topics/${topicForm.id}` : "/api/admin/topics";
+    const method = isEdit ? "PUT" : "POST";
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: topicForm.title,
+          description: topicForm.description,
+          examId: topicForm.examId || null,
+          parentId: topicForm.parentId || null
+        })
+      });
+      const data = await res.json();
+      if (!data.error) {
+        setTopicDialogOpen(false);
+        await fetchData();
+        if (selectedTopicId) {
+          setSelectedTopicId(null);
+        }
+      } else {
+        setError(data.error);
+      }
+    } catch {
+      setError("Failed to save topic settings.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Delete Topic
+  const handleDeleteTopic = (topicId: string, title: string) => {
+    triggerConfirm(
+      "Delete Topic",
+      `Permanently delete topic "${title}"? This unlinks nested elements and attempts.`,
+      async () => {
+        setLoading(true);
+        await fetch(`/api/admin/topics/${topicId}`, { method: "DELETE" });
+        await fetchData();
+        if (selectedTopicId === topicId) setSelectedTopicId(null);
+      }
+    );
+  };
+
+  // Link Standalone Topics to Exam
+  const handleSaveExamLinks = async () => {
+    if (!linkExamId) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/admin/exams/${linkExamId}/link-topics`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topicIds: selectedTopicIds })
+      });
+      const data = await res.json();
+      if (!data.error) {
+        setExamLinkDialogOpen(false);
+        await fetchData();
+        if (selectedExamId === linkExamId) {
+          // Refresh open drawer state
+          const refreshed = exams.find(e => e.id === linkExamId);
+          if (refreshed) {
+            setSelectedExamId(null);
+            setTimeout(() => setSelectedExamId(linkExamId), 50);
+          }
+        }
+      } else {
+        setError(data.error);
+      }
+    } catch {
+      setError("Failed to associate topics.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Unlink Topic from Exam
+  const handleUnlinkTopicFromExam = async (topicId: string, topicTitle: string, examTitle: string, examId?: string) => {
+    triggerConfirm(
+      "Unlink Topic",
+      `Unlink topic "${topicTitle}" from exam "${examTitle}"?`,
+      async () => {
+        setLoading(true);
+        await fetch(`/api/admin/topics/${topicId}/unlink-exam${examId ? `?examId=${examId}` : ""}`, { method: "POST" });
+        await fetchData();
+        // Refresh drawer
+        if (selectedExamId) {
+          const id = selectedExamId;
+          setSelectedExamId(null);
+          setTimeout(() => setSelectedExamId(id), 50);
+        }
+      }
+    );
+  };
+
+  // Link Subtopics to Main Topic
+  const handleSaveTopicLinks = async () => {
+    if (!linkTopicId) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/admin/topics/${linkTopicId}/link-subtopics`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subtopicIds: selectedSubtopicIds })
+      });
+      const data = await res.json();
+      if (!data.error) {
+        setTopicLinkDialogOpen(false);
+        await fetchData();
+        if (selectedTopicId === linkTopicId) {
+          setSelectedTopicId(null);
+          setTimeout(() => setSelectedTopicId(linkTopicId), 50);
+        }
+      } else {
+        setError(data.error);
+      }
+    } catch {
+      setError("Failed to link subtopics.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Unlink Subtopic from Parent Main Topic
+  const handleUnlinkSubtopicFromParent = async (subtopicId: string, subtopicTitle: string, parentTitle: string) => {
+    triggerConfirm(
+      "Unlink Subtopic",
+      `Unlink subtopic "${subtopicTitle}" from parent topic "${parentTitle}"?`,
+      async () => {
+        setLoading(true);
+        await fetch(`/api/admin/topics/${subtopicId}/unlink-parent`, { method: "POST" });
+        await fetchData();
+        if (selectedTopicId) {
+          const id = selectedTopicId;
+          setSelectedTopicId(null);
+          setTimeout(() => setSelectedTopicId(id), 50);
+        }
+      }
+    );
+  };
+
+  // Link Quizzes to Subtopic
+  const handleSaveQuizLinks = async () => {
+    if (!linkTopicId) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/admin/topics/${linkTopicId}/link-quizzes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quizIds: selectedQuizIds })
+      });
+      const data = await res.json();
+      if (!data.error) {
+        setQuizLinkDialogOpen(false);
+        await fetchData();
+        if (selectedTopicId === linkTopicId) {
+          setSelectedTopicId(null);
+          setTimeout(() => setSelectedTopicId(linkTopicId), 50);
+        }
+      } else {
+        setError(data.error);
+      }
+    } catch {
+      setError("Failed to link quizzes.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Unlink Quiz from Subtopic
+  const handleUnlinkQuizFromSubtopic = async (quizId: string, quizTitle: string, topicTitle: string) => {
+    triggerConfirm(
+      "Unlink Quiz",
+      `Unlink quiz "${quizTitle}" from subtopic "${topicTitle}"?`,
+      async () => {
+        if (!selectedTopicId) return;
+        setLoading(true);
+        
+        // Find existing linked quizzes in subtopic and unlink this one
+        const currentQuizzes = flatTopics.find(t => t.id === selectedTopicId)?.quizzes?.map(q => q.id) || [];
+        const nextQuizzes = currentQuizzes.filter(id => id !== quizId);
+
+        await fetch(`/api/admin/topics/${selectedTopicId}/link-quizzes`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ quizIds: nextQuizzes })
+        });
+
+        await fetchData();
+        if (selectedTopicId) {
+          const id = selectedTopicId;
+          setSelectedTopicId(null);
+          setTimeout(() => setSelectedTopicId(id), 50);
+        }
+      }
+    );
+  };
+
+  // Delete Quiz
+  const handleDeleteQuiz = async (quizId: string, quizTitle: string) => {
+    triggerConfirm(
+      "Delete Quiz Permanently",
+      `Permanently delete quiz "${quizTitle}"? This will delete all of its questions and attempt history.`,
+      async () => {
+        setLoading(true);
+        await fetch(`/api/admin/quizzes/${quizId}`, { method: "DELETE" });
+        await fetchData();
+        if (selectedTopicId) {
+          const id = selectedTopicId;
+          setSelectedTopicId(null);
+          setTimeout(() => setSelectedTopicId(id), 50);
+        }
+      }
+    );
+  };
+
+  // Open add child topic dialog
+  const openNewTopicDialog = (examId: string, parentId: string) => {
+    setTopicForm({
+      id: "",
+      title: "",
+      description: "",
+      examId: examId,
+      parentId: parentId
+    });
+    setError(null);
+    setTopicDialogOpen(true);
+  };
+
+  // Open add quiz dialog (nested inside topic details)
+  const openNewQuizDialog = (topicId: string) => {
+    setQuizForm({
+      id: "",
+      title: "",
+      quizOrder: "",
+      topicId: topicId,
+      difficulty: "Medium"
+    });
+    setError(null);
+    setQuizDialogOpen(true);
+  };
+
+  // Add Question inside Quiz Detail Drawer
   const handleOpenAddQuestion = () => {
     setQuestionForm({
       id: "",
@@ -223,9 +512,11 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       hint: "",
       description: ""
     });
+    setError(null);
     setQuestionDialogOpen(true);
   };
 
+  // Edit Question inside Quiz Detail Drawer
   const handleOpenEditQuestion = (q: QuizQuestionDetail) => {
     setQuestionForm({
       id: q.id,
@@ -235,25 +526,14 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       hint: q.hint || "",
       description: q.description || ""
     });
+    setError(null);
     setQuestionDialogOpen(true);
   };
 
-  const handleOptionChange = (idx: number, val: string) => {
-    setQuestionForm(prev => {
-      const newOpts = [...prev.options];
-      newOpts[idx] = val;
-      let newCorrect = prev.correctAnswer;
-      if (prev.correctAnswer === prev.options[idx]) {
-        newCorrect = val;
-      }
-      return { ...prev, options: newOpts, correctAnswer: newCorrect };
-    });
-  };
-
+  // Save question inside drawer
   const handleSaveQuestion = async () => {
     if (!selectedQuizId) return;
     setLoading(true);
-
     const isEdit = !!questionForm.id;
     const url = isEdit ? `/api/admin/questions/${questionForm.id}` : "/api/admin/questions";
     const method = isEdit ? "PUT" : "POST";
@@ -276,33 +556,32 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       const data = await res.json();
       if (!data.error) {
         setQuestionDialogOpen(false);
-        await loadQuizDetails(selectedQuizId);
+        await refreshActiveQuizDetail(selectedQuizId);
         await fetchData();
       } else {
-        setError(data.error || "Failed to save question");
+        setError(data.error);
       }
-    } catch (e) {
-      console.error(e);
-      setError("Error saving question");
+    } catch {
+      setError("Failed to save question.");
     } finally {
       setLoading(false);
     }
   };
 
+  // Delete question inside drawer
   const handleDeleteQuestion = (questionId: string, text: string) => {
     triggerConfirm(
       "Delete Question",
-      `Permanently delete this question? "${text.slice(0, 60)}..." This cannot be undone.`,
+      `Permanently delete this question? "${text.slice(0, 60)}..."`,
       async () => {
+        if (!selectedQuizId) return;
         setLoading(true);
         try {
           const res = await fetch(`/api/admin/questions/${questionId}`, { method: "DELETE" });
           const data = await res.json();
           if (data.success) {
-            if (selectedQuizId) {
-              await loadQuizDetails(selectedQuizId);
-              await fetchData();
-            }
+            await refreshActiveQuizDetail(selectedQuizId);
+            await fetchData();
           }
         } catch (e) {
           console.error(e);
@@ -313,400 +592,30 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
     );
   };
 
-  const handleSaveExam = async () => {
-    setLoading(true);
-    const url = examForm.id ? `/api/admin/exams/${examForm.id}` : "/api/admin/exams";
-    const method = examForm.id ? "PUT" : "POST";
-    
-    await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(examForm)
-    });
-    setExamDialogOpen(false);
-    await fetchData();
-  };
-
-  // Bulk links exams with standalone main topics
-  const handleSaveExamLinks = async () => {
-    if (!linkExamId) return;
-    setLoading(true);
-    const url = `/api/admin/exams/${linkExamId}`;
-    const targetExam = exams.find(e => e.id === linkExamId);
-    if (!targetExam) return;
-
-    const existingIds = targetExam.topics?.map(t => t.id) || [];
-    const combinedIds = Array.from(new Set([...existingIds, ...selectedTopicIds]));
-
-    await fetch(url, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: targetExam.title,
-        description: targetExam.description,
-        topicIds: combinedIds
-      })
-    });
-    setExamLinkDialogOpen(false);
-    await fetchData();
-  };
-
-  // Bulk links main topics with standalone subtopics
-  const handleSaveTopicLinks = async () => {
-    if (!linkTopicId) return;
-    setLoading(true);
-    const url = `/api/admin/topics/${linkTopicId}`;
-    const targetTopic = topics.find(t => t.id === linkTopicId) || flatTopics.find(t => t.id === linkTopicId);
-    if (!targetTopic) return;
-
-    const existingIds = targetTopic.subtopics?.map(t => t.id) || [];
-    const combinedIds = Array.from(new Set([...existingIds, ...selectedSubtopicIds]));
-
-    await fetch(url, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: targetTopic.title,
-        description: targetTopic.description,
-        subtopicIds: combinedIds
-      })
-    });
-    setTopicLinkDialogOpen(false);
-    await fetchData();
-  };
-
-  // Bulk links quizzes to a specific subtopic
-  const handleSaveQuizLinks = async () => {
-    if (!linkTopicId) return;
-    setLoading(true);
-    const targetTopic = topics.find(t => t.id === linkTopicId) || flatTopics.find(t => t.id === linkTopicId);
-    if (!targetTopic) return;
-
-    const existingIds = targetTopic.quizzes?.map(q => q.id) || [];
-    const combinedIds = Array.from(new Set([...existingIds, ...selectedQuizIds]));
-
-    await fetch(`/api/admin/topics/${linkTopicId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: targetTopic.title,
-        description: targetTopic.description,
-        quizIds: combinedIds
-      })
-    });
-    setQuizLinkDialogOpen(false);
-    await fetchData();
-  };
-
-  const handleSaveTopic = async () => {
-    setLoading(true);
-    const url = topicForm.id ? `/api/admin/topics/${topicForm.id}` : "/api/admin/topics";
-    const method = topicForm.id ? "PUT" : "POST";
-    
-    const payload = {
-      title: topicForm.title,
-      description: topicForm.description,
-      examId: topicForm.examId || undefined,
-      parentId: topicForm.parentId || undefined
-    };
-    
-    await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-    setTopicDialogOpen(false);
-    await fetchData();
-  };
-
-  const handleDeleteExam = useCallback((id: string, name: string) => {
-    triggerConfirm(
-      "Delete Exam",
-      `Are you sure you want to permanently delete "${name}"? This action cannot be undone and will delete all topics linked under it.`,
-      async () => {
-        setLoading(true);
-        await fetch(`/api/admin/exams/${id}`, { method: "DELETE" });
-        await fetchData();
-      }
+  const availableMainTopics = useMemo(() => {
+    return flatTopics.filter(t => 
+      (!t.parentTopics || t.parentTopics.length === 0) && 
+      (!linkExamId || !t.exams || !t.exams.some(e => e.id === linkExamId))
     );
-  }, [triggerConfirm]);
+  }, [flatTopics, linkExamId]);
 
-  const handleDeleteTopic = useCallback((id: string, name: string) => {
-    triggerConfirm(
-      "Delete Topic",
-      `Are you sure you want to permanently delete the topic "${name}"? This will delete all subtopics nested under it.`,
-      async () => {
-        setLoading(true);
-        await fetch(`/api/admin/topics/${id}`, { method: "DELETE" });
-        await fetchData();
-      }
+  const availableSubtopics = useMemo(() => {
+    return flatTopics.filter(t => 
+      t.id !== linkTopicId && 
+      (!linkTopicId || !t.parentTopics || !t.parentTopics.some(p => p.id === linkTopicId))
     );
-  }, [triggerConfirm]);
+  }, [flatTopics, linkTopicId]);
 
-  const handleDeleteQuiz = (id: string, name: string) => {
-    triggerConfirm(
-      "Delete Quiz",
-      `Are you sure you want to permanently delete the quiz "${name}"? This will delete all attempts and questions associated with it.`,
-      async () => {
-        setLoading(true);
-        await fetch(`/api/admin/quizzes/${id}`, { method: "DELETE" });
-        await fetchData();
-      }
+  const availableQuizzes = useMemo(() => {
+    return allQuizzes.filter(q => 
+      !linkTopicId || !q.topics?.some((t: { id: string }) => t.id === linkTopicId)
     );
-  };
-
-  const handleUnlinkTopicFromExam = (topicId: string, topicName: string, examName: string) => {
-    triggerConfirm(
-      "Unlink Topic",
-      `Are you sure you want to unlink "${topicName}" from the exam "${examName}"? It will become a standalone topic.`,
-      async () => {
-        if (!selectedExamId) return;
-        setLoading(true);
-        const exam = exams.find(e => e.id === selectedExamId);
-        if (!exam) return;
-        const updatedTopicIds = exam.topics.filter(t => t.id !== topicId).map(t => t.id);
-        await fetch(`/api/admin/exams/${selectedExamId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: exam.title,
-            description: exam.description,
-            topicIds: updatedTopicIds
-          })
-        });
-        await fetchData();
-      }
-    );
-  };
-
-  const handleUnlinkSubtopicFromParent = (subtopicId: string, subtopicName: string, parentName: string) => {
-    triggerConfirm(
-      "Unlink Subtopic",
-      `Are you sure you want to unlink "${subtopicName}" from the parent topic "${parentName}"? It will become a standalone topic.`,
-      async () => {
-        if (!selectedTopicId) return;
-        setLoading(true);
-        const parentTopic = topics.find(t => t.id === selectedTopicId);
-        if (!parentTopic) return;
-        const updatedSubtopicIds = parentTopic.subtopics?.filter(t => t.id !== subtopicId).map(t => t.id) || [];
-        await fetch(`/api/admin/topics/${selectedTopicId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: parentTopic.title,
-            description: parentTopic.description,
-            subtopicIds: updatedSubtopicIds
-          })
-        });
-        await fetchData();
-      }
-    );
-  };
-
-  const handleUnlinkQuizFromSubtopic = (quizId: string, quizTitle: string, subtopicName: string) => {
-    triggerConfirm(
-      "Unlink Quiz",
-      `Are you sure you want to unlink the quiz "${quizTitle}" from the subtopic "${subtopicName}"?`,
-      async () => {
-        if (!selectedTopicId) return;
-        setLoading(true);
-        const subtopic = topics.find(t => t.id === selectedTopicId) || flatTopics.find(t => t.id === selectedTopicId);
-        if (!subtopic) return;
-        const updatedQuizIds = subtopic.quizzes?.filter(q => q.id !== quizId).map(q => q.id) || [];
-        await fetch(`/api/admin/topics/${selectedTopicId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: subtopic.title,
-            description: subtopic.description,
-            quizIds: updatedQuizIds
-          })
-        });
-        await fetchData();
-      }
-    );
-  };
-
-  const openNewTopicDialog = (examId = '', parentId = '') => {
-    setTopicForm({ id: '', title: '', description: '', examId, parentId });
-    setError(null);
-    setTopicDialogOpen(true);
-  };
-
-  const openNewQuizDialog = (topicId: string) => {
-    setQuizForm({ id: '', title: '', quizOrder: '', topicId, difficulty: 'Medium' });
-    setQuizDialogOpen(true);
-  };
-
-  const renderDifficultyBadge = (difficulty: string) => {
-    return <Badge color={difficultyColor(difficulty)} appearance="filled">{difficulty}</Badge>;
-  };
-
-  const examColumns = useMemo<TableColumnDefinition<Exam>[]>(() => [
-    createTableColumn<Exam>({
-      columnId: 'title',
-      compare: (a, b) => a.title.localeCompare(b.title),
-      renderHeaderCell: () => 'Exam Title',
-      renderCell: (item) => (
-        <Tooltip content="Click to view details" relationship="label">
-          <Button 
-            appearance="transparent" 
-            className={styles.examTitleButton}
-            onClick={() => setSelectedExamId(item.id)}
-          >
-            {item.title}
-          </Button>
-        </Tooltip>
-      ),
-    }),
-    createTableColumn<Exam>({
-      columnId: 'description',
-      renderHeaderCell: () => 'Description',
-      renderCell: (item) => (
-        <Text className={styles.cellDescriptionText}>
-          {item.description || <span className={styles.cellDescriptionFallback}>No description</span>}
-        </Text>
-      ),
-    }),
-    createTableColumn<Exam>({
-      columnId: 'topicsCount',
-      renderHeaderCell: () => 'Topics',
-      renderCell: (item) => {
-        const subtopicCount = item.topics?.reduce((acc, t) => {
-          const fullTopic = topics.find(top => top.id === t.id);
-          return acc + (fullTopic?.subtopics?.length || 0);
-        }, 0) || 0;
-
-        return (
-          <div className={styles.topicsCountContainer}>
-            <BookOpen24Regular className={styles.bookOpenIcon} />
-            <Text>{item.topics?.length || 0} Topics • {subtopicCount} Subtopics</Text>
-          </div>
-        );
-      },
-    }),
-    createTableColumn<Exam>({
-      columnId: 'actions',
-      renderHeaderCell: () => 'Actions',
-      renderCell: (item) => (
-        <Menu>
-          <MenuTrigger disableButtonEnhancement>
-            <Button size="small" appearance="subtle" icon={<MoreHorizontal20Regular />} aria-label="More actions" />
-          </MenuTrigger>
-          <MenuPopover>
-            <MenuList>
-              <MenuItem icon={<Add20Regular />} onClick={() => openNewTopicDialog(item.id, '')}>Add Main Topic</MenuItem>
-              <MenuItem icon={<Link20Regular />} onClick={() => {
-                setLinkExamId(item.id);
-                setSelectedTopicIds([]);
-                setExamLinkDialogOpen(true);
-              }}>Link Topics</MenuItem>
-              <MenuItem icon={<Edit20Regular />} onClick={() => {
-                setExamForm({ id: item.id, title: item.title, description: item.description || '' });
-                setExamDialogOpen(true);
-              }}>Edit Exam</MenuItem>
-              <MenuItem icon={<Delete20Regular />} onClick={() => handleDeleteExam(item.id, item.title)}>Delete Exam</MenuItem>
-            </MenuList>
-          </MenuPopover>
-        </Menu>
-      ),
-    }),
-   ], [handleDeleteExam, topics, styles]);
-
-  const topicColumns = useMemo<TableColumnDefinition<FlatTopic>[]>(() => [
-    createTableColumn<FlatTopic>({
-      columnId: 'title',
-      compare: (a, b) => a.title.localeCompare(b.title),
-      renderHeaderCell: () => 'Topic Title',
-      renderCell: (item) => (
-        <Tooltip content="Click to view details" relationship="label">
-          <Button 
-            appearance="transparent" 
-            className={styles.topicTitleButton}
-            onClick={() => setSelectedTopicId(item.id)}
-          >
-            {item.title}
-          </Button>
-        </Tooltip>
-      ),
-    }),
-    createTableColumn<FlatTopic>({
-      columnId: 'displayType',
-      renderHeaderCell: () => 'Hierarchy Level',
-      renderCell: (item) => (
-        <div className={styles.displayTypeContainer}>
-          {item.parentTopics && item.parentTopics.length > 0 && <ChevronRight20Regular className={styles.chevronIcon} />}
-          <Text className={styles.displayTypeText}>{item.displayType}</Text>
-        </div>
-      ),
-    }),
-    createTableColumn<FlatTopic>({
-      columnId: 'stats',
-      renderHeaderCell: () => 'Stats',
-      renderCell: (item) => (
-        <div className={styles.statsContainer}>
-          <DocumentDatabase24Regular className={styles.documentDatabaseIcon} />
-          <Text>{item._count?.quizzes || 0} Quizzes</Text>
-        </div>
-      ),
-    }),
-    createTableColumn<FlatTopic>({
-      columnId: 'actions',
-      renderHeaderCell: () => 'Actions',
-      renderCell: (item) => (
-        <Menu>
-          <MenuTrigger disableButtonEnhancement>
-            <Button size="small" appearance="subtle" icon={<MoreHorizontal20Regular />} aria-label="More actions" />
-          </MenuTrigger>
-          <MenuPopover>
-            <MenuList>
-              {(!item.parentTopics || item.parentTopics.length === 0) ? (
-                <>
-                  <MenuItem icon={<Branch20Regular />} onClick={() => openNewTopicDialog('', item.id)}>Add Sub Topic</MenuItem>
-                  <MenuItem icon={<Link20Regular />} onClick={() => {
-                    setLinkTopicId(item.id);
-                    setSelectedSubtopicIds([]);
-                    setTopicLinkDialogOpen(true);
-                  }}>Link Sub Topics</MenuItem>
-                </>
-              ) : (
-                <MenuItem icon={<Link20Regular />} onClick={() => {
-                  setLinkTopicId(item.id);
-                  setSelectedQuizIds([]);
-                  setQuizLinkDialogOpen(true);
-                }}>Link Quizzes</MenuItem>
-              )}
-              <MenuItem icon={<Edit20Regular />} onClick={() => {
-                setTopicForm({ id: item.id, title: item.title, description: item.description || '', examId: '', parentId: item.parentTopics?.[0]?.id || '' });
-                setTopicDialogOpen(true);
-              }}>Edit Topic</MenuItem>
-              <MenuItem icon={<Delete20Regular />} onClick={() => handleDeleteTopic(item.id, item.title)}>Delete Topic</MenuItem>
-            </MenuList>
-          </MenuPopover>
-        </Menu>
-      )
-    }),
-   ], [handleDeleteTopic, styles]);
-
-  // Filters for linking available items in Combobox
-  const availableMainTopics = flatTopics.filter(t => 
-    (!t.parentTopics || t.parentTopics.length === 0) && 
-    (!linkExamId || !t.exams || !t.exams.some(e => e.id === linkExamId))
-  );
-
-  const availableSubtopics = flatTopics.filter(t => 
-    t.id !== linkTopicId && 
-    (!linkTopicId || !t.parentTopics || !t.parentTopics.some(p => p.id === linkTopicId))
-  );
-
-  const availableQuizzes = allQuizzes.filter(q => 
-    !linkTopicId || !q.topics?.some((t: { id: string }) => t.id === linkTopicId)
-  );
+  }, [allQuizzes, linkTopicId]);
 
   const activeExam = exams.find(e => e.id === selectedExamId);
   const activeTopic = topics.find(t => t.id === selectedTopicId) || flatTopics.find(t => t.id === selectedTopicId);
 
-  // Real-time Filtering and Search logic
+  // Filters
   const filteredExams = exams.filter(item => 
     item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -716,882 +625,1067 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
     ? flatTopics.filter(t => !t.parentTopics || t.parentTopics.length === 0) 
     : flatTopics.filter(t => t.parentTopics && t.parentTopics.length > 0);
 
-  const filteredTopics = displayTopics.filter(item => {
-    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesSearch;
-  });
+  const filteredTopics = displayTopics.filter(item => 
+    item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
   const totalItems = view === "exams" ? filteredExams.length : filteredTopics.length;
   const totalPages = Math.ceil(totalItems / pageSize) || 1;
 
-  // Safety page bounds check
   useEffect(() => {
     if (currentPage > totalPages) {
-      // Reset pagination when current page is out of bounds.
-      queueMicrotask(() => setCurrentPage(1));
+      setCurrentPage(1);
     }
   }, [totalPages, currentPage]);
-
-
 
   const paginatedExams = filteredExams.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const paginatedTopics = filteredTopics.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  if (loading) return (
-    <div className={styles.loadingContainer}>
-      <Spinner size="huge" label="Loading taxonomy..." />
-    </div>
-  );
+  if (loading && exams.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-2 text-xs text-muted-foreground select-none">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <span>Loading taxonomy registry…</span>
+      </div>
+    );
+  }
 
   return (
-    <div className={styles.root}>
-      {error && (
-        <MessageBar intent="error">
-          <MessageBarBody>{error}</MessageBarBody>
-        </MessageBar>
-      )}
-      
+    <div className="flex flex-col gap-6 py-4 w-full">
+        {error && (
+          <Alert variant="danger" title="Error">
+            {error}
+          </Alert>
+        )}
+
       {/* EXAMS VIEW */}
       {view === "exams" && (
         <>
-          <div className={styles.viewHeader}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/80 pb-5">
             <div>
-              <Text size={700} weight="bold" className={styles.viewTitleText}>Exams ({filteredExams.length})</Text>
-              <Text block size={200} className={styles.viewSubtitleText}>Manage the top-level exams representing major categories of your curriculum.</Text>
+              <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                <span>Exams</span>
+                <Badge variant="secondary" className="px-2 py-0.5 font-bold text-[10px]">
+                  {filteredExams.length}
+                </Badge>
+              </h1>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Manage the top-level exams representing major categories of your curriculum.
+              </p>
             </div>
-            
-            <div className={styles.viewHeaderActions}>
-              <Popover>
-                <PopoverTrigger disableButtonEnhancement>
-                  <Button size="small" icon={<Filter20Regular />}>Filter</Button>
-                </PopoverTrigger>
-                <PopoverSurface className={styles.filterPopover}>
-                  <Text size={300} weight="semibold">Search Filters</Text>
-                  <Field label="Search Title/Description">
-                    <Input 
-                      placeholder="Type search terms..." 
-                      value={searchQuery}
-                      onChange={(e) => {
-                        setSearchQuery(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                    />
-                  </Field>
-                </PopoverSurface>
-              </Popover>
-              <Tooltip content="Create a new Exam category" relationship="label">
-                <Button size="small" appearance="primary" icon={<Add20Regular />} onClick={() => {
+
+            <Button 
+              variant="primary" 
+              size="sm" 
+              className="gap-1.5 font-semibold text-xs h-9 px-4 shadow-xs" 
+              onClick={() => {
+                setExamForm({ id: '', title: '', description: '' });
+                setExamDialogOpen(true);
+              }}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Add Exam</span>
+            </Button>
+          </div>
+
+          {/* Search bar */}
+          <div className="relative w-full max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+            <Input
+              placeholder="Search exams..."
+              value={searchQuery}
+              onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              className="pl-9 h-10 w-full"
+            />
+          </div>
+
+          {filteredExams.length === 0 ? (
+            <NoData 
+              title="No Exams Found" 
+              description="Create an exam category to start structuring your topics and subtopics." 
+              icon="warning"
+              action={
+                <Button variant="primary" className="gap-1.5 font-semibold text-xs h-9 px-4" onClick={() => {
                   setExamForm({ id: '', title: '', description: '' });
                   setExamDialogOpen(true);
-                }}>Add Exam</Button>
-              </Tooltip>
-            </div>
-          </div>
-          
-          {filteredExams.length === 0 ? (
-             <NoData 
-               title="No Exams Found" 
-               description="Create an exam category to start structuring your topics and subtopics." 
-               icon="warning"
-               action={<Button size="small" appearance="primary" icon={<Add20Regular />} onClick={() => {
-                 setExamForm({ id: '', title: '', description: '' });
-                 setExamDialogOpen(true);
-               }}>Create First Exam</Button>}
-             />
-           ) : (
-            <Card className={styles.dataGridCard}>
-              <div className={styles.scrollContainer}>
-                <DataGrid items={paginatedExams} columns={examColumns} className={styles.examDataGrid}>
-                  <DataGridHeader className={styles.dataGridHeader}>
-                    <DataGridRow>
-                      {({ renderHeaderCell }) => (
-                        <DataGridHeaderCell className={styles.dataGridHeaderCell}>{renderHeaderCell()}</DataGridHeaderCell>
-                      )}
-                    </DataGridRow>
-                  </DataGridHeader>
-                  <DataGridBody<Exam>>
-                    {({ item, rowId }) => (
-                      <DataGridRow<Exam> key={rowId} className={styles.dataGridRow}>
-                        {({ renderCell }) => (
-                          <DataGridCell className={styles.dataGridCell}>{renderCell(item)}</DataGridCell>
-                        )}
-                      </DataGridRow>
-                    )}
-                  </DataGridBody>
-                </DataGrid>
+                }}>
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Create First Exam</span>
+                </Button>
+              }
+            />
+          ) : (
+            <Card className="border-border/80 shadow-xs overflow-hidden p-0">
+              <div className="overflow-x-auto w-full">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-border/40 text-muted-foreground font-bold bg-secondary/10">
+                      <th scope="col" className="py-3.5 px-4 font-bold max-w-sm">Exam Title</th>
+                      <th scope="col" className="py-3.5 px-4 font-bold">Description</th>
+                      <th scope="col" className="py-3.5 px-4 font-bold text-center w-24">Main Topics</th>
+                      <th scope="col" className="py-3.5 px-4 font-bold text-center w-24">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedExams.map((item) => (
+                      <tr key={item.id} className="border-b border-border/20 hover:bg-secondary/20 transition-colors">
+                        <td className="py-3 px-4 font-semibold text-foreground">
+                          <button
+                            onClick={() => setSelectedExamId(item.id)}
+                            className="text-left font-semibold text-foreground hover:text-primary transition-colors cursor-pointer border-0 bg-transparent p-0"
+                          >
+                            {item.title}
+                          </button>
+                        </td>
+                        <td className="py-3 px-4 text-muted-foreground font-medium truncate max-w-xs">
+                          {item.description || "No description provided."}
+                        </td>
+                        <td className="py-3 px-4 text-center font-bold text-foreground/90">{item.topics.length}</td>
+                        <td className="py-3 px-4 text-center select-none">
+                          <div className="flex items-center justify-center gap-1.5">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setLinkExamId(item.id);
+                                setSelectedTopicIds(item.topics.map(t => t.id));
+                                setExamLinkDialogOpen(true);
+                              }}
+                              className="h-8 w-8 text-muted-foreground hover:bg-surface-hover hover:text-primary rounded-lg border border-border/50 bg-surface"
+                            >
+                              <LinkIcon className="h-3.5 w-3.5" />
+                            </Button>
+                            
+                            <Dropdown>
+                              <DropdownTrigger>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-surface-hover rounded-lg">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownTrigger>
+                              <DropdownContent align="right" className="w-44">
+                                <DropdownItem onClick={() => setSelectedExamId(item.id)}>Manage Topics</DropdownItem>
+                                <DropdownItem onClick={() => {
+                                  setExamForm({ id: item.id, title: item.title, description: item.description || '' });
+                                  setExamDialogOpen(true);
+                                }}>Edit Settings</DropdownItem>
+                                <DropdownItem onClick={() => handleDeleteExam(item.id, item.title)} className="text-danger">Delete Exam</DropdownItem>
+                              </DropdownContent>
+                            </Dropdown>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
 
-              {/* PAGINATION FOOTER */}
-              <div className={styles.paginationFooter}>
-                <div className={styles.pageSizeSelector}>
-                  <Text size={200} className={styles.paginationLabel}>Show</Text>
+              {/* Pagination footer */}
+              <div className="flex flex-col sm:flex-row items-center justify-between p-4 border-t border-border/40 gap-4 bg-secondary/5 text-xs select-none">
+                <div className="flex items-center gap-2 text-muted-foreground/80 font-medium">
+                  <span>Show</span>
                   <Select 
                     value={pageSize.toString()} 
-                    onChange={(e) => {
-                      setPageSize(parseInt(e.target.value));
-                      setCurrentPage(1);
-                    }}
-                    size="small"
-                    className={styles.fullWidthSelect}
+                    onChange={e => { setPageSize(parseInt(e.target.value)); setCurrentPage(1); }} 
+                    className="h-8 w-16"
                   >
                     <option value="5">5</option>
                     <option value="10">10</option>
                     <option value="20">20</option>
                     <option value="50">50</option>
                   </Select>
-                  <Text size={200} className={styles.paginationLabel}>entries</Text>
+                  <span>entries</span>
                 </div>
 
-                <Text size={200} className={styles.paginationLabel}>
-                  Showing {totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, totalItems)} of {totalItems} entries
-                </Text>
+                <span className="text-muted-foreground/80 font-medium">
+                  Showing {totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, totalItems)} of {totalItems} entries
+                </span>
 
-                <div className={styles.paginationNav}>
+                <div className="flex items-center gap-2">
                   <Button 
-                    size="small" 
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    variant="outline" 
+                    size="sm" 
+                    disabled={currentPage === 1} 
+                    onClick={() => setCurrentPage(p => p - 1)}
+                    className="h-8 font-semibold text-xs"
                   >
                     Previous
                   </Button>
                   <Button 
-                    size="small" 
-                    disabled={currentPage === totalPages}
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    variant="outline" 
+                    size="sm" 
+                    disabled={currentPage === totalPages} 
+                    onClick={() => setCurrentPage(p => p + 1)}
+                    className="h-8 font-semibold text-xs"
                   >
                     Next
                   </Button>
                 </div>
               </div>
-
             </Card>
           )}
         </>
       )}
 
-      {/* TOPICS VIEW */}
+      {/* TOPICS / SUBTOPICS VIEW */}
       {(view === "main-topics" || view === "subtopics") && (
         <>
-          <div className={styles.viewHeader}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/80 pb-5">
             <div>
-              <Text size={700} weight="bold" className={styles.viewTitleText}>
-                {view === "main-topics" ? "Main Topics" : "Sub Topics"} ({filteredTopics.length})
-              </Text>
-              <Text block size={200} className={styles.viewSubtitleText}>
+              <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                <span>{view === "main-topics" ? "Main Topics" : "Sub Topics"}</span>
+                <Badge variant="secondary" className="px-2 py-0.5 font-bold text-[10px]">
+                  {filteredTopics.length}
+                </Badge>
+              </h1>
+              <p className="text-xs text-muted-foreground mt-0.5">
                 {view === "main-topics" 
                   ? "Manage top-level topic nodes under Exams or Standalone Topics." 
                   : "Manage fine-grained subtopics nested under Main Topics."}
-              </Text>
+              </p>
             </div>
-            
-            <div className={styles.viewHeaderActions}>
-              <Popover>
-                <PopoverTrigger disableButtonEnhancement>
-                  <Button size="small" icon={<Filter20Regular />}>Filter</Button>
-                </PopoverTrigger>
-                <PopoverSurface className={styles.filterPopover}>
-                  <Text size={300} weight="semibold">Search Filters</Text>
-                  <Field label="Search Title/Description">
-                    <Input 
-                      placeholder="Type search terms..." 
-                      value={searchQuery}
-                      onChange={(e) => {
-                        setSearchQuery(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                    />
-                  </Field>
-                </PopoverSurface>
-              </Popover>
-              {view === "main-topics" ? (
-                <Tooltip content="Create a topic not bound to any Exam" relationship="label">
-                  <Button size="small" appearance="primary" icon={<Add20Regular />} onClick={() => openNewTopicDialog('', '')}>Add Standalone Topic</Button>
-                </Tooltip>
-              ) : (
-                <Tooltip content="Create a new Sub Topic" relationship="label">
-                  <Button size="small" appearance="primary" icon={<Add20Regular />} onClick={() => openNewTopicDialog('', '')}>Add Sub Topic</Button>
-                </Tooltip>
-              )}
-            </div>
+
+            {view === "main-topics" ? (
+              <Button 
+                variant="primary" 
+                size="sm" 
+                className="gap-1.5 font-semibold text-xs h-9 px-4 shadow-xs" 
+                onClick={() => openNewTopicDialog('', '')}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span>Add Standalone Topic</span>
+              </Button>
+            ) : (
+              <Button 
+                variant="primary" 
+                size="sm" 
+                className="gap-1.5 font-semibold text-xs h-9 px-4 shadow-xs" 
+                onClick={() => openNewTopicDialog('', '')}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span>Add Sub Topic</span>
+              </Button>
+            )}
           </div>
-          
+
+          {/* Search bar */}
+          <div className="relative w-full max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+            <Input
+              placeholder={`Search ${view === "main-topics" ? "main topics" : "subtopics"}...`}
+              value={searchQuery}
+              onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              className="pl-9 h-10 w-full"
+            />
+          </div>
+
           {filteredTopics.length === 0 ? (
-             <NoData 
-               title={`No ${view === "main-topics" ? "Main Topics" : "Sub Topics"} Found`}
-               description={view === "main-topics" 
-                 ? 'Create Standalone Topics here, or add main topics to specific Exams from the Exams tab.' 
-                 : 'Add subtopics directly here, or click the branch icon on any Main Topic in the Main Topics tab.'}
-               icon="warning"
-               action={<Button 
-                 size="small" 
-                 appearance="primary" 
-                 icon={<Add20Regular />} 
-                 onClick={() => openNewTopicDialog('', '')}
-               >
-                 Create First {view === "main-topics" ? "Main Topic" : "Sub Topic"}
-               </Button>}
-             />
-           ) : (
-            <Card className={styles.dataGridCard}>
-              <div className={styles.scrollContainer}>
-                <DataGrid items={paginatedTopics} columns={topicColumns} className={styles.topicDataGrid}>
-                  <DataGridHeader className={styles.dataGridHeader}>
-                    <DataGridRow>
-                      {({ renderHeaderCell }) => (
-                        <DataGridHeaderCell className={styles.dataGridHeaderCell}>{renderHeaderCell()}</DataGridHeaderCell>
-                      )}
-                    </DataGridRow>
-                  </DataGridHeader>
-                  <DataGridBody<FlatTopic>>
-                    {({ item, rowId }) => (
-                      <DataGridRow<FlatTopic> key={rowId} className={styles.dataGridRow}>
-                        {({ renderCell }) => (
-                          <DataGridCell className={styles.dataGridCell}>{renderCell(item)}</DataGridCell>
-                        )}
-                      </DataGridRow>
-                    )}
-                  </DataGridBody>
-                </DataGrid>
+            <NoData 
+              title={`No ${view === "main-topics" ? "Main Topics" : "Sub Topics"} Found`}
+              description={view === "main-topics" 
+                ? 'Create Standalone Topics here, or add main topics to specific Exams from the Exams tab.' 
+                : 'Add subtopics directly here, or click the branch icon on any Main Topic in the Main Topics tab.'}
+              icon="warning"
+              action={
+                <Button variant="primary" className="gap-1.5 font-semibold text-xs h-9 px-4" onClick={() => openNewTopicDialog('', '')}>
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Create First {view === "main-topics" ? "Topic" : "Subtopic"}</span>
+                </Button>
+              }
+            />
+          ) : (
+            <Card className="border-border/80 shadow-xs overflow-hidden p-0">
+              <div className="overflow-x-auto w-full">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-border/40 text-muted-foreground font-bold bg-secondary/10">
+                      <th scope="col" className="py-3.5 px-4 font-bold max-w-sm">Topic Title</th>
+                      <th scope="col" className="py-3.5 px-4 font-bold">Hierarchy Level</th>
+                      <th scope="col" className="py-3.5 px-4 font-bold text-center w-28">Stats</th>
+                      <th scope="col" className="py-3.5 px-4 font-bold text-center w-24">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedTopics.map((item) => (
+                      <tr key={item.id} className="border-b border-border/20 hover:bg-secondary/20 transition-colors">
+                        <td className="py-3 px-4 font-semibold text-foreground">
+                          <button
+                            onClick={() => setSelectedTopicId(item.id)}
+                            className="text-left font-semibold text-foreground hover:text-primary transition-colors cursor-pointer border-0 bg-transparent p-0"
+                          >
+                            {item.title}
+                          </button>
+                        </td>
+                        <td className="py-3 px-4 select-none">
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            {item.parentTopics && item.parentTopics.length > 0 && <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />}
+                            <span className="font-medium text-xs">{item.displayType}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-center select-none font-semibold text-foreground/80">
+                          {view === "main-topics" ? (
+                            <span>{item.subtopics?.length || 0} Subtopics</span>
+                          ) : (
+                            <span>{item.quizzes?.length || 0} Quizzes</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-center select-none">
+                          <div className="flex items-center justify-center gap-1.5">
+                            {(!item.parentTopics || item.parentTopics.length === 0) ? (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setLinkTopicId(item.id);
+                                  setSelectedSubtopicIds(item.subtopics?.map(s => s.id) || []);
+                                  setTopicLinkDialogOpen(true);
+                                }}
+                                className="h-8 w-8 text-muted-foreground hover:bg-surface-hover hover:text-primary rounded-lg border border-border/50 bg-surface"
+                              >
+                                <Layers className="h-3.5 w-3.5" />
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setLinkTopicId(item.id);
+                                  setSelectedQuizIds(item.quizzes?.map(q => q.id) || []);
+                                  setQuizLinkDialogOpen(true);
+                                }}
+                                className="h-8 w-8 text-muted-foreground hover:bg-surface-hover hover:text-primary rounded-lg border border-border/50 bg-surface"
+                              >
+                                <LinkIcon className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+
+                            <Dropdown>
+                              <DropdownTrigger>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-surface-hover rounded-lg">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownTrigger>
+                              <DropdownContent align="right" className="w-44">
+                                <DropdownItem onClick={() => setSelectedTopicId(item.id)}>Manage Associations</DropdownItem>
+                                
+                                {(!item.parentTopics || item.parentTopics.length === 0) && (
+                                  <DropdownItem onClick={() => openNewTopicDialog('', item.id)}>Add Sub Topic</DropdownItem>
+                                )}
+
+                                <DropdownItem onClick={() => {
+                                  setTopicForm({ id: item.id, title: item.title, description: item.description || '', examId: '', parentId: item.parentTopics?.[0]?.id || '' });
+                                  setTopicDialogOpen(true);
+                                }}>Edit Settings</DropdownItem>
+                                <DropdownItem onClick={() => handleDeleteTopic(item.id, item.title)} className="text-danger">Delete Topic</DropdownItem>
+                              </DropdownContent>
+                            </Dropdown>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
 
-              {/* PAGINATION FOOTER */}
-              <div className={styles.paginationFooter}>
-                <div className={styles.pageSizeSelector}>
-                  <Text size={200} className={styles.paginationLabel}>Show</Text>
+              {/* Pagination footer */}
+              <div className="flex flex-col sm:flex-row items-center justify-between p-4 border-t border-border/40 gap-4 bg-secondary/5 text-xs select-none">
+                <div className="flex items-center gap-2 text-muted-foreground/80 font-medium">
+                  <span>Show</span>
                   <Select 
                     value={pageSize.toString()} 
-                    onChange={(e) => {
-                      setPageSize(parseInt(e.target.value));
-                      setCurrentPage(1);
-                    }}
-                    size="small"
-                    className={styles.fullWidthSelect}
+                    onChange={e => { setPageSize(parseInt(e.target.value)); setCurrentPage(1); }} 
+                    className="h-8 w-16"
                   >
                     <option value="5">5</option>
                     <option value="10">10</option>
                     <option value="20">20</option>
                     <option value="50">50</option>
                   </Select>
-                  <Text size={200} className={styles.paginationLabel}>entries</Text>
+                  <span>entries</span>
                 </div>
 
-                <Text size={200} className={styles.paginationLabel}>
-                  Showing {totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, totalItems)} of {totalItems} entries
-                </Text>
+                <span className="text-muted-foreground/80 font-medium">
+                  Showing {totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, totalItems)} of {totalItems} entries
+                </span>
 
-                <div className={styles.paginationNav}>
+                <div className="flex items-center gap-2">
                   <Button 
-                    size="small" 
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    variant="outline" 
+                    size="sm" 
+                    disabled={currentPage === 1} 
+                    onClick={() => setCurrentPage(p => p - 1)}
+                    className="h-8 font-semibold text-xs"
                   >
                     Previous
                   </Button>
                   <Button 
-                    size="small" 
-                    disabled={currentPage === totalPages}
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    variant="outline" 
+                    size="sm" 
+                    disabled={currentPage === totalPages} 
+                    onClick={() => setCurrentPage(p => p + 1)}
+                    className="h-8 font-semibold text-xs"
                   >
                     Next
                   </Button>
                 </div>
               </div>
-
             </Card>
           )}
         </>
       )}
 
-      {/* Exam Dialog */}
-      <Dialog open={examDialogOpen} onOpenChange={(e, data) => setExamDialogOpen(data.open)}>
-        <DialogSurface className={styles.dialogSurface}>
-          <DialogBody>
-            <DialogTitle action={<DialogTrigger action="close"><Button appearance="subtle" aria-label="close" icon={<Dismiss20Regular />} /></DialogTrigger>}>{examForm.id ? "Edit Exam" : "Add Exam"}</DialogTitle>
-            <DialogContent className={styles.dialogContent}>
-              <Field label="Exam Title" required>
-                <Input value={examForm.title} onChange={e => setExamForm({...examForm, title: e.target.value})} className={styles.fullWidthInput} />
-              </Field>
-              <Field label="Description">
-                <Textarea value={examForm.description} onChange={e => setExamForm({...examForm, description: e.target.value})} className={styles.fullWidthTextarea} />
-              </Field>
-            </DialogContent>
-            <DialogActions className={styles.dialogActions}>
-              <DialogTrigger disableButtonEnhancement>
-                <Button appearance="secondary">Cancel</Button>
-              </DialogTrigger>
-              <Button appearance="primary" onClick={handleSaveExam} disabled={!examForm.title}>Save</Button>
-            </DialogActions>
-          </DialogBody>
-        </DialogSurface>
-      </Dialog>
-
-      {/* Bulk Link Standalone Topics to Exam Dialog */}
-      <Dialog open={examLinkDialogOpen} onOpenChange={(e, data) => setExamLinkDialogOpen(data.open)}>
-        <DialogSurface className={styles.dialogSurface}>
-          <DialogBody>
-            <DialogTitle action={<DialogTrigger action="close"><Button appearance="subtle" aria-label="close" icon={<Dismiss20Regular />} /></DialogTrigger>}>Link Existing Main Topics</DialogTitle>
-            <DialogContent className={styles.dialogContent}>
-              <Field label="Select Standalone Main Topics to Associate with Exam">
-                <Combobox 
-                  multiselect
-                  selectedOptions={selectedTopicIds}
-                  onOptionSelect={(e, data) => setSelectedTopicIds(data.selectedOptions)}
-                  value={selectedTopicIds.map(id => flatTopics.find(t => t.id === id)?.title).filter(Boolean).join(", ")}
-                  placeholder="Select topics..."
-                  className={styles.fullWidthCombobox}
-                >
-                  {availableMainTopics.map(t => (
-                    <Option key={t.id} value={t.id} text={t.title}>{t.title}</Option>
-                  ))}
-                </Combobox>
-              </Field>
-            </DialogContent>
-            <DialogActions className={styles.dialogActions}>
-              <DialogTrigger disableButtonEnhancement>
-                <Button appearance="secondary">Cancel</Button>
-              </DialogTrigger>
-              <Button appearance="primary" onClick={handleSaveExamLinks}>Save Associations</Button>
-            </DialogActions>
-          </DialogBody>
-        </DialogSurface>
-      </Dialog>
-
-      {/* Bulk Link Subtopics to Main Topic Dialog */}
-      <Dialog open={topicLinkDialogOpen} onOpenChange={(e, data) => setTopicLinkDialogOpen(data.open)}>
-        <DialogSurface className={styles.dialogSurface}>
-          <DialogBody>
-            <DialogTitle action={<DialogTrigger action="close"><Button appearance="subtle" aria-label="close" icon={<Dismiss20Regular />} /></DialogTrigger>}>Link Existing Sub Topics</DialogTitle>
-            <DialogContent className={styles.dialogContent}>
-              <Field label="Select Standalone Sub Topics to Link to Main Topic">
-                <Combobox 
-                  multiselect
-                  selectedOptions={selectedSubtopicIds}
-                  onOptionSelect={(e, data) => setSelectedSubtopicIds(data.selectedOptions)}
-                  value={selectedSubtopicIds.map(id => flatTopics.find(t => t.id === id)?.title).filter(Boolean).join(", ")}
-                  placeholder="Select subtopics..."
-                  className={styles.fullWidthCombobox}
-                >
-                  {availableSubtopics.map(t => (
-                    <Option key={t.id} value={t.id} text={t.title}>{t.title}</Option>
-                  ))}
-                </Combobox>
-              </Field>
-            </DialogContent>
-            <DialogActions className={styles.dialogActions}>
-              <DialogTrigger disableButtonEnhancement>
-                <Button appearance="secondary">Cancel</Button>
-              </DialogTrigger>
-              <Button appearance="primary" onClick={handleSaveTopicLinks}>Save Associations</Button>
-            </DialogActions>
-          </DialogBody>
-        </DialogSurface>
-      </Dialog>
-
-      {/* Bulk Link Quizzes Dialog */}
-      <Dialog open={quizLinkDialogOpen} onOpenChange={(e, data) => setQuizLinkDialogOpen(data.open)}>
-        <DialogSurface className={styles.dialogSurface}>
-          <DialogBody>
-            <DialogTitle action={<DialogTrigger action="close"><Button appearance="subtle" aria-label="close" icon={<Dismiss20Regular />} /></DialogTrigger>}>Link Existing Quizzes</DialogTitle>
-            <DialogContent className={styles.dialogContent}>
-              <Field label="Select Existing Quizzes to pull into this Sub Topic">
-                <Combobox 
-                  multiselect
-                  selectedOptions={selectedQuizIds}
-                  onOptionSelect={(e, data) => setSelectedQuizIds(data.selectedOptions)}
-                  value={selectedQuizIds.map(id => allQuizzes.find(q => q.id === id)?.title).filter(Boolean).join(", ")}
-                  placeholder="Select quizzes..."
-                  className={styles.fullWidthCombobox}
-                >
-                  {availableQuizzes.map(q => (
-                    <Option key={q.id} value={q.id} text={q.title}>{q.title}</Option>
-                  ))}
-                </Combobox>
-              </Field>
-            </DialogContent>
-            <DialogActions className={styles.dialogActions}>
-              <DialogTrigger disableButtonEnhancement>
-                <Button appearance="secondary">Cancel</Button>
-              </DialogTrigger>
-              <Button appearance="primary" onClick={handleSaveQuizLinks}>Save Associations</Button>
-            </DialogActions>
-          </DialogBody>
-        </DialogSurface>
-      </Dialog>
-
-      {/* Create Quiz Dialog */}
-      <Dialog open={quizDialogOpen} onOpenChange={(e, data) => setQuizDialogOpen(data.open)}>
-        <DialogSurface className={styles.dialogSurfaceQuizAI}>
-          <DialogBody>
-            <DialogTitle action={<DialogTrigger action="close"><Button appearance="subtle" aria-label="close" icon={<Dismiss20Regular />} /></DialogTrigger>}>
-              <div className={styles.quizAIDialogTitleRow}>
-                <Sparkle20Regular className={styles.sparkleIcon} />
-                Generate Quiz with AI
-              </div>
-            </DialogTitle>
-            <DialogContent className={styles.dialogContentPadTop}>
-              <GenerateQuizForm 
-                initialTopicId={quizForm.topicId}
-                onSuccess={async () => {
-                  await fetchData();
-                  setQuizDialogOpen(false);
-                }} 
-              />
-            </DialogContent>
-          </DialogBody>
-        </DialogSurface>
-      </Dialog>
-
-      {/* Topic Dialog (Simplified independent creation dialog, no classifications / linking required) */}
-      <Dialog open={topicDialogOpen} onOpenChange={(e, data) => setTopicDialogOpen(data.open)}>
-        <DialogSurface className={styles.dialogSurface}>
-          <DialogBody>
-            <DialogTitle action={<DialogTrigger action="close"><Button appearance="subtle" aria-label="close" icon={<Dismiss20Regular />} /></DialogTrigger>}>
-              {topicForm.id ? "Edit Topic Settings" : (topicForm.parentId ? "Add Sub Topic" : (topicForm.examId ? "Add Main Topic" : "Add Topic"))}
-            </DialogTitle>
-            <DialogContent className={styles.dialogContent}>
-              <Field label="Topic Title" required>
-                <Input value={topicForm.title} onChange={e => setTopicForm({...topicForm, title: e.target.value})} className={styles.fullWidthInput} />
-              </Field>
-              <Field label="Description">
-                <Textarea value={topicForm.description} onChange={e => setTopicForm({...topicForm, description: e.target.value})} className={styles.fullWidthTextarea} />
-              </Field>
-            </DialogContent>
-            <DialogActions className={styles.dialogActions}>
-              <DialogTrigger disableButtonEnhancement>
-                <Button appearance="secondary">Cancel</Button>
-              </DialogTrigger>
-              <Button appearance="primary" onClick={handleSaveTopic} disabled={!topicForm.title}>Save</Button>
-            </DialogActions>
-          </DialogBody>
-        </DialogSurface>
-      </Dialog>
-
-      {/* Exam Detail Drawer */}
-      <OverlayDrawer 
-        position="end" 
-        open={!!selectedExamId} 
-        onOpenChange={(_, data) => setSelectedExamId(data.open ? selectedExamId : null)}
-        className={styles.overlayDrawer}
-      >
-        <DrawerHeader className={styles.drawerHeader}>
-          <DrawerHeaderTitle 
-            action={
-              <Button 
-                appearance="subtle" 
-                icon={<Dismiss20Regular />}
-                onClick={() => setSelectedExamId(null)}
-                aria-label="Close"
-              />
-            }
-          >
-            <div className={styles.drawerHeaderContent}>
-              <Text size={500} weight="bold" className={styles.drawerTitleText}>{activeExam?.title}</Text>
-              <Text size={200} className={styles.drawerDescriptionText}>
-                {activeExam?.description || <span className={styles.drawerDescriptionFallback}>No description provided.</span>}
-              </Text>
+      {/* Exam Settings Dialog */}
+      <Dialog open={examDialogOpen} onOpenChange={setExamDialogOpen}>
+        <DialogSurface className="max-w-[440px]">
+          <DialogTitle>{examForm.id ? "Edit Exam" : "Add Exam"}</DialogTitle>
+          <DialogContent className="flex flex-col gap-4 mt-3">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Exam Title <span className="text-danger">*</span></label>
+              <Input value={examForm.title} onChange={e => setExamForm({...examForm, title: e.target.value})} required />
             </div>
-          </DrawerHeaderTitle>
-        </DrawerHeader>
-        <DrawerBody className={styles.drawerBody}>
-           
-          <div>
-            <div className={styles.sectionHeader}>
-              <Text size={400} weight="semibold" className={styles.sectionHeaderTitle}>Linked Main Topics ({activeExam?.topics?.length || 0})</Text>
-              {activeExam && (
-                <Button 
-                  size="small" 
-                  appearance="outline" 
-                  icon={<Link20Regular />}
-                  onClick={() => {
-                    setLinkExamId(activeExam.id);
-                    setSelectedTopicIds([]);
-                    setExamLinkDialogOpen(true);
-                  }}
-                >
-                  Link Topics
-                </Button>
-              )}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Description</label>
+              <Textarea value={examForm.description} onChange={e => setExamForm({...examForm, description: e.target.value})} rows={3} />
+            </div>
+          </DialogContent>
+          <DialogActions>
+            <Button variant="outline" onClick={() => setExamDialogOpen(false)}>Cancel</Button>
+            <Button variant="primary" onClick={handleSaveExam} disabled={!examForm.title || loading}>Save</Button>
+          </DialogActions>
+        </DialogSurface>
+      </Dialog>
+
+      {/* Link Topics to Exam Dialog */}
+      <Dialog open={examLinkDialogOpen} onOpenChange={setExamLinkDialogOpen}>
+        <DialogSurface className="max-w-[480px]">
+          <DialogTitle>Link Existing Main Topics</DialogTitle>
+          <DialogContent className="flex flex-col gap-3 mt-3">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Select standalone main topics to associate with this exam category.
+            </p>
+            
+            <div className="flex flex-col gap-1.5 mt-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Main Topics</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+                <Input
+                  placeholder="Search topics..."
+                  value={examLinkSearch}
+                  onChange={e => setExamLinkSearch(e.target.value)}
+                  className="pl-9 h-9"
+                />
+              </div>
+              <div className="flex flex-col gap-2 max-h-56 overflow-y-auto border border-border/80 rounded-xl p-3 bg-secondary/5 mt-0.5 select-none">
+                {availableMainTopics
+                  .filter(t => t.title.toLowerCase().includes(examLinkSearch.toLowerCase()))
+                  .map(t => {
+                    const isChecked = selectedTopicIds.includes(t.id);
+                    return (
+                      <label key={t.id} className="flex items-center gap-2.5 p-1.5 hover:bg-surface-hover rounded-lg cursor-pointer text-xs font-semibold text-foreground/90 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            setSelectedTopicIds(prev =>
+                              isChecked ? prev.filter(id => id !== t.id) : [...prev, t.id]
+                            );
+                          }}
+                          className="rounded border-border text-primary focus:ring-primary h-4 w-4"
+                        />
+                        <span className="truncate">{t.title}</span>
+                      </label>
+                    );
+                  })}
+                {availableMainTopics.filter(t => t.title.toLowerCase().includes(examLinkSearch.toLowerCase())).length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
+                    <Search className="h-8 w-8 text-muted-foreground/40" />
+                    <p className="text-xs text-muted-foreground font-medium">No topics found</p>
+                    <p className="text-[10px] text-muted-foreground/70">Try adjusting your search or add a new topic first.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+          <DialogActions>
+            <Button variant="outline" onClick={() => { setExamLinkDialogOpen(false); setExamLinkSearch(""); }}>Cancel</Button>
+            <Button variant="primary" onClick={handleSaveExamLinks} disabled={loading}>Save Links</Button>
+          </DialogActions>
+        </DialogSurface>
+      </Dialog>
+
+      {/* Link Subtopics Dialog */}
+      <Dialog open={topicLinkDialogOpen} onOpenChange={setTopicLinkDialogOpen}>
+        <DialogSurface className="max-w-[480px]">
+          <DialogTitle>Link Existing Sub Topics</DialogTitle>
+          <DialogContent className="flex flex-col gap-3 mt-3">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Select existing subtopics to nest under this main topic.
+            </p>
+            
+            <div className="flex flex-col gap-1.5 mt-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Subtopics</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+                <Input
+                  placeholder="Search subtopics..."
+                  value={topicLinkSearch}
+                  onChange={e => setTopicLinkSearch(e.target.value)}
+                  className="pl-9 h-9"
+                />
+              </div>
+              <div className="flex flex-col gap-2 max-h-56 overflow-y-auto border border-border/80 rounded-xl p-3 bg-secondary/5 mt-0.5 select-none">
+                {availableSubtopics
+                  .filter(t => t.title.toLowerCase().includes(topicLinkSearch.toLowerCase()))
+                  .map(t => {
+                    const isChecked = selectedSubtopicIds.includes(t.id);
+                    return (
+                      <label key={t.id} className="flex items-center gap-2.5 p-1.5 hover:bg-surface-hover rounded-lg cursor-pointer text-xs font-semibold text-foreground/90 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            setSelectedSubtopicIds(prev =>
+                              isChecked ? prev.filter(id => id !== t.id) : [...prev, t.id]
+                            );
+                          }}
+                          className="rounded border-border text-primary focus:ring-primary h-4 w-4"
+                        />
+                        <span className="truncate">{t.title}</span>
+                      </label>
+                    );
+                  })}
+                {availableSubtopics.filter(t => t.title.toLowerCase().includes(topicLinkSearch.toLowerCase())).length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
+                    <Search className="h-8 w-8 text-muted-foreground/40" />
+                    <p className="text-xs text-muted-foreground font-medium">No subtopics found</p>
+                    <p className="text-[10px] text-muted-foreground/70">Try adjusting your search or add a new subtopic first.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+          <DialogActions>
+            <Button variant="outline" onClick={() => { setTopicLinkDialogOpen(false); setTopicLinkSearch(""); }}>Cancel</Button>
+            <Button variant="primary" onClick={handleSaveTopicLinks} disabled={loading}>Save Links</Button>
+          </DialogActions>
+        </DialogSurface>
+      </Dialog>
+
+      {/* Link Quizzes Dialog */}
+      <Dialog open={quizLinkDialogOpen} onOpenChange={setQuizLinkDialogOpen}>
+        <DialogSurface className="max-w-[480px]">
+          <DialogTitle>Link Existing Quizzes</DialogTitle>
+          <DialogContent className="flex flex-col gap-3 mt-3">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Select existing quizzes to pull into this subtopic.
+            </p>
+            
+            <div className="flex flex-col gap-1.5 mt-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Quizzes</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+                <Input
+                  placeholder="Search quizzes..."
+                  value={quizLinkSearch}
+                  onChange={e => setQuizLinkSearch(e.target.value)}
+                  className="pl-9 h-9"
+                />
+              </div>
+              <div className="flex flex-col gap-2 max-h-56 overflow-y-auto border border-border/80 rounded-xl p-3 bg-secondary/5 mt-0.5 select-none">
+                {availableQuizzes
+                  .filter(q => q.title.toLowerCase().includes(quizLinkSearch.toLowerCase()))
+                  .map(q => {
+                    const isChecked = selectedQuizIds.includes(q.id);
+                    return (
+                      <label key={q.id} className="flex items-center gap-2.5 p-1.5 hover:bg-surface-hover rounded-lg cursor-pointer text-xs font-semibold text-foreground/90 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            setSelectedQuizIds(prev =>
+                              isChecked ? prev.filter(id => id !== q.id) : [...prev, q.id]
+                            );
+                          }}
+                          className="rounded border-border text-primary focus:ring-primary h-4 w-4"
+                        />
+                        <span className="truncate">{q.title}</span>
+                      </label>
+                    );
+                  })}
+                {availableQuizzes.filter(q => q.title.toLowerCase().includes(quizLinkSearch.toLowerCase())).length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
+                    <Search className="h-8 w-8 text-muted-foreground/40" />
+                    <p className="text-xs text-muted-foreground font-medium">No quizzes found</p>
+                    <p className="text-[10px] text-muted-foreground/70">Try adjusting your search or generate a new quiz first.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+          <DialogActions>
+            <Button variant="outline" onClick={() => { setQuizLinkDialogOpen(false); setQuizLinkSearch(""); }}>Cancel</Button>
+            <Button variant="primary" onClick={handleSaveQuizLinks} disabled={loading}>Save Links</Button>
+          </DialogActions>
+        </DialogSurface>
+      </Dialog>
+
+      {/* Generate Quiz (AI-powered) Dialog */}
+      <Dialog open={quizDialogOpen} onOpenChange={setQuizDialogOpen}>
+        <DialogSurface className="max-w-[540px]">
+          <DialogTitle>Generate Quiz with AI</DialogTitle>
+          <DialogContent className="mt-3">
+            <GenerateQuizForm 
+              initialTopicId={quizForm.topicId}
+              onSuccess={async () => {
+                await fetchData();
+                setQuizDialogOpen(false);
+              }} 
+            />
+          </DialogContent>
+        </DialogSurface>
+      </Dialog>
+
+      {/* Topic / Subtopic Settings Dialog */}
+      <Dialog open={topicDialogOpen} onOpenChange={setTopicDialogOpen}>
+        <DialogSurface className="max-w-[440px]">
+          <DialogTitle>
+            {topicForm.id ? "Edit Topic Settings" : (topicForm.parentId ? "Add Sub Topic" : (topicForm.examId ? "Add Main Topic" : "Add Topic"))}
+          </DialogTitle>
+          <DialogContent className="flex flex-col gap-4 mt-3">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Topic Title <span className="text-danger">*</span></label>
+              <Input value={topicForm.title} onChange={e => setTopicForm({...topicForm, title: e.target.value})} required />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Description</label>
+              <Textarea value={topicForm.description} onChange={e => setTopicForm({...topicForm, description: e.target.value})} rows={3} />
+            </div>
+          </DialogContent>
+          <DialogActions>
+            <Button variant="outline" onClick={() => setTopicDialogOpen(false)}>Cancel</Button>
+            <Button variant="primary" onClick={handleSaveTopic} disabled={!topicForm.title || loading}>Save</Button>
+          </DialogActions>
+        </DialogSurface>
+      </Dialog>
+
+      {/* Exam Details Drawer */}
+      <Sheet open={!!selectedExamId} onOpenChange={open => !open && setSelectedExamId(null)}>
+        <SheetContent className="max-w-2xl">
+          <SheetHeader>Exam settings: {activeExam?.title}</SheetHeader>
+          <SheetBody className="flex flex-col gap-6">
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Description</span>
+              <p className="text-sm font-medium text-foreground">
+                {activeExam?.description || "No description provided."}
+              </p>
             </div>
             
-            {activeExam?.topics && activeExam.topics.length > 0 ? (
-              <div className={styles.linkedList}>
-                {activeExam.topics.map(t => (
-                  <Card key={t.id} className={styles.linkedItemCard}>
-                    <div className={styles.linkedItemTextContent}>
-                      <Text weight="semibold" className={styles.linkedItemTitle}>{t.title}</Text>
-                    </div>
-                    <Tooltip content="Unlink from Exam" relationship="label">
-                      <Button 
-                        size="small" 
-                        appearance="subtle" 
-                        icon={<LinkDismiss20Regular />}
-                        className={styles.unlinkButton}
-                        onClick={() => handleUnlinkTopicFromExam(t.id, t.title, activeExam?.title || '')}
-                      />
-                    </Tooltip>
-                  </Card>
-                ))}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between border-b border-border/40 pb-1.5 select-none">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Linked Topics ({activeExam?.topics?.length || 0})
+                </h3>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-8 font-semibold text-xs gap-1.5"
+                  onClick={() => {
+                    if (activeExam) {
+                      setLinkExamId(activeExam.id);
+                      setSelectedTopicIds(activeExam.topics.map(t => t.id));
+                      setExamLinkDialogOpen(true);
+                    }
+                  }}
+                >
+                  <LinkIcon className="h-3.5 w-3.5" />
+                  <span>Link Topics</span>
+                </Button>
               </div>
+              
+              {activeExam?.topics && activeExam.topics.length > 0 ? (
+                <div className="flex flex-col gap-3.5 mt-2">
+                  {activeExam.topics.map(t => (
+                    <Card key={t.id} className="p-3.5 border border-border/80 bg-card shadow-xs flex items-center justify-between gap-4 rounded-xl select-none">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <BookOpen className="h-4 w-4 text-primary shrink-0" />
+                        <span className="font-semibold text-xs text-foreground truncate">{t.title}</span>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 text-muted-foreground hover:bg-danger/10 hover:text-danger rounded-lg shrink-0"
+                        onClick={() => handleUnlinkTopicFromExam(t.id, t.title, activeExam?.title || '')}
+                        aria-label="Unlink topic"
+                      >
+                        <Unlink2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </Card>
+                  ))}
+                </div>
               ) : (
                 <NoData title="No topics linked to this exam." icon="book" compact={true} />
-             )}
-          </div>
-        </DrawerBody>
-      </OverlayDrawer>
+              )}
+            </div>
+          </SheetBody>
+        </SheetContent>
+      </Sheet>
 
       {/* Topic/Subtopic Detail Drawer */}
-       <OverlayDrawer 
-         position="end" 
-         open={!!selectedTopicId} 
-         onOpenChange={(_, data) => setSelectedTopicId(data.open ? selectedTopicId : null)}
-         className={styles.overlayDrawer}
-       >
-         <DrawerHeader className={styles.drawerHeader}>
-           <DrawerHeaderTitle 
-             action={
-               <Button 
-                 appearance="subtle" 
-                 icon={<Dismiss20Regular />}
-                 onClick={() => setSelectedTopicId(null)}
-                 aria-label="Close"
-               />
-             }
-           >
-             <div className={styles.drawerHeaderContent}>
-               <div className={styles.drawerTitleRow}>
-                 <Text size={500} weight="bold" className={styles.drawerTitleText}>{activeTopic?.title}</Text>
-               </div>
-               <Text size={200} className={styles.drawerDescriptionText}>
-                 {activeTopic?.description || <span className={styles.drawerDescriptionFallback}>No description provided.</span>}
-               </Text>
-             </div>
-           </DrawerHeaderTitle>
-         </DrawerHeader>
-         <DrawerBody className={styles.drawerBody}>
-           
-           {/* Main Topic (no parentTopics) => shows linked subtopics */}
-           {activeTopic && (!activeTopic.parentTopics || activeTopic.parentTopics.length === 0) ? (
-             <div>
-               <div className={styles.sectionHeader}>
-                 <Text size={400} weight="semibold" className={styles.sectionHeaderTitle}>Linked Subtopics ({activeTopic?.subtopics?.length || 0})</Text>
-                 <Button 
-                   size="small" 
-                   appearance="outline" 
-                   icon={<Link20Regular />}
-                   onClick={() => {
-                     setLinkTopicId(activeTopic.id);
-                     setSelectedSubtopicIds([]);
-                     setTopicLinkDialogOpen(true);
-                   }}
-                 >
-                   Link Sub Topics
-                 </Button>
-               </div>
-               
-               {activeTopic?.subtopics && activeTopic.subtopics.length > 0 ? (
-                 <div className={styles.linkedList}>
-                   {activeTopic.subtopics.map(t => (
-                     <Card key={t.id} className={styles.linkedItemCard}>
-                       <div className={styles.linkedItemTextContent}>
-                         <Text weight="semibold" className={styles.linkedItemTitle}>{t.title}</Text>
-                       </div>
-                       <Tooltip content="Unlink from Topic" relationship="label">
-                         <Button 
-                           size="small" 
-                           appearance="subtle" 
-                           icon={<LinkDismiss20Regular />}
-                           className={styles.unlinkButton}
-                           onClick={() => handleUnlinkSubtopicFromParent(t.id, t.title, activeTopic?.title || '')}
-                         />
-                       </Tooltip>
-                     </Card>
-                   ))}
-                 </div>
+      <Sheet open={!!selectedTopicId} onOpenChange={open => !open && setSelectedTopicId(null)}>
+        <SheetContent className="max-w-2xl">
+          <SheetHeader>Topic settings: {activeTopic?.title}</SheetHeader>
+          <SheetBody className="flex flex-col gap-6">
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Description</span>
+              <p className="text-sm font-medium text-foreground">
+                {activeTopic?.description || "No description provided."}
+              </p>
+            </div>
+            
+            {activeTopic && (!activeTopic.parentTopics || activeTopic.parentTopics.length === 0) ? (
+              /* Main Topic => Show linked subtopics */
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between border-b border-border/40 pb-1.5 select-none">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Linked Subtopics ({activeTopic?.subtopics?.length || 0})
+                  </h3>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-8 font-semibold text-xs gap-1.5"
+                    onClick={() => {
+                      setLinkTopicId(activeTopic.id);
+                      setSelectedSubtopicIds(activeTopic.subtopics?.map(s => s.id) || []);
+                      setTopicLinkDialogOpen(true);
+                    }}
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>Link Sub Topics</span>
+                  </Button>
+                </div>
+                
+                {activeTopic?.subtopics && activeTopic.subtopics.length > 0 ? (
+                  <div className="flex flex-col gap-3.5 mt-2">
+                    {activeTopic.subtopics.map(t => (
+                      <Card key={t.id} className="p-3.5 border border-border/80 bg-card shadow-xs flex items-center justify-between gap-4 rounded-xl select-none">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Layers className="h-4 w-4 text-primary shrink-0" />
+                          <span className="font-semibold text-xs text-foreground truncate">{t.title}</span>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-muted-foreground hover:bg-danger/10 hover:text-danger rounded-lg shrink-0"
+                          onClick={() => handleUnlinkSubtopicFromParent(t.id, t.title, activeTopic?.title || '')}
+                          aria-label="Unlink subtopic"
+                        >
+                          <Unlink2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </Card>
+                    ))}
+                  </div>
                 ) : (
                   <NoData title="No subtopics linked to this topic." icon="book" compact={true} />
                 )}
-             </div>
-           ) : (
-             /* Sub Topic (has parentTopics) => shows linked quizzes */
-             <div>
-                <div className={styles.sectionHeaderWrap}>
-                 <Text size={400} weight="semibold" className={styles.sectionHeaderTitle}>Linked Quizzes ({activeTopic?.quizzes?.length || 0})</Text>
-                 <div className={styles.quizzesActionButtons}>
-                   <Button 
-                     size="small" 
-                     appearance="outline" 
-                     icon={<Link20Regular />}
-                     onClick={() => {
-                       if (activeTopic) {
-                         setLinkTopicId(activeTopic.id);
-                         setSelectedQuizIds([]);
-                         setQuizLinkDialogOpen(true);
-                       }
-                     }}
-                   >
-                     Link Quizzes
-                   </Button>
-                   <Button 
-                     size="small" 
-                     appearance="primary" 
-                     icon={<Add20Regular />}
-                     onClick={() => activeTopic && openNewQuizDialog(activeTopic.id)}
-                   >
-                     Create Quiz
-                   </Button>
-                 </div>
-               </div>
-               
-               {activeTopic?.quizzes && activeTopic.quizzes.length > 0 ? (
-                 <div className={styles.linkedList}>
-                   {activeTopic.quizzes.map(q => (
-                     <Card key={q.id} className={styles.linkedItemCard}>
-                       <div className={styles.linkedItemTextContent}>
-                         <Tooltip content="Click to view questions" relationship="label">
-                           <LinkButton
-                             appearance="transparent"
-                             className={styles.quizLinkButton}
-                             href={`/admin/manage/quizzes/${q.id}/questions`}
-                           >
-                             {q.title}
-                           </LinkButton>
-                         </Tooltip>
-                         <Text size={100} className={styles.quizMetaText}>Order: #{q.quizOrder} • {q._count?.questions || 0} Questions</Text>
-                       </div>
-                       
-                       <div className={styles.quizActionButtons}>
-                         {renderDifficultyBadge(q.difficulty)}
-                         <Tooltip content="Unlink Quiz" relationship="label">
-                           <Button 
-                             size="small" 
-                             appearance="subtle" 
-                             icon={<LinkDismiss20Regular />}
-                             className={styles.quizUnlinkButton}
-                             onClick={() => handleUnlinkQuizFromSubtopic(q.id, q.title, activeTopic?.title || '')}
-                           />
-                         </Tooltip>
-                         <Tooltip content="Delete Quiz permanently" relationship="label">
-                           <Button 
-                             size="small" 
-                             appearance="subtle" 
-                             icon={<Delete20Regular />}
-                             className={styles.unlinkButton}
-                             onClick={() => handleDeleteQuiz(q.id, q.title)}
-                           />
-                         </Tooltip>
-                       </div>
-                     </Card>
-                   ))}
-                 </div>
+              </div>
+            ) : (
+              /* Sub Topic => Show linked quizzes */
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between border-b border-border/40 pb-1.5 select-none">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Linked Quizzes ({activeTopic?.quizzes?.length || 0})
+                  </h3>
+                  <div className="flex items-center gap-1.5">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 font-semibold text-xs gap-1.5"
+                      onClick={() => {
+                        if (activeTopic) {
+                          setLinkTopicId(activeTopic.id);
+                          setSelectedQuizIds(activeTopic.quizzes?.map(q => q.id) || []);
+                          setQuizLinkDialogOpen(true);
+                        }
+                      }}
+                    >
+                      <LinkIcon className="h-3.5 w-3.5" />
+                      <span>Link Quizzes</span>
+                    </Button>
+                    <Button 
+                      variant="primary" 
+                      size="sm" 
+                      className="h-8 font-semibold text-xs gap-1.5 shadow-xs"
+                      onClick={() => activeTopic && openNewQuizDialog(activeTopic.id)}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      <span>Create Quiz</span>
+                    </Button>
+                  </div>
+                </div>
+                
+                {activeTopic?.quizzes && activeTopic.quizzes.length > 0 ? (
+                  <div className="flex flex-col gap-3.5 mt-2">
+                    {activeTopic.quizzes.map(q => (
+                      <Card key={q.id} className="p-3.5 border border-border/80 bg-card shadow-xs flex items-center justify-between gap-4 rounded-xl select-none">
+                        <div className="flex flex-col gap-0.5 min-w-0">
+                          <Link href={`/admin/manage/quizzes/${q.id}/questions`}>
+                            <span className="font-semibold text-xs text-foreground truncate hover:text-primary transition-colors block cursor-pointer">
+                              {q.title}
+                            </span>
+                          </Link>
+                          <span className="text-[10px] text-muted-foreground/80 font-medium">
+                            Order: #{q.quizOrder} • {q._count?.questions || 0} Questions
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Badge variant={difficultyBadgeVariant(q.difficulty)} className="capitalize font-bold text-[8px] px-2 py-0.5">
+                            {q.difficulty}
+                          </Badge>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-muted-foreground hover:bg-danger/10 hover:text-danger rounded-lg"
+                            onClick={() => handleUnlinkQuizFromSubtopic(q.id, q.title, activeTopic?.title || '')}
+                            aria-label="Unlink quiz"
+                          >
+                            <Unlink2 className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-muted-foreground hover:bg-danger/10 hover:text-danger rounded-lg"
+                            onClick={() => handleDeleteQuiz(q.id, q.title)}
+                            aria-label="Delete quiz"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
                 ) : (
                   <NoData title="No quizzes linked to this subtopic." icon="book" compact={true} />
                 )}
-             </div>
-           )}
-         </DrawerBody>
-       </OverlayDrawer>
-
-      {/* Reusable Fluent UI Confirmation Dialog */}
-      {/* ── Quiz Detail Drawer ── */}
-      <OverlayDrawer
-        position="end"
-        open={!!selectedQuizId}
-        onOpenChange={(_, d) => setSelectedQuizId(d.open ? selectedQuizId : null)}
-        className={styles.overlayDrawerQuiz}
-      >
-        <DrawerHeader className={styles.drawerHeader}>
-          <DrawerHeaderTitle
-            action={
-              <Button appearance="subtle" icon={<Dismiss20Regular />} onClick={() => setSelectedQuizId(null)} aria-label="Close" />
-            }
-          >
-            <div className={styles.drawerHeaderContent}>
-              <div className={styles.drawerTitleRow}>
-                <Text size={500} weight="bold" className={styles.drawerTitleText}>{activeQuizDetail?.title}</Text>
-                {activeQuizDetail && <Badge appearance="filled" color={activeQuizDetail.difficulty === "Easy" ? "success" : activeQuizDetail.difficulty === "Hard" ? "danger" : "warning"}>{activeQuizDetail.difficulty}</Badge>}
               </div>
-              <Text size={200} className={styles.quizOrderText}>
-                Order #{activeQuizDetail?.quizOrder} · {activeQuizDetail?.questions?.length || 0} questions
-              </Text>
-            </div>
-          </DrawerHeaderTitle>
-        </DrawerHeader>
+            )}
+          </SheetBody>
+        </SheetContent>
+      </Sheet>
 
-        <DrawerBody className={styles.drawerBody}>
-          {/* Quiz Questions management in drawer */}
-          <div>
-            <div className={styles.sectionHeaderQuestions}>
-              <Text size={400} weight="semibold" className={styles.sectionHeaderTitle}>
-                Questions ({activeQuizDetail?.questions?.length || 0})
-              </Text>
-              <Button size="small" icon={<Add20Regular />} onClick={handleOpenAddQuestion}>
-                Add Question
-              </Button>
+      {/* Quiz Detail Drawer Sheet */}
+      <Sheet open={!!selectedQuizId} onOpenChange={open => !open && setSelectedQuizId(null)}>
+        <SheetContent className="max-w-2xl">
+          <SheetHeader>Quiz details: {activeQuizDetail?.title}</SheetHeader>
+          <SheetBody className="flex flex-col gap-6">
+            <div className="flex flex-col gap-1 border-b border-border/40 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-muted-foreground">Order #{activeQuizDetail?.quizOrder}</span>
+                {activeQuizDetail && (
+                  <Badge variant={difficultyBadgeVariant(activeQuizDetail.difficulty)} className="capitalize font-bold text-[9px] px-2 py-0.5">
+                    {activeQuizDetail.difficulty}
+                  </Badge>
+                )}
+              </div>
             </div>
 
-            {activeQuizLoading ? (
-              <div className={styles.questionsLoading}>
-                <Spinner size="medium" label="Loading questions..." />
+            {/* Questions section */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between border-b border-border/40 pb-1.5 select-none">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Questions ({activeQuizDetail?.questions?.length || 0})
+                </h3>
+                <Button variant="outline" size="sm" className="h-8 font-semibold text-xs gap-1.5" onClick={handleOpenAddQuestion}>
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Add Question</span>
+                </Button>
               </div>
-            ) : activeQuizDetail?.questions && activeQuizDetail.questions.length > 0 ? (
-              <div className={styles.linkedList}>
-                {activeQuizDetail.questions.map((q: QuizQuestionDetail, idx: number) => (
-                  <Card key={q.id} className={styles.questionCard}>
-                    <div className={styles.questionHeaderRow}>
-                      <Text weight="semibold" size={300} className={styles.questionText}>
-                        {idx + 1}. {q.text}
-                      </Text>
-                      <div className={styles.questionActionButtons}>
-                        <Button 
-                          size="small" appearance="subtle" icon={<Edit20Regular />} 
-                          onClick={() => handleOpenEditQuestion(q)} 
-                          aria-label="Edit question"
-                        />
-                        <Button 
-                          size="small" appearance="subtle" icon={<Delete20Regular />} 
-                          className={styles.unlinkButton}
-                          onClick={() => handleDeleteQuestion(q.id, q.text)} 
-                          aria-label="Delete question"
-                        />
-                      </div>
-                    </div>
 
-                    <div className={styles.optionList}>
-                      {q.options.map((opt: string, oIdx: number) => {
-                        const isCorrect = opt === q.correctAnswer;
-                        return (
-                          <Text 
-                            key={oIdx} 
-                            size={200} 
-                            className={isCorrect ? styles.optionTextCorrect : styles.optionText}
+              {activeQuizLoading ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-2 text-xs text-muted-foreground select-none">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  <span>Loading questions...</span>
+                </div>
+              ) : activeQuizDetail?.questions && activeQuizDetail.questions.length > 0 ? (
+                <div className="flex flex-col gap-4">
+                  {activeQuizDetail.questions.map((q, idx: number) => (
+                    <Card key={q.id} className="p-5 border border-border/80 bg-card shadow-sm flex flex-col gap-4 rounded-xl">
+                      <div className="flex items-start justify-between gap-4">
+                        <h4 className="text-xs font-bold text-foreground leading-snug">
+                          {idx + 1}. {q.text}
+                        </h4>
+                        <div className="flex items-center gap-1.5 shrink-0 select-none">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-muted-foreground hover:bg-surface-hover hover:text-foreground rounded-lg border border-border/50 bg-surface"
+                            onClick={() => handleOpenEditQuestion(q)}
+                            aria-label="Edit question"
                           >
-                            {oIdx + 1}. {opt} {isCorrect && "✓"}
-                          </Text>
-                        );
-                      })}
-                    </div>
+                            <Edit className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-muted-foreground hover:bg-danger/10 hover:text-danger rounded-lg"
+                            onClick={() => handleDeleteQuestion(q.id, q.text)}
+                            aria-label="Delete question"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
 
-                    {q.hint && (
-                      <Text size={100} className={styles.hintText}>
-                        Hint: {q.hint}
-                      </Text>
-                    )}
-                    {q.description && (
-                      <Text size={100} className={styles.explanationText}>
-                        Explanation: {q.description}
-                      </Text>
-                    )}
-                  </Card>
-                ))}
-              </div>
-             ) : (
-               <NoData title="No questions linked." description="Click Add Question to build questions manually." icon="book" compact={true} />
-             )}
-          </div>
-        </DrawerBody>
-      </OverlayDrawer>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1 select-none">
+                        {q.options.map((opt: string, oIdx: number) => {
+                          const isCorrect = opt === q.correctAnswer;
+                          return (
+                            <div 
+                              key={oIdx} 
+                              className={cn(
+                                "flex items-center gap-2 p-2.5 rounded-lg border text-[11px] font-semibold",
+                                isCorrect 
+                                  ? "border-success/20 bg-success/5 text-success" 
+                                  : "border-border/40 bg-card text-foreground/70"
+                              )}
+                            >
+                              <span className="opacity-75">{oIdx + 1}.</span>
+                              <span className="truncate">{opt} {isCorrect && "✓"}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
 
-      {/* ── Add / Edit Question Dialog ── */}
-      <Dialog open={questionDialogOpen} onOpenChange={(_, d) => setQuestionDialogOpen(d.open)}>
-        <DialogSurface className={styles.dialogSurfaceQuestion}>
-          <DialogBody>
-            <DialogTitle action={<DialogTrigger action="close"><Button appearance="subtle" aria-label="close" icon={<Dismiss20Regular />} /></DialogTrigger>}>
-              {questionForm.id ? "Edit Question" : "Add Question"}
-            </DialogTitle>
-            <DialogContent className={styles.dialogContentSmallGap}>
-              <Field label="Question Text" required>
-                <Textarea 
-                  value={questionForm.text} 
-                  onChange={e => setQuestionForm(prev => ({ ...prev, text: e.target.value }))} 
-                  placeholder="Enter the question text..." 
-                  className={styles.fullWidthTextarea}
-                />
-              </Field>
-
-              <div className={styles.optionsGrid}>
-                {questionForm.options.map((opt, idx) => (
-                  <Field key={idx} label={`Option ${idx + 1}`} required>
-                    <Input 
-                      value={opt} 
-                      onChange={e => handleOptionChange(idx, e.target.value)} 
-                      placeholder={`Option ${idx + 1}`}
-                    />
-                  </Field>
-                ))}
-              </div>
-
-              <Field label="Correct Answer" required hint="Must match one of the options exactly">
-                <Select 
-                  value={questionForm.correctAnswer} 
-                  onChange={(e, data) => setQuestionForm(prev => ({ ...prev, correctAnswer: data.value }))}
-                  className={styles.fullWidthSelect}
-                >
-                  <option value="">Select correct option...</option>
-                  {questionForm.options.filter(Boolean).map((opt, idx) => (
-                    <option key={idx} value={opt}>{opt}</option>
+                      {(q.hint || q.description) && (
+                        <div className="flex flex-col gap-1.5 bg-secondary/10 rounded-lg p-3 text-[10px] text-muted-foreground border border-border/30 select-none">
+                          {q.hint && (
+                            <div>
+                              <strong className="text-foreground/90 font-bold">Hint:</strong> <span className="font-medium text-muted-foreground/95">{q.hint}</span>
+                            </div>
+                          )}
+                          {q.description && (
+                            <div className={cn(q.hint && "border-t border-border/20 pt-1.5 mt-0.5")}>
+                              <strong className="text-foreground/90 font-bold">Explanation:</strong> <span className="font-medium text-muted-foreground/95 whitespace-pre-wrap">{q.description}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </Card>
                   ))}
-                </Select>
-              </Field>
+                </div>
+              ) : (
+                <NoData title="No questions linked." description="Click Add Question to build questions manually." icon="book" compact={true} />
+              )}
+            </div>
+          </SheetBody>
+        </SheetContent>
+      </Sheet>
 
-              <Field label="Hint" hint="Optional hint shown to students during quiz">
-                <Input 
-                  value={questionForm.hint} 
-                  onChange={e => setQuestionForm(prev => ({ ...prev, hint: e.target.value }))} 
-                  placeholder="e.g. Think about..."
-                />
-              </Field>
+      {/* Add / Edit Question Dialog (nested under drawer context) */}
+      <Dialog open={questionDialogOpen} onOpenChange={setQuestionDialogOpen}>
+        <DialogSurface className="max-w-[600px]">
+          <DialogTitle>{questionForm.id ? "Edit Question" : "Add Question"}</DialogTitle>
+          <DialogContent className="max-h-[60vh] overflow-y-auto pr-1 flex flex-col gap-4 mt-3">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Question Text <span className="text-danger">*</span></label>
+              <Textarea 
+                value={questionForm.text} 
+                onChange={e => setQuestionForm(prev => ({ ...prev, text: e.target.value }))} 
+                placeholder="Enter the question text..." 
+                rows={3}
+                required
+              />
+            </div>
 
-              <Field label="Explanation" required hint="Detailed explanation shown after answering">
-                <Textarea 
-                  value={questionForm.description} 
-                  onChange={e => setQuestionForm(prev => ({ ...prev, description: e.target.value }))} 
-                  placeholder="Explain why this option is correct..."
-                  className={styles.fullWidthTextarea}
-                />
-              </Field>
-            </DialogContent>
-            <DialogActions className={styles.dialogActions}>
-              <DialogTrigger disableButtonEnhancement>
-                <Button appearance="secondary">Cancel</Button>
-              </DialogTrigger>
-              <Button appearance="primary" onClick={handleSaveQuestion} disabled={!questionForm.text || !questionForm.correctAnswer || !questionForm.description || loading}>
-                {loading ? <Spinner size="tiny" /> : "Save"}
-              </Button>
-            </DialogActions>
-          </DialogBody>
-        </DialogSurface>
-      </Dialog>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {questionForm.options.map((opt, idx) => (
+                <div key={idx} className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Option {idx + 1} <span className="text-danger">*</span></label>
+                  <Input
+                    value={opt}
+                    onChange={e => setQuestionForm(prev => ({
+                      ...prev,
+                      options: prev.options.map((o, i) => (i === idx ? e.target.value : o)),
+                    }))}
+                    placeholder={`Option ${idx + 1}`}
+                    required
+                  />
+                </div>
+              ))}
+            </div>
 
-      {/* Bulk Link Quizzes Dialog (moving this down below overlays) */}
-      <Dialog open={confirmDialog.open} onOpenChange={(e, data) => setConfirmDialog(prev => ({ ...prev, open: data.open }))}>
-        <DialogSurface className={styles.dialogSurfaceMax400}>
-          <DialogBody>
-            <DialogTitle action={<DialogTrigger action="close"><Button appearance="subtle" aria-label="close" icon={<Dismiss20Regular />} /></DialogTrigger>}>{confirmDialog.title}</DialogTitle>
-            <DialogContent className={styles.dialogContentConfirm}>
-              <Text className={styles.confirmDescriptionText}>
-                {confirmDialog.description}
-              </Text>
-            </DialogContent>
-            <DialogActions className={styles.dialogActions}>
-              <DialogTrigger disableButtonEnhancement>
-                <Button appearance="secondary">Cancel</Button>
-              </DialogTrigger>
-              <Button 
-                appearance="primary" 
-                className={styles.confirmButtonDestructive}
-                onClick={async () => {
-                  await confirmDialog.onConfirm();
-                  setConfirmDialog(prev => ({ ...prev, open: false }));
-                }}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Correct Answer <span className="text-danger">*</span></label>
+              <Select 
+                value={questionForm.correctAnswer} 
+                onChange={e => setQuestionForm(prev => ({ ...prev, correctAnswer: e.target.value }))}
+                required
               >
-                Confirm
-              </Button>
-            </DialogActions>
-          </DialogBody>
+                <option value="">Select correct option...</option>
+                {questionForm.options.map((opt, idx) => (
+                  opt.trim() && <option key={idx} value={opt}>{opt}</option>
+                ))}
+              </Select>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Hint (Optional)</label>
+              <Input 
+                value={questionForm.hint} 
+                onChange={e => setQuestionForm(prev => ({ ...prev, hint: e.target.value }))} 
+                placeholder="e.g. Think about..."
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Explanation / Description <span className="text-danger">*</span></label>
+              <Textarea 
+                value={questionForm.description} 
+                onChange={e => setQuestionForm(prev => ({ ...prev, description: e.target.value }))} 
+                placeholder="Explain why this option is correct..."
+                rows={3}
+                required
+              />
+            </div>
+          </DialogContent>
+          <DialogActions>
+            <Button variant="outline" onClick={() => setQuestionDialogOpen(false)}>Cancel</Button>
+            <Button variant="primary" onClick={handleSaveQuestion} disabled={!questionForm.text || !questionForm.correctAnswer || !questionForm.description || loading}>
+              Save
+            </Button>
+          </DialogActions>
         </DialogSurface>
       </Dialog>
 
+      {/* Confirmation Dialog */}
+      <Dialog open={confirmDialog.open} onOpenChange={open => setConfirmDialog(prev => ({ ...prev, open }))}>
+        <DialogSurface className="max-w-[420px]">
+          <DialogTitle>{confirmDialog.title}</DialogTitle>
+          <DialogContent>
+            <div className="flex gap-3.5 items-start mt-2">
+              <AlertTriangle className="h-5 w-5 text-danger shrink-0 mt-0.5" />
+              <span className="text-sm text-muted-foreground leading-relaxed">
+                {confirmDialog.description}
+              </span>
+            </div>
+          </DialogContent>
+          <DialogActions>
+            <Button variant="outline" onClick={() => setConfirmDialog(prev => ({ ...prev, open: false }))}>
+              Cancel
+            </Button>
+            <Button 
+              variant="danger" 
+              onClick={async () => {
+                await confirmDialog.onConfirm();
+                setConfirmDialog(prev => ({ ...prev, open: false }));
+              }}
+            >
+              Confirm
+            </Button>
+          </DialogActions>
+        </DialogSurface>
+      </Dialog>
     </div>
   );
 }
+export default TaxonomyManager;

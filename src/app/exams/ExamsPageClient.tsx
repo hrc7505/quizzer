@@ -4,16 +4,7 @@ import { PageLayout } from "@/components/layouts/PageLayout";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { ContentHeader } from "@/components/layouts/ContentHeader";
 import { DirectoryCardList } from "@/components/data-display/DirectoryCardList";
-import { BookOpen24Regular } from "@/design-system/icons/Icons";
-import { makeStyles } from "@fluentui/react-components";
-
-const useStyles = makeStyles({
-  root: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "40px",
-  },
-});
+import { BookOpen } from "lucide-react";
 
 interface ExamsPageClientProps {
   examItems: Array<{
@@ -33,16 +24,15 @@ interface ExamsPageClientProps {
 }
 
 function ExamsPageClient({ examItems, standaloneItems }: ExamsPageClientProps) {
-  const styles = useStyles();
   return (
     <PageLayout>
       <ContentHeader
-        icon={<BookOpen24Regular />}
+        icon={<BookOpen className="h-5 w-5" />}
         variant="exam"
         title="Exams Directory"
         description="Select an exam structure or standalone topic category to begin."
       />
-      <div className={styles.root}>
+      <div className="flex flex-col gap-10">
         <div>
           <SectionHeading>Exam Curriculums</SectionHeading>
           <DirectoryCardList items={examItems} itemLabel="exams" searchPlaceholder="Search exams..." />

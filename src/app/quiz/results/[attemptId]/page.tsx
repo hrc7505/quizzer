@@ -52,7 +52,7 @@ export default async function ResultsPage({ params }: { params: Promise<{ attemp
   }
 
   return (
-    <PageLayout navMaxWidth="900px" mainMaxWidth="900px">
+    <PageLayout navMaxWidth="1100px" mainMaxWidth="1100px">
       <QuizResults attempt={attempt} />
     </PageLayout>
   );

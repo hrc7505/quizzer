@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Card, Input, Text } from "@fluentui/react-components";
-import { Search24Regular, ArrowRight16Regular } from "@fluentui/react-icons";
 import Link from "next/link";
-import { useDirectoryCardListStyles } from "./styles/useDirectoryCardListStyles";
+import { Search, ArrowRight } from "lucide-react";
 import NoData from "@/components/feedback/NoData";
+import { Card } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
 
 interface DirectoryItem {
   id: string;
@@ -43,46 +43,46 @@ export function DirectoryCardList({
     (item.description && item.description.toLowerCase().includes(query.toLowerCase()))
   );
 
-  const styles = useDirectoryCardListStyles();
-
   return (
-    <div className={styles.container}>
+    <div className="flex flex-col gap-6 w-full">
       {/* Search Input Bar */}
-      <div className={styles.searchBar}>
-<Input
-          contentBefore={<Search24Regular className={styles.searchIcon} />}
+      <div className="relative w-full max-w-md">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+        <Input
           placeholder={searchPlaceholder}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className={styles.searchInput}
+          className="pl-9 h-10 w-full"
         />
       </div>
 
       {/* Grid of Cards */}
       {filtered.length > 0 ? (
-<div className={styles.grid}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map(item => (
-<Link key={item.id} href={item.href} className={styles.link}>
-<Card className={styles.card}>
+            <Link key={item.id} href={item.href} className="group no-underline flex">
+              <Card className="flex flex-col justify-between p-5 w-full hover:border-primary/40 hover:shadow-md transition-all duration-200 cursor-pointer">
                 <div>
-<Text size={400} weight="bold" className={styles.title}>
+                  <h3 className="text-sm font-bold text-foreground leading-snug group-hover:text-primary transition-colors">
                     {item.title}
-                  </Text>
+                  </h3>
                   {item.description && (
-<Text size={200} className={styles.description}>
-                      {item.description.length > 120 ? `${item.description.slice(0, 120)}...` : item.description}
-                    </Text>
+                    <p className="text-xs text-muted-foreground leading-relaxed mt-2 line-clamp-3">
+                      {item.description}
+                    </p>
                   )}
                 </div>
 
-<div className={styles.metaRow}>
+                <div className="flex items-center justify-between mt-5 pt-3 border-t border-border/30 text-xs">
                   {item.meta ? (
-                    <span className={styles.metaBadge}>
+                    <span className="px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground font-semibold">
                       {item.meta}
                     </span>
                   ) : <span />}
-<div className={styles.openRow}>
-                    Open <ArrowRight16Regular />
+                  
+                  <div className="flex items-center gap-1 font-bold text-primary opacity-80 group-hover:opacity-100 transition-opacity">
+                    <span>Open</span>
+                    <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
                   </div>
                 </div>
               </Card>

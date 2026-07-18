@@ -1,8 +1,7 @@
 "use client";
 
-import { Card, CardHeader, Text } from "@fluentui/react-components";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { LinkButton } from "@/components/ui/LinkButton";
-import { useAdminDashboardStyles } from "./styles/useAdminDashboardStyles";
 
 interface Stats {
   topicsCount: number;
@@ -14,41 +13,49 @@ interface Stats {
 }
 
 export function AdminDashboard({ stats }: { stats: Stats }) {
-  const styles = useAdminDashboardStyles();
+  const statCards = [
+    { label: "Topics", value: stats.topicsCount },
+    { label: "Sub Topics", value: stats.subtopicsCount },
+    { label: "Quizzes", value: stats.quizzesCount },
+    { label: "Questions", value: stats.questionsCount },
+    { label: "Attempts", value: stats.attemptsCount },
+    { label: "Average Score", value: `${stats.avgScore}%` },
+  ];
+
   return (
-    <div className={styles.root}>
-      <Text size={700} weight="bold" className={styles.title}>Admin Dashboard</Text>
-      
-      <div className={styles.statsGrid}>
-        <Card>
-          <CardHeader header={<Text weight="semibold">Topics</Text>} />
-          <Text size={800} weight="bold" className={styles.statCardValue}>{stats.topicsCount}</Text>
-        </Card>
-        <Card>
-          <CardHeader header={<Text weight="semibold">Sub Topics</Text>} />
-          <Text size={800} weight="bold" className={styles.statCardValue}>{stats.subtopicsCount}</Text>
-        </Card>
-        <Card>
-          <CardHeader header={<Text weight="semibold">Quizzes</Text>} />
-          <Text size={800} weight="bold" className={styles.statCardValue}>{stats.quizzesCount}</Text>
-        </Card>
-        <Card>
-          <CardHeader header={<Text weight="semibold">Questions</Text>} />
-          <Text size={800} weight="bold" className={styles.statCardValue}>{stats.questionsCount}</Text>
-        </Card>
-        <Card>
-          <CardHeader header={<Text weight="semibold">Attempts</Text>} />
-          <Text size={800} weight="bold" className={styles.statCardValue}>{stats.attemptsCount}</Text>
-        </Card>
-        <Card>
-          <CardHeader header={<Text weight="semibold">Average Score</Text>} />
-          <Text size={800} weight="bold" className={styles.statCardValue}>{stats.avgScore}%</Text>
-        </Card>
+    <div className="flex flex-col gap-6 py-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/80 pb-4">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Admin Dashboard</h1>
+        <div className="flex items-center gap-3">
+          <LinkButton href="/admin/generate" variant="primary" className="h-9 px-4 font-semibold text-xs shadow-xs">
+            Generate New Quiz
+          </LinkButton>
+          <LinkButton href="/admin/manage/exams" variant="secondary" className="h-9 px-4 font-semibold text-xs">
+            Manage Taxonomy
+          </LinkButton>
+        </div>
       </div>
 
-      <div className={styles.actionsRow}>
-        <LinkButton href="/admin/generate" appearance="primary" size="large">Generate New Quiz</LinkButton>
-        <LinkButton href="/admin/manage" appearance="secondary" size="large">Manage Taxonomy</LinkButton>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {statCards.map((card, idx) => (
+          <Card key={idx} className="flex flex-col justify-between p-5 bg-card border-border/80 hover:shadow-sm transition-all duration-200">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              {card.label}
+            </span>
+            <span className="text-3xl font-extrabold text-foreground tracking-tight mt-3">
+              {card.value}
+            </span>
+          </Card>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-3 mt-6">
+        <LinkButton href="/admin/generate" variant="primary" className="h-10 px-5 font-semibold text-sm">
+          Generate New Quiz
+        </LinkButton>
+        <LinkButton href="/admin/manage/exams" variant="secondary" className="h-10 px-5 font-semibold text-sm">
+          Manage Taxonomy
+        </LinkButton>
       </div>
     </div>
   );

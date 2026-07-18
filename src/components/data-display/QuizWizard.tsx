@@ -1,36 +1,34 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { 
-  Card, Text, Button, ProgressBar, Badge, Spinner, MessageBar, MessageBarBody,
-  TeachingPopover, TeachingPopoverTrigger, TeachingPopoverSurface, 
-  TeachingPopoverHeader, TeachingPopoverTitle, TeachingPopoverBody,
-  Avatar,
-  DataGrid, DataGridHeader, DataGridRow, DataGridHeaderCell,
-  DataGridBody, DataGridCell, TableCellLayout, TableColumnDefinition,
-  createTableColumn,
-} from "@fluentui/react-components";
 import { useRouter } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
 import { 
-  Play24Filled, ArrowClockwise24Regular, Sparkle24Regular,
-  Trophy24Regular, Timer24Regular, BookOpen24Regular, Lightbulb24Regular,
-  Checkmark24Regular
-} from "@fluentui/react-icons";
+  Play, 
+  RotateCcw, 
+  Sparkles, 
+  Trophy, 
+  Timer, 
+  BookOpen, 
+  Lightbulb, 
+  Check, 
+  Loader2, 
+  X,
+  Share2,
+} from "lucide-react";
 
 import { AttemptService } from "@/lib/services/attempt.service";
 import { splitSentences, formatTime } from "@/lib/text";
-import { useQuizWizardStyles } from "./styles/useQuizWizardStyles";
 import { ShareButton } from "@/components/ui/ShareButton";
-import { Share24Regular } from "@fluentui/react-icons";
+import { Alert } from "@/components/ui/Alert";
 import NoData from "@/components/feedback/NoData";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Progress } from "@/components/ui/Progress";
+import { Spinner } from "@/components/ui/Spinner";
+import { cn } from "@/utils/cn";
 
-/**
- * QuizWizard Component. Coordinates quiz play state, fetches leaderboards, 
- * manages save/resume attempts, and saves user answers in real-time.
- * 
- * @param props.quiz - The quiz details containing questions.
- */
 interface QuizWizardQuestion {
   id: string;
   text: string;
@@ -53,7 +51,6 @@ interface QuizWizardQuiz {
   questions: QuizWizardQuestion[];
 }
 
-// Use backend leaderboard entry type directly for strict compatibility.
 interface QuizWizardAttempt {
   attemptId: string;
   quizId: string;
@@ -64,8 +61,6 @@ interface QuizWizardAttempt {
 export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
   type AttemptLeaderboardEntry = import("@/lib/services/attempt.service").LeaderboardEntry;
 
-
-  const styles = useQuizWizardStyles();
   const router = useRouter();
   const { status } = useSession();
   const saveControllerRef = useRef<AbortController | null>(null);
@@ -145,11 +140,6 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
     return () => clearInterval(timer);
   }, [isPlaying]);
 
-  /**
-   * Starts or resumes the quiz.
-   * @param forceNew - If true, deletes any existing attempt and starts fresh.
-   * @param resumeAttemptId - If provided, skips the API call and uses this attempt directly.
-   */
   const handleStart = async (forceNew: boolean, resumeAttemptId?: string) => {
     if (status === "unauthenticated") {
       setAuthWarning("Please sign in to start this quiz.");
@@ -161,7 +151,6 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
     setError(null);
     setLoading(true);
     try {
-      // If we already have the attempt data from the initial load, use it directly
       if (!forceNew && resumeAttemptId && activeAttempt) {
         setAttemptId(resumeAttemptId);
         const formattedAnswers: QuizWizardAnswer[] = activeAttempt.answers.map((ans) => ({
@@ -190,7 +179,6 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
         setAttemptId(data.attemptId);
         
         if (!forceNew && data.answers && data.answers.length > 0) {
-          // Resuming an attempt: populate answers and restore state
           const formattedAnswers: QuizWizardAnswer[] = data.answers.map((ans: QuizWizardAnswer) => ({
             questionId: ans.questionId,
             selectedAnswer: ans.selectedAnswer,
@@ -201,7 +189,6 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
           setTimeTaken(data.timeTakenSec);
           setCurrentIndex(formattedAnswers.length);
         } else {
-          // Starting fresh
           setAnswers([]);
           setTimeTaken(0);
           setCurrentIndex(0);
@@ -221,7 +208,7 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
   };
 
   const handleOptionClick = (option: string) => {
-    if (selectedOption) return; // Prevent changing answer once selected
+    if (selectedOption) return;
     setSelectedOption(option);
   };
 
@@ -279,7 +266,6 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
       setSelectedOption(null);
       setShowHint(false);
     } else {
-      // Finalize Quiz Attempt after the last answer is saved.
       setIsSubmitting(true);
       setError(null);
       try {
@@ -300,7 +286,6 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
 
   const resolveShareUrl = async () => {
     const origin = window.location.origin;
-
     let shareUrl = `${origin}/quiz/${quiz.id}`;
 
     try {
@@ -316,144 +301,103 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
     return shareUrl;
   };
 
+  const difficultyBadgeVariant = (difficulty: string) => {
+    const diff = difficulty.toLowerCase();
+    if (diff === "easy") return "success";
+    if (diff === "medium") return "warning";
+    if (diff === "hard") return "danger";
+    return "default";
+  };
 
-
-
-  /** DataGrid column definitions for the leaderboard */
-  const leaderboardColumns = useMemo<TableColumnDefinition<AttemptLeaderboardEntry>[]>(() => [
-    createTableColumn<AttemptLeaderboardEntry>({
-      columnId: "rank",
-      renderHeaderCell: () => "Rank",
-      renderCell: (item) => {
-        const badgeStyle: Record<number, string> = {
-          1: "#f59e0b",
-          2: "#94a3b8",
-          3: "#cd7f32",
-        };
-        const bg = badgeStyle[item.rank ?? 0] || "#e2e8f0";
-        return (
-          <TableCellLayout>
-            <span className={`${styles.rankBadge} ${styles.rankSpan}`} style={{ backgroundColor: bg, color: (item.rank ?? 0) <= 3 ? "#fff" : "#475569" }}>
-              {item.rank}
-            </span>
-          </TableCellLayout>
-        );
-      },
-    }),
-    createTableColumn<AttemptLeaderboardEntry>({
-      columnId: "player",
-      renderHeaderCell: () => "Player",
-      renderCell: (item) => (
-        <TableCellLayout
-          media={<Avatar size={24} name={item.name} image={{ src: item.image || undefined }} />}
-        >
-          <Text weight={(item.rank ?? 0) <= 3 ? "semibold" : "regular"}>{item.name}</Text>
-        </TableCellLayout>
-      ),
-    }),
-    createTableColumn<AttemptLeaderboardEntry>({
-      columnId: "score",
-      renderHeaderCell: () => "Score",
-      renderCell: (item) => (
-        <TableCellLayout>
-          <Text className={styles.scoreText} style={{ color: (item.scorePercentage ?? 0) >= 80 ? "#10b981" : (item.scorePercentage ?? 0) >= 50 ? "#f59e0b" : "#ef4444" }}>
-            {Math.round(item.scorePercentage ?? 0)}%
-          </Text>
-        </TableCellLayout>
-      ),
-    }),
-    createTableColumn<AttemptLeaderboardEntry>({
-      columnId: "time",
-      renderHeaderCell: () => "Time",
-      renderCell: (item) => (
-        <TableCellLayout>
-          <Text>{formatTime(item.timeTakenSec ?? 0)}</Text>
-        </TableCellLayout>
-      ),
-    }),
-  ], [styles]);
-
-  // Rendering Loading Screen
   if (loading) {
     return (
-      <div className={styles.loadingContainer}>
-        <Spinner label="Loading quiz..." size="large" />
+      <div className="flex flex-col items-center justify-center py-24 gap-3 text-sm text-muted-foreground select-none">
+        <Loader2 className="h-7 w-7 animate-spin text-primary" />
+        <span>Loading quiz details…</span>
       </div>
     );
   }
 
-  // Rendering Start/Leaderboard Screen
+  // Lobby/Start screen
   if (!isPlaying) {
     return (
-      <div className={styles.container}>
-        <Card className={styles.startCard}>
-          <div className={styles.startIconContainer}>
-            <BookOpen24Regular className={styles.iconPrimary} />
+      <div className="flex flex-col gap-6 max-w-2xl mx-auto py-4">
+        <Card className="p-6 sm:p-8 text-center flex flex-col items-center gap-5 border border-border/80 bg-card shadow-sm rounded-2xl">
+          <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary border border-primary/10 flex items-center justify-center shrink-0 shadow-xs">
+            <BookOpen className="h-6 w-6" />
           </div>
-          <Text size={700} weight="bold" className={styles.startTitle}>
-            {quiz.title}
-          </Text>
-          <Text size={300} className={styles.startSubtitle}>
-            Difficulty: <strong>{quiz.difficulty}</strong> • Total Questions: <strong>{questions.length}</strong>
-          </Text>
+          
+          <div className="flex flex-col gap-1.5">
+            <h1 className="text-xl font-extrabold tracking-tight text-foreground">{quiz.title}</h1>
+            <div className="flex items-center gap-1.5 justify-center text-xs text-muted-foreground font-semibold flex-wrap">
+              <span>Difficulty:</span>
+              <Badge variant={difficultyBadgeVariant(quiz.difficulty)} className="capitalize font-bold px-1.5 py-0.5 text-[10px]">
+                {quiz.difficulty}
+              </Badge>
+              <span className="opacity-40 select-none">·</span>
+              <span>Total Questions:</span>
+              <Badge variant="secondary" className="px-1.5 py-0.5 text-[10px] font-bold">
+                {questions.length}
+              </Badge>
+            </div>
+          </div>
 
           {authWarning && (
-          <div className={styles.authWarningBox}>
-            <Text size={300} weight="semibold">{authWarning}</Text>
-          </div>
-        )}
-        <div className={styles.startButtonsRow}>
+            <div className="w-full rounded-lg border border-warning/20 bg-warning/10 p-3.5 text-xs font-semibold text-warning text-left">
+              {authWarning}
+            </div>
+          )}
+
+          <div className="flex items-center gap-2.5 w-full justify-center max-w-sm mt-2">
             {activeAttempt ? (
               <>
                 <Button 
-                  appearance="primary" 
-                  size="large" 
-                  icon={<Play24Filled />} 
+                  variant="primary" 
                   onClick={() => handleStart(false, activeAttempt.attemptId)}
-                  className={styles.btnResume}
+                  className="flex-1 h-10 font-bold gap-2 text-xs"
                 >
-                  Resume Quiz (Question {activeAttempt.answers.length + 1})
+                  <Play className="h-3.5 w-3.5" />
+                  <span>Resume Quiz (Q{activeAttempt.answers.length + 1})</span>
                 </Button>
                 <Button 
-                  appearance="outline" 
-                  size="large" 
-                  icon={<ArrowClockwise24Regular className={styles.iconMedium} />} 
+                  variant="outline" 
                   onClick={() => handleStart(true)}
-                  className={styles.btnStartFresh}
+                  className="h-10 px-4 font-semibold text-xs border border-border/80 hover:bg-surface-hover gap-1.5"
                 >
-                  Start Fresh
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  <span>Restart</span>
                 </Button>
               </>
             ) : (
-              <div className={styles.splitButton}>
+              <div className="flex items-center gap-2.5 w-full">
                 <Button
-                  appearance="primary"
-                  size="large"
-                  icon={<Play24Filled />}
+                  variant="primary"
                   onClick={() => handleStart(false)}
-                  className={styles.splitPrimary}
+                  className="flex-1 h-10 font-bold gap-2 text-xs shadow-xs"
                 >
-                  Start Quiz
+                  <Play className="h-3.5 w-3.5" />
+                  <span>Start Quiz</span>
                 </Button>
+                
                 <ShareButton
-                  icon={<Share24Regular />}
+                  icon={<Share2 className="h-4 w-4" />}
                   buttonAppearance="outline"
-                  buttonSize="large"
+                  buttonSize="icon"
+                  buttonClassName="h-10 w-10 shrink-0 border border-border/80 bg-surface rounded-lg"
                   shareText={`Check out this quiz: ${quiz.title} on Quizzer!`}
                   defaultUrl={`${typeof window !== "undefined" ? window.location.origin : ""}/quiz/${quiz.id}`}
                   resolveUrl={resolveShareUrl}
-                  buttonClassName={styles.splitChevron}
                 />
               </div>
             )}
           </div>
         </Card>
 
-        {/* Leaderboard Section */}
-        <Card className={styles.leaderboardCard}>
-          <div className={styles.leaderboardTitleRow}>
-            <Trophy24Regular className={styles.iconGold} />
-            <Text size={500} weight="bold">Top 10 Rankings</Text>
+        {/* Leaderboard */}
+        <Card className="p-6 border-border/80 shadow-xs flex flex-col gap-4">
+          <div className="flex items-center gap-2 border-b border-border/40 pb-3">
+            <Trophy className="h-5 w-5 text-warning shrink-0" />
+            <h2 className="text-sm font-bold text-foreground tracking-tight">Top 10 Rankings</h2>
           </div>
 
           {leaderboard.length === 0 ? (
@@ -461,91 +405,142 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
               title="No rankings available yet."
               description="Be the first to top the leaderboard!"
               icon="sparkle"
+              compact
             />
           ) : (
-            <DataGrid
-              items={leaderboard.map((entry, index) => ({ ...entry, rank: index + 1 }))}
+            <div className="overflow-x-auto w-full">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-border/40 text-muted-foreground font-bold">
+                    <th scope="col" className="py-2.5 px-3 w-16 text-center">Rank</th>
+                    <th scope="col" className="py-2.5 px-2">Player</th>
+                    <th scope="col" className="py-2.5 px-2 text-center w-20">Score</th>
+                    <th scope="col" className="py-2.5 px-2 text-center w-20">Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {leaderboard.map((entry, index) => {
+                    let badgeClass = "bg-secondary text-secondary-foreground";
+                    if (index === 0) badgeClass = "bg-amber-500 text-white font-black shadow-xs shadow-amber-500/25";
+                    else if (index === 1) badgeClass = "bg-slate-400 text-white font-black shadow-xs shadow-slate-400/25";
+                    else if (index === 2) badgeClass = "bg-amber-700 text-white font-black shadow-xs shadow-amber-700/25";
 
-              columns={leaderboardColumns}
-              getRowId={(item) => item.userId}
-              focusMode="none"
-              aria-label="Leaderboard"
-            >
-              <DataGridHeader>
-                <DataGridRow>
-                  {({ renderHeaderCell }) => (
-                    <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
-                  )}
-                </DataGridRow>
-              </DataGridHeader>
-              <DataGridBody>
-                {({ item, rowId }) => (
-                  <DataGridRow key={rowId}>
-                    {({ renderCell }) => (
-                      <DataGridCell>{renderCell(item)}</DataGridCell>
-                    )}
-                  </DataGridRow>
-                )}
-              </DataGridBody>
-            </DataGrid>
+                    return (
+                      <tr key={entry.userId} className="border-b border-border/20 hover:bg-secondary/20 transition-colors">
+                        <td className="py-2.5 px-3 text-center">
+                          <span className={cn(
+                            "inline-flex items-center justify-center w-5 h-5 rounded-md font-bold text-[10px]",
+                            badgeClass
+                          )}>
+                            {index + 1}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            {entry.image ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={entry.image} alt={entry.name} className="h-5 w-5 rounded-full object-cover border border-border/40 shrink-0" />
+                            ) : (
+                              <div className="h-5 w-5 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-[9px] shrink-0">
+                                {entry.name.slice(0, 2).toUpperCase()}
+                              </div>
+                            )}
+                            <span className={cn("truncate font-medium text-foreground", index < 3 && "font-semibold")}>
+                              {entry.name}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-2.5 px-2 text-center">
+                          <span className={cn(
+                            "font-bold",
+                            (entry.scorePercentage ?? 0) >= 80 
+                              ? "text-success" 
+                              : (entry.scorePercentage ?? 0) >= 50 
+                                ? "text-warning" 
+                                : "text-danger"
+                          )}>
+                            {Math.round(entry.scorePercentage ?? 0)}%
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-2 text-center text-muted-foreground/80 font-medium">
+                          {formatTime(entry.timeTakenSec ?? 0)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </Card>
       </div>
     );
   }
 
-  // Gameplay Progress Bar
+  // Progress calculations
   const progress = currentIndex / questions.length;
 
-  // Render Quiz Playing Wizard
   return (
-    <div className={styles.container}>
+    <div className="flex flex-col gap-6 max-w-2xl mx-auto py-4">
       {/* Quiz Top Header */}
-      <div className={styles.header}>
-        <Text size={600} weight="bold">{quiz.title}</Text>
-        <Badge appearance="filled" color="brand" className={styles.badgeTimer}>
-          <Timer24Regular className={styles.iconSmall} />
-          {formatTime(timeTaken)}
-        </Badge>
+      <div className="flex items-center justify-between border-b border-border/80 pb-4 select-none gap-3">
+        <h1 className="text-lg font-bold text-foreground truncate pr-6">{quiz.title}</h1>
+        <div className="flex items-center gap-2 shrink-0">
+          <Badge variant="default" className="flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary border border-primary/20 rounded-full text-xs font-bold">
+            <Timer className="h-3.5 w-3.5" />
+            <span>{formatTime(timeTaken)}</span>
+          </Badge>
+          <ShareButton
+            icon={<Share2 className="h-4 w-4" />}
+            buttonAppearance="outline"
+            buttonSize="icon"
+            buttonClassName="h-9 w-9 shrink-0 border border-border/80 bg-surface rounded-lg"
+            shareText={`Check out this quiz: ${quiz.title} on Quizzer!`}
+            defaultUrl={`${typeof window !== "undefined" ? window.location.origin : ""}/quiz/${quiz.id}`}
+            resolveUrl={resolveShareUrl}
+          />
+        </div>
       </div>
 
       {/* Progress tracking */}
-      <div className={styles.progressContainer}>
-        <div className={styles.progressInfo}>
-          <Text size={200}>Question {currentIndex + 1} of {questions.length}</Text>
-          <Text size={200}>{Math.round(progress * 100)}% Complete</Text>
+      <div className="flex flex-col gap-2 select-none">
+        <div className="flex justify-between items-center text-xs font-semibold text-muted-foreground">
+          <span>Question {currentIndex + 1} of {questions.length}</span>
+          <span>{Math.round(progress * 100)}% Complete</span>
         </div>
-        <ProgressBar value={progress} max={1} />
+        <Progress value={progress * 100} indicatorClassName="bg-primary" />
       </div>
 
-      {error && (
-        <MessageBar intent="error">
-          <MessageBarBody>{error}</MessageBarBody>
-        </MessageBar>
-      )}
+        {error && (
+          <Alert variant="danger" title="Error">
+            {error}
+          </Alert>
+        )}
 
-      {/* Question Card */}
+      {/* Question playing Card */}
       {currentQuestion && (
-        <Card className={styles.questionCard}>
-          <div className={styles.questionTextRow}>
-            <Text size={400} weight="semibold" className={styles.questionPlayText}>
+        <Card className="p-6 sm:p-8 flex flex-col gap-6 border border-border/80 bg-card shadow-sm rounded-2xl">
+          <div>
+            <h2 className="text-base font-semibold text-foreground leading-snug">
               {currentQuestion.text}
-            </Text>
+            </h2>
           </div>
 
           {/* Answer Options */}
-          <div className={styles.optionsGrid} role="group" aria-label="Answer options">
+          <div className="flex flex-col gap-3" role="group" aria-label="Answer options">
             {currentQuestion.options.map((opt: string, i: number) => {
               const isSelected = selectedOption === opt;
               const isCorrectAnswer = currentQuestion.correctAnswer === opt;
               
-              let optionStateClass = styles.optionDefault;
+              let optionClass = "border-border/85 bg-card hover:bg-surface-hover hover:border-border text-foreground";
 
               if (selectedOption) {
                 if (isCorrectAnswer) {
-                  optionStateClass = styles.optionCorrect;
+                  optionClass = "border-success/30 bg-success/10 text-success font-semibold";
                 } else if (isSelected && !isCorrectAnswer) {
-                  optionStateClass = styles.optionIncorrect;
+                  optionClass = "border-danger/30 bg-danger/10 text-danger font-semibold";
+                } else {
+                  optionClass = "border-border/40 opacity-55 text-muted-foreground bg-card";
                 }
               }
 
@@ -554,38 +549,32 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
                   key={i}
                   type="button"
                   onClick={() => handleOptionClick(opt)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      handleOptionClick(opt);
-                    }
-                  }}
-                  className={`${styles.optionItem} ${optionStateClass}`}
-                  aria-pressed={isSelected}
-                  aria-label={`Option ${i + 1}: ${opt}${isSelected ? ", selected" : ""}${isCorrectAnswer && selectedOption ? ", correct answer" : ""}`}
                   disabled={!!selectedOption}
+                  className={cn(
+                    "w-full text-left p-4 rounded-xl border text-xs leading-relaxed transition-all cursor-pointer select-none active:scale-[0.99] duration-100 outline-hidden font-medium",
+                    optionClass
+                  )}
+                  aria-pressed={isSelected}
                 >
-                  <Text size={200} weight={selectedOption && isCorrectAnswer ? "bold" : "regular"} className={`${styles.quizPlayFont} ${styles.optionText}`}>
-                    {opt}
-                  </Text>
+                  {opt}
                 </button>
               );
             })}
           </div>
 
-          {/* Explanation Box shown post answering */}
+          {/* Explanation Box post answering */}
           {selectedOption && currentQuestion.description && (
-            <div className={styles.explanationBox}>
-              <div className={styles.explanationHeaderRow}>
-                <Sparkle24Regular className={styles.explanationIcon} />
-                <Text weight="bold" className={styles.explanationTitle}>Answer Explanation:</Text>
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 flex flex-col gap-3 select-none">
+              <div className="flex items-center gap-2 text-primary font-bold text-xs">
+                <Sparkles className="h-4 w-4" />
+                <span>Answer Explanation:</span>
               </div>
-              <div className={styles.explanationText}>
+              <div className="flex flex-col gap-2 text-xs text-foreground/90 leading-relaxed font-medium">
                 {currentQuestion.description.split("\n").flatMap((line: string) =>
                   splitSentences(line).map((part: string, idx: number) => (
-                    <div key={idx} className={styles.explanationRow}>
-                      <Checkmark24Regular className={styles.explanationCheck} />
-                      <Text size={300} className={styles.quizPlayFont}>{part}</Text>
+                    <div key={idx} className="flex gap-2 items-start">
+                      <Check className="h-3.5 w-3.5 text-success shrink-0 mt-0.5" />
+                      <span>{part}</span>
                     </div>
                   ))
                 )}
@@ -593,42 +582,57 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
             </div>
           )}
 
-          {/* Navigation Controls */}
-          <div className={styles.actionsRow}>
+          {/* Controls bar */}
+          <div className="flex items-center justify-between mt-2 relative select-none">
             {currentQuestion.hint ? (
-              <TeachingPopover open={showHint} onOpenChange={(e, data) => setShowHint(data.open)}>
-                <TeachingPopoverTrigger>
-                  <Button
-                    appearance="subtle"
-                    icon={<Lightbulb24Regular />}
-                    aria-label="Hint"
-                    size="large"
-                  />
-                </TeachingPopoverTrigger>
-                <TeachingPopoverSurface>
-                  <TeachingPopoverHeader>
-                    <TeachingPopoverTitle>Hint</TeachingPopoverTitle>
-                  </TeachingPopoverHeader>
-                  <TeachingPopoverBody>
-                    <div className={styles.quizPlayFont}>{currentQuestion.hint}</div>
-                  </TeachingPopoverBody>
-                </TeachingPopoverSurface>
-              </TeachingPopover>
+              <div className="relative">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "h-10 w-10 border border-border/80 bg-surface rounded-lg",
+                    showHint && "bg-secondary text-primary"
+                  )}
+                  onClick={() => setShowHint(!showHint)}
+                  aria-label="Hint"
+                >
+                  <Lightbulb className="h-4 w-4" />
+                </Button>
+                
+                {showHint && (
+                  <div className="absolute left-0 bottom-12 z-20 w-64 bg-card border border-border/80 p-4 rounded-xl shadow-lg animate-slide-in-bottom">
+                    <div className="flex items-center justify-between border-b border-border/40 pb-1.5 mb-2">
+                      <span className="font-bold text-xs flex items-center gap-1.5 text-primary">
+                        <Lightbulb className="h-3.5 w-3.5" />
+                        <span>Hint</span>
+                      </span>
+                      <button 
+                        onClick={() => setShowHint(false)} 
+                        className="text-muted-foreground/60 hover:text-foreground cursor-pointer"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">{currentQuestion.hint}</p>
+                  </div>
+                )}
+              </div>
             ) : (
               <span />
             )}
 
             <Button 
-              appearance="primary" 
-              size="large" 
+              variant="primary" 
               disabled={!selectedOption || isSubmitting} 
               onClick={handleNext}
-              className={styles.btnNext}
+              className="h-10 px-5 font-bold gap-2 text-xs shadow-xs min-w-[120px]"
             >
               {isSubmitting ? (
-                <Spinner size="tiny" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                currentIndex === questions.length - 1 ? "Finish Quiz" : "Next Question"
+                <span>
+                  {currentIndex === questions.length - 1 ? "Finish Quiz" : "Next Question"}
+                </span>
               )}
             </Button>
           </div>

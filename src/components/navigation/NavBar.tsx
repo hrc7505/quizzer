@@ -1,319 +1,463 @@
 "use client";
 
+import * as React from "react";
 import { useState } from "react";
-import {
-  Button, Text, Avatar,
-  NavDrawer, NavDrawerBody, NavDrawerHeader,
-  NavItem, NavCategory, NavCategoryItem, NavSubItem, NavSubItemGroup,
-  Dialog, DialogTrigger, DialogSurface, DialogBody,
-  DialogTitle, DialogContent, DialogActions,
-  Drawer, DrawerHeader, DrawerHeaderTitle, DrawerBody,
-} from "@fluentui/react-components";
-import {
-  Navigation24Regular, Board24Regular, Add24Regular, Options24Regular,
-  SignOut24Regular, PanelLeft24Regular, Brain24Regular,
-  DocumentDatabase24Regular, Home24Regular, BookOpen24Regular,
-  People24Regular, Person24Regular, Dismiss24Regular,
-} from "@fluentui/react-icons";
 import Link from "next/link";
 import Image from "next/image";
 import { signOut, useSession } from "next-auth/react";
 import { usePathname, useRouter } from "next/navigation";
-import { useNavBarStyles } from "./styles/useNavBarStyles";
+import { useTheme } from "next-themes";
+import {
+  Menu as MenuIcon,
+  LayoutDashboard,
+  Plus,
+  Settings,
+  LogOut,
+  Brain,
+  Database,
+  Home,
+  BookOpen,
+  Users,
+  User,
+  X,
+  Sun,
+  Moon,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { Dialog, DialogSurface, DialogTitle, DialogContent, DialogActions } from "@/components/ui/Dialog";
+import { cn } from "@/utils/cn";
 
-/**
- * NavBar Component.
- * - On desktop: horizontal nav with links
- * - On mobile: hamburger button that opens a full slide-out drawer
- * - On admin routes: shows the admin NavDrawer via the hamburger
- * - Role-aware: only shows profile/signout for USER role on public routes
- */
 export function NavBar({ maxWidth = "1200px" }: { maxWidth?: string }) {
-  const styles = useNavBarStyles();
   const { data: session } = useSession();
   const pathname = usePathname();
   const router = useRouter();
-
-  // Warm dynamic routes before navigation so clicks feel instant.
-  const prefetch = (href: string) => {
-    if (href && href !== pathname) router.prefetch(href);
-  };
+  const { theme, setTheme } = useTheme();
 
   const [isAdminDrawerOpen, setIsAdminDrawerOpen] = useState(false);
+  const [adminDrawerSide, setAdminDrawerSide] = useState<"left" | "right">("left");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false);
+  
+  // State for Admin sub-menu dropdown
+  const [isTaxonomyOpen, setIsTaxonomyOpen] = useState(true);
 
   const isAdminRoute = pathname.startsWith("/admin");
   const role = (session?.user as { role?: string } | null | undefined)?.role;
   const isAdminUser = role === "ADMIN";
   const isStudentUser = session?.user && !isAdminUser;
 
-  /** Public nav links (used in both desktop and mobile drawer) */
+  // Warm dynamic routes before navigation so clicks feel instant.
+  const prefetch = (href: string) => {
+    if (href && href !== pathname) router.prefetch(href);
+  };
+
   const publicNavLinks = [
-    { href: "/", label: "Home", icon: <Home24Regular /> },
-    { href: "/exams", label: "Exams", icon: <BookOpen24Regular /> },
-    { href: "/deep-dives", label: "Deep Dives", icon: <Brain24Regular /> },
+    { href: "/", label: "Home", icon: <Home className="h-4 w-4" /> },
+    { href: "/exams", label: "Exams", icon: <BookOpen className="h-4 w-4" /> },
+    { href: "/deep-dives", label: "Deep Dives", icon: <Brain className="h-4 w-4" /> },
   ];
 
   return (
     <>
-      <nav className={styles.nav}>
-        <div className={styles.navInner} style={{ maxWidth }}>
-          {/* Left: hamburger (mobile) + brand */}
-          <div className={styles.leftSection}>
-            {/* Mobile hamburger */}
+      <nav className="sticky top-0 z-40 w-full border-b border-border/80 bg-background/85 backdrop-blur-md transition-colors duration-200">
+        <div 
+          className="mx-auto flex h-14 items-center justify-between px-4 sm:px-6 lg:px-8" 
+          style={{ maxWidth }}
+        >
+          {/* Left brand & menu button */}
+          <div className="flex items-center gap-4">
             <Button
-              appearance="transparent"
-              icon={<Navigation24Regular />}
-              className={styles.hamburger}
-              onClick={() =>
+              variant="ghost"
+              size="icon"
+              className="lg:hidden h-8 w-8 text-muted-foreground hover:bg-surface-hover hover:text-foreground"
+              onClick={() => {
+                setAdminDrawerSide("left");
                 isAdminRoute
                   ? setIsAdminDrawerOpen(true)
-                  : setIsMobileMenuOpen(true)
-              }
+                  : setIsMobileMenuOpen(true);
+              }}
               aria-label="Open navigation menu"
-            />
-            {/* Brand */}
+            >
+              <MenuIcon className="h-5 w-5" />
+            </Button>
+            
             <Link
               href={isAdminRoute ? "/admin" : "/"}
-              className={styles.brandLink}
+              className="flex items-center"
               prefetch
               onMouseEnter={() => prefetch(isAdminRoute ? "/admin" : "/")}
               onFocus={() => prefetch(isAdminRoute ? "/admin" : "/")}
             >
               <Image
                 src="/quizzer.svg"
-                alt="Quizzer"
-                width={833}
-                height={280}
+                alt="Quizzer Logo"
+                width={83}
+                height={28}
                 priority
-                className={styles.brandImage}
+                className="dark:invert transition-opacity opacity-90 hover:opacity-100"
               />
             </Link>
           </div>
 
-          {/* Center: Desktop nav links (public only, hidden on mobile) */}
+          {/* Center Links (desktop view) */}
           {!isAdminRoute && (
-            <div className={styles.desktopLinks}>
-              {publicNavLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={styles.navLinkAnchor}
-                  onMouseEnter={() => prefetch(link.href)}
-                  onFocus={() => prefetch(link.href)}
-                >
-                  <Button appearance="subtle" icon={link.icon}>
-                    {link.label}
-                  </Button>
-                </Link>
-              ))}
+            <div className="hidden lg:flex items-center gap-1.5">
+              {publicNavLinks.map((link) => {
+                const isActive = pathname === link.href;
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onMouseEnter={() => prefetch(link.href)}
+                    onFocus={() => prefetch(link.href)}
+                  >
+                    <Button
+                      variant={isActive ? "secondary" : "ghost"}
+                      className={cn(
+                        "gap-2 px-3 py-1.5 h-8 font-medium text-xs rounded-md transition-all",
+                        isActive ? "bg-surface-hover text-foreground font-semibold" : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {link.icon}
+                      {link.label}
+                    </Button>
+                  </Link>
+                );
+              })}
             </div>
           )}
 
-          {/* Right: Auth widget */}
-          <div className={styles.rightSection}>
+          {/* Right Section widget */}
+          <div className="flex items-center gap-2">
+            {/* Theme Toggle Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:bg-surface-hover hover:text-foreground"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              aria-label="Toggle dark mode"
+            >
+              <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+              <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+            </Button>
+
             {!isAdminRoute && (
               <>
                 {isStudentUser ? (
-                  <div className={styles.userChip}>
-                    <Avatar
-                      size={24}
-                      name={session!.user!.name || session!.user!.email || ""}
-                      image={{ src: session!.user!.image || undefined }}
-                    />
-                    <Text size={200} weight="semibold" className={styles.userChipName}>
+                  <div className="flex items-center gap-2 pl-2 border-l border-border/80">
+                    <div className="h-7 w-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20">
+                      {session!.user!.name?.slice(0, 2).toUpperCase() || "U"}
+                    </div>
+                    <span className="hidden sm:inline text-xs font-semibold text-foreground/90 max-w-[120px] truncate">
                       {session!.user!.name || session!.user!.email?.split("@")[0]}
-                    </Text>
+                    </span>
                     <Button
-                      appearance="subtle"
-                      icon={<SignOut24Regular />}
-                      className={styles.signOutBtn}
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-danger hover:bg-danger/10"
                       onClick={() => signOut({ callbackUrl: "/" })}
                       aria-label="Sign out"
-                    />
+                    >
+                      <LogOut className="h-4 w-4" />
+                    </Button>
                   </div>
                 ) : !isAdminUser ? (
-                  <Link href="/auth/login" className={styles.navLinkAnchor}>
-                    <Button appearance="primary" icon={<Person24Regular />}>
-                      <span className={styles.btnLabel}>Sign In</span>
+                  <Link href="/auth/login">
+                    <Button 
+                      variant="primary" 
+                      size="sm" 
+                      className="gap-1.5 text-xs font-semibold"
+                    >
+                      <User className="h-3.5 w-3.5" />
+                      <span>Sign In</span>
                     </Button>
                   </Link>
                 ) : null}
               </>
             )}
 
-            {/* Admin toggle on admin routes (desktop) */}
+            {/* Admin toggle on admin routes (desktop view) */}
             {isAdminRoute && (
               <Button
-                appearance="transparent"
-                icon={<Navigation24Regular />}
-                className={styles.adminDesktopToggle}
-                onClick={() => setIsAdminDrawerOpen(true)}
+                variant="ghost"
+                size="icon"
+                className="hidden lg:flex h-8 w-8 text-muted-foreground hover:bg-surface-hover hover:text-foreground"
+                onClick={() => {
+                  setAdminDrawerSide("right");
+                  setIsAdminDrawerOpen(true);
+                }}
                 aria-label="Toggle admin navigation"
-              />
+              >
+                <MenuIcon className="h-5 w-5" />
+              </Button>
             )}
           </div>
         </div>
       </nav>
 
-      {/* ── Mobile Public Nav Drawer ── */}
-      <Drawer
-        type="overlay"
-        open={isMobileMenuOpen}
-        onOpenChange={(_, d) => setIsMobileMenuOpen(d.open)}
-        position="start"
-      >
-        <DrawerHeader>
-          <DrawerHeaderTitle
-            action={
-              <Button
-                appearance="subtle"
-                icon={<Dismiss24Regular />}
-                onClick={() => setIsMobileMenuOpen(false)}
-                aria-label="Close menu"
-              />
-            }
-          >
-            <Image
-              src="/quizzer.svg"
-              alt="Quizzer"
-              width={833}
-              height={280}
-              priority
-              className={styles.brandImage}
-            />
-          </DrawerHeaderTitle>
-        </DrawerHeader>
-        <DrawerBody>
-          <div className={styles.mobileNavBody}>
-            {publicNavLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={styles.mobileNavLink}
-                onTouchStart={() => prefetch(link.href)}
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                <span className={styles.mobileNavIcon}>{link.icon}</span>
-                {link.label}
-              </Link>
-            ))}
-
-            <div className={styles.mobileDivider} />
-
-            {isStudentUser ? (
-              <>
-                <div className={styles.mobileUserRow}>
-                  <Avatar
-                    size={28}
-                    name={session!.user!.name || session!.user!.email || ""}
-                    image={{ src: session!.user!.image || undefined }}
-                  />
-                  <Text size={300} weight="semibold">
-                    {session!.user!.name || session!.user!.email?.split("@")[0]}
-                  </Text>
-                </div>
-                <button
-                  className={styles.mobileSignOutBtn}
-                  onClick={() => { setIsMobileMenuOpen(false); signOut({ callbackUrl: "/" }); }}
+      {/* ── Mobile Public Nav Drawer (Slide-out menu) ── */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          {/* Backdrop overlay */}
+          <div
+            className="fixed inset-0 bg-overlay/40 backdrop-blur-xs transition-opacity duration-300"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+          {/* Slider content */}
+          <div className="fixed inset-y-0 left-0 w-72 max-w-[80vw] bg-card border-r border-border p-6 shadow-lg flex flex-col justify-between animate-slide-in-left">
+            <div className="flex flex-col gap-6">
+              <div className="flex items-center justify-between">
+                <Image
+                  src="/quizzer.svg"
+                  alt="Quizzer Logo"
+                  width={71}
+                  height={24}
+                  priority
+                  className="dark:invert"
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  aria-label="Close menu"
                 >
-                  <SignOut24Regular className={styles.iconSmall} /> Sign Out
-                </button>
-              </>
-            ) : (
-              <Link
-                href="/auth/login"
-                className={styles.mobileSignInBtn}
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                <Person24Regular className={styles.iconSmall} /> Sign In
-              </Link>
-            )}
-          </div>
-        </DrawerBody>
-      </Drawer>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
 
-      {/* ── Admin NavDrawer (overlay, all screen sizes) ── */}
-      {isAdminRoute && (
-        <NavDrawer
-          open={isAdminDrawerOpen}
-          type="overlay"
-          selectedValue={pathname}
-          onOpenChange={(_, data) => setIsAdminDrawerOpen(data.open)}
-          onNavItemSelect={(_, data) => {
-            router.push(data.value);
-            setIsAdminDrawerOpen(false);
-          }}
-        >
-          <NavDrawerHeader className={styles.adminDrawerHeader}>
-            <div className={styles.adminDrawerHeaderRow}>
-              <PanelLeft24Regular />
-              <Text weight="bold" size={400}>Admin Menu</Text>
+              <div className="flex flex-col gap-1.5">
+                {publicNavLinks.map((link, idx) => {
+                  const isActive = pathname === link.href;
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 animate-fade-in-up",
+                        isActive 
+                          ? "bg-secondary text-foreground font-semibold" 
+                          : "text-muted-foreground hover:bg-surface-hover hover:text-foreground"
+                      )}
+                      style={{ animationDelay: `${idx * 50}ms`, animationFillMode: "both" }}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      {link.icon}
+                      {link.label}
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
-          </NavDrawerHeader>
-          <NavDrawerBody>
-            <NavItem
-              value="/admin" icon={<Board24Regular />}
-              onMouseEnter={() => prefetch("/admin")}
-            >Dashboard</NavItem>
 
-            <NavItem
-              value="/admin/generate" icon={<Add24Regular />}
-              onMouseEnter={() => prefetch("/admin/generate")}
-            >Generate Quiz</NavItem>
-
-            <NavCategory value="taxonomy">
-              <NavCategoryItem icon={<Options24Regular />}>Taxonomy</NavCategoryItem>
-              <NavSubItemGroup>
-                <NavSubItem value="/admin/manage/exams"
-                  onMouseEnter={() => prefetch("/admin/manage/exams")}
-                >Exams</NavSubItem>
-                <NavSubItem value="/admin/manage/topics"
-                  onMouseEnter={() => prefetch("/admin/manage/topics")}
-                >Main Topics</NavSubItem>
-                <NavSubItem value="/admin/manage/subtopics"
-                  onMouseEnter={() => prefetch("/admin/manage/subtopics")}
-                >Sub Topics</NavSubItem>
-              </NavSubItemGroup>
-            </NavCategory>
-
-            <NavItem value="/admin/manage/quizzes" icon={<DocumentDatabase24Regular />}
-              onMouseEnter={() => prefetch("/admin/manage/quizzes")}
-            >Quizzes</NavItem>
-
-            <NavItem value="/admin/manage/users" icon={<People24Regular />}
-              onMouseEnter={() => prefetch("/admin/manage/users")}
-            >Users</NavItem>
-
-            <NavItem value="/admin/manage/deep-dives" icon={<Brain24Regular />}
-              onMouseEnter={() => prefetch("/admin/manage/deep-dives")}
-            >Deep Dives</NavItem>
-          </NavDrawerBody>
-
-          <div className={styles.adminDrawerFooter}>
-            <Dialog open={confirmLogoutOpen} onOpenChange={(_, data) => setConfirmLogoutOpen(data.open)}>
-              <DialogTrigger disableButtonEnhancement>
-                <NavItem href="#" value="logout" icon={<SignOut24Regular />}
-                  onClick={(e) => { e.preventDefault(); setConfirmLogoutOpen(true); }}
-                >Logout</NavItem>
-              </DialogTrigger>
-              <DialogSurface>
-                <DialogBody>
-                  <DialogTitle>Confirm logout</DialogTitle>
-                  <DialogContent>Are you sure you want to log out of the admin portal?</DialogContent>
-                  <DialogActions>
-                    <Button appearance="secondary" onClick={() => setConfirmLogoutOpen(false)}>Cancel</Button>
-                    <Button appearance="primary" onClick={() => { setConfirmLogoutOpen(false); signOut({ callbackUrl: "/auth/admin-signin" }); }}>
-                      Logout
-                    </Button>
-                  </DialogActions>
-                </DialogBody>
-              </DialogSurface>
-            </Dialog>
+            <div className="border-t border-border/80 pt-4 flex flex-col gap-4">
+              {isStudentUser ? (
+                <>
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm border border-primary/20">
+                      {session!.user!.name?.slice(0, 2).toUpperCase() || "U"}
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-sm font-semibold text-foreground truncate">
+                        {session!.user!.name}
+                      </span>
+                      <span className="text-xs text-muted-foreground truncate">
+                        {session!.user!.email}
+                      </span>
+                    </div>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    className="w-full justify-center gap-2 text-danger hover:bg-danger/10 hover:border-danger/20"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      signOut({ callbackUrl: "/" });
+                    }}
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>Sign Out</span>
+                  </Button>
+                </>
+              ) : (
+                <Link
+                  href="/auth/login"
+                  className="w-full"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <Button variant="primary" className="w-full justify-center gap-2">
+                    <User className="h-4 w-4" />
+                    <span>Sign In</span>
+                  </Button>
+                </Link>
+              )}
+            </div>
           </div>
-        </NavDrawer>
+        </div>
       )}
+
+      {/* ── Admin NavDrawer (Overlay, slide-out menu) ── */}
+      {isAdminRoute && isAdminDrawerOpen && (
+        <div className="fixed inset-0 z-50">
+          {/* Backdrop overlay */}
+          <div
+            className="fixed inset-0 bg-overlay/50 backdrop-blur-xs transition-opacity duration-300"
+            onClick={() => setIsAdminDrawerOpen(false)}
+          />
+          {/* Drawer content */}
+          <div className={cn(
+            "fixed inset-y-0 w-80 bg-card border p-6 shadow-lg flex flex-col justify-between duration-300",
+            adminDrawerSide === "left"
+              ? "left-0 border-r border-border animate-slide-in-left"
+              : "right-0 border-l border-border animate-slide-in-right"
+          )}>
+            <div className="flex flex-col gap-6 overflow-y-auto pr-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Image
+                    src="/quizzer.svg"
+                    alt="Quizzer Logo"
+                    width={71}
+                    height={24}
+                    className="dark:invert"
+                  />
+                  <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-sm bg-primary/10 text-primary border border-primary/20">Admin</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground"
+                  onClick={() => setIsAdminDrawerOpen(false)}
+                  aria-label="Close admin menu"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Navigation list */}
+              <div className="flex flex-col gap-1">
+                {[
+                  { href: "/admin", label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
+                  { href: "/admin/generate", label: "Generate Quiz", icon: <Plus className="h-4 w-4" /> },
+                ].map((item, idx) => (
+                  <Link key={item.href} href={item.href} onClick={() => setIsAdminDrawerOpen(false)}>
+                    <span className={cn(
+                      "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer animate-fade-in-up",
+                      pathname === item.href
+                        ? "bg-secondary text-foreground font-semibold"
+                        : "text-muted-foreground hover:bg-surface-hover hover:text-foreground"
+                    )}
+                    style={{ animationDelay: `${idx * 60}ms`, animationFillMode: "both" }}
+                    >
+                      {item.icon}
+                      <span>{item.label}</span>
+                    </span>
+                  </Link>
+                ))}
+
+                {/* Sub category with collapse/expand */}
+                <div className="flex flex-col animate-fade-in-up" style={{ animationDelay: `120ms`, animationFillMode: "both" }}>
+                  <button
+                    onClick={() => setIsTaxonomyOpen(!isTaxonomyOpen)}
+                    className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-surface-hover hover:text-foreground transition-colors duration-200 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Settings className="h-4 w-4" />
+                      <span>Taxonomy</span>
+                    </div>
+                    {isTaxonomyOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                  </button>
+
+                  {isTaxonomyOpen && (
+                    <div className="pl-8 pr-2 py-1 flex flex-col gap-0.5 border-l border-border/80 ml-5 mt-1">
+                      {[
+                        { href: "/admin/manage/exams", label: "Exams" },
+                        { href: "/admin/manage/topics", label: "Main Topics" },
+                        { href: "/admin/manage/subtopics", label: "Sub Topics" },
+                      ].map((item, idx) => (
+                        <Link 
+                          key={item.href} 
+                          href={item.href} 
+                          onClick={() => setIsAdminDrawerOpen(false)}
+                        >
+                          <span
+                            className={cn(
+                              "block px-3 py-1.5 text-xs rounded-md transition-all duration-200 cursor-pointer font-medium animate-fade-in-up",
+                              pathname === item.href
+                                ? "bg-secondary text-foreground font-semibold"
+                                : "text-muted-foreground hover:text-foreground hover:bg-surface-hover"
+                            )}
+                            style={{ animationDelay: `${180 + idx * 50}ms`, animationFillMode: "both" }}
+                          >
+                            {item.label}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {[
+                  { href: "/admin/manage/quizzes", label: "Quizzes", icon: <Database className="h-4 w-4" />, match: "/admin/manage/quizzes" },
+                  { href: "/admin/manage/users", label: "Users", icon: <Users className="h-4 w-4" />, match: "/admin/manage/users" },
+                  { href: "/admin/manage/deep-dives", label: "Deep Dives", icon: <Brain className="h-4 w-4" />, match: "/admin/manage/deep-dives" },
+                ].map((item, idx) => (
+                  <Link key={item.href} href={item.href} onClick={() => setIsAdminDrawerOpen(false)}>
+                    <span className={cn(
+                      "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer animate-fade-in-up",
+                      pathname.startsWith(item.match)
+                        ? "bg-secondary text-foreground font-semibold"
+                        : "text-muted-foreground hover:bg-surface-hover hover:text-foreground"
+                    )}
+                    style={{ animationDelay: `${300 + idx * 60}ms`, animationFillMode: "both" }}
+                    >
+                      {item.icon}
+                      <span>{item.label}</span>
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* Admin Footer LogOut */}
+            <div className="border-t border-border/80 pt-4">
+              <Button
+                variant="secondary"
+                className="w-full justify-start gap-3 text-sm text-danger hover:bg-danger/10 hover:border-danger/20 font-medium h-10 px-3"
+                onClick={() => setConfirmLogoutOpen(true)}
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Logout Admin</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Logout dialog portal */}
+      <Dialog open={confirmLogoutOpen} onOpenChange={setConfirmLogoutOpen}>
+        <DialogSurface>
+          <DialogTitle>Confirm logout</DialogTitle>
+          <DialogContent>
+            Are you sure you want to log out of the admin portal?
+          </DialogContent>
+          <DialogActions>
+            <Button variant="outline" onClick={() => setConfirmLogoutOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => {
+                setConfirmLogoutOpen(false);
+                signOut({ callbackUrl: "/auth/admin-signin" });
+              }}
+            >
+              Logout
+            </Button>
+          </DialogActions>
+        </DialogSurface>
+      </Dialog>
     </>
   );
 }

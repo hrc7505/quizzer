@@ -3,7 +3,7 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Breadcrumbs } from "@/components/navigation/Breadcrumbs";
 import { ContentHeader } from "@/components/layouts/ContentHeader";
 import { DirectoryCardList } from "@/components/data-display/DirectoryCardList";
-import { BookOpen24Regular } from "@/design-system/icons/Icons";
+import { BookOpen } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 
@@ -68,7 +68,7 @@ function StandaloneSubtopicsPageClient({ topicId, topic }: {
     <PageLayout>
       <Breadcrumbs items={breadcrumbItems} />
       <ContentHeader
-        icon={<BookOpen24Regular />}
+        icon={<BookOpen />}
         variant="topic"
         title={topic.title}
         description={topic.description}

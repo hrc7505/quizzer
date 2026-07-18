@@ -2,10 +2,11 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Menu, MenuList, MenuPopover, MenuTrigger, Button, MenuItem } from "@fluentui/react-components";
-import { MoreHorizontalRegular, ChevronRight16Regular } from "@fluentui/react-icons";
 import Link from "next/link";
-import { useBreadcrumbsStyles } from "./styles/useBreadcrumbsStyles";
+import { MoreHorizontal, ChevronRight } from "lucide-react";
+import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from "@/components/ui/Dropdown";
+import { Button } from "@/components/ui/Button";
+import { cn } from "@/utils/cn";
 
 interface BreadcrumbItem {
   label: string;
@@ -18,17 +19,15 @@ interface BreadcrumbsProps {
 }
 
 const GAP = 6; // must match the flex `gap` on the container
-const MENU_BUTTON_ESTIMATE = 44; // approximate width of the ellipsis (ECB) button
+const MENU_BUTTON_ESTIMATE = 32; // approximate width of the ellipsis button (w-8)
 
 /**
  * Breadcrumbs component for nested directory navigation.
  * Stays on a single line. The first and last items are always visible; as the
  * available width shrinks, the middle items collapse (in order) into an ellipsis
- * (ECB) overflow menu shown on the left, right after the first item.
- * Uses Fluent UI's Menu/Button for the overflow control.
+ * overflow menu shown on the left, right after the first item.
  */
 export function Breadcrumbs({ items }: BreadcrumbsProps) {
-  const styles = useBreadcrumbsStyles();
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Array<HTMLSpanElement | null>>([]);
@@ -101,13 +100,13 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
     const item = items[index];
     if (!item) return null;
     const content = isLast ? (
-      <span className={styles.currentItem}>{item.label}</span>
+      <span className="text-foreground font-semibold truncate max-w-[200px]">{item.label}</span>
     ) : item.href ? (
-      <Link href={item.href} className={styles.link}>
+      <Link href={item.href} className="text-muted-foreground hover:text-foreground font-medium hover:underline transition-colors duration-150 truncate max-w-[150px]">
         {item.label}
       </Link>
     ) : (
-      <span className={styles.item}>{item.label}</span>
+      <span className="text-muted-foreground font-medium truncate max-w-[150px]">{item.label}</span>
     );
 
     return (
@@ -116,43 +115,48 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
         ref={(el) => {
           itemRefs.current[index] = el;
         }}
-        className={styles.item}
+        className="inline-flex items-center gap-1.5"
       >
         {content}
-        {!isLast && <ChevronRight16Regular className={styles.chevron} />}
+        {!isLast && <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />}
       </span>
     );
   };
 
   return (
-    <nav aria-label="Breadcrumb" className={styles.nav}>
-      <div ref={containerRef} className={styles.container}>
+    <nav aria-label="Breadcrumb" className="w-full py-1">
+      <div 
+        ref={containerRef} 
+        className="flex items-center flex-nowrap text-sm gap-1.5 overflow-hidden w-full select-none"
+      >
         {n > 0 && renderItem(0, n === 1)}
         {showEcb && (
-          <Menu>
-            <MenuTrigger disableButtonEnhancement>
-              <Button
-                appearance="subtle"
-                size="small"
-                icon={<MoreHorizontalRegular />}
-                aria-label="Show more breadcrumb items"
-                className={styles.overflowButton}
-              />
-            </MenuTrigger>
-            <MenuPopover>
-              <MenuList>
+          <div className="inline-flex items-center gap-1.5 shrink-0">
+            <Dropdown>
+              <DropdownTrigger>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:bg-surface-hover hover:text-foreground rounded-lg"
+                  aria-label="Show more breadcrumb items"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownTrigger>
+              <DropdownContent align="left" className="w-44">
                 {overflowed.map((item, idx) => (
-                  <MenuItem
+                  <DropdownItem
                     key={idx}
                     disabled={!item.href}
                     onClick={() => item.href && router.push(item.href)}
                   >
-                    {item.label}
-                  </MenuItem>
+                    <span className="truncate w-full text-left">{item.label}</span>
+                  </DropdownItem>
                 ))}
-              </MenuList>
-            </MenuPopover>
-          </Menu>
+              </DropdownContent>
+            </Dropdown>
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+          </div>
         )}
         {Array.from({ length: Math.max(0, n - 1 - renderMiddleStart) }, (_, k) => renderItem(renderMiddleStart + k, false))}
         {n > 1 && renderItem(n - 1, true)}

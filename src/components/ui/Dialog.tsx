@@ -108,22 +108,28 @@ const DialogSurface = React.forwardRef<HTMLDivElement, DialogSurfaceProps>(
 );
 DialogSurface.displayName = "DialogSurface";
 
-function DialogTitle({ className, children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
+interface DialogTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {
+  showClose?: boolean;
+}
+
+function DialogTitle({ className, children, showClose = true, ...props }: DialogTitleProps) {
   const { onOpenChange } = useDialog();
   return (
     <div className="flex items-center justify-between border-b border-border/50 pb-3 mb-4">
       <h2 className={cn("text-lg font-semibold tracking-tight", className)} {...props}>
         {children}
       </h2>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-6 w-6 rounded-md hover:bg-surface-hover opacity-70 hover:opacity-100"
-        onClick={() => onOpenChange(false)}
-        aria-label="Close dialog"
-      >
-        <X className="h-4 w-4" />
-      </Button>
+      {showClose && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 rounded-md hover:bg-surface-hover opacity-70 hover:opacity-100"
+          onClick={() => onOpenChange(false)}
+          aria-label="Close dialog"
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      )}
     </div>
   );
 }

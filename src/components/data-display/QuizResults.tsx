@@ -505,20 +505,16 @@ export function QuizResults({ attempt }: QuizResultsProps) {
         </h1>
 
         <div className="flex items-center gap-2">
-          {/* Desktop share button */}
-          <div className="hidden sm:block">
-            <ShareButton
-              icon={<Share2 className="h-4 w-4" />}
-              buttonAppearance="outline"
-              buttonSize="icon"
-              buttonClassName="h-9 w-9 border border-border/80 bg-surface rounded-lg"
-              shareText={`${attempt.quiz.title} — I scored ${Math.round(attempt.scorePercentage)}% on Quizzer!`}
-              defaultUrl={`${typeof window !== "undefined" ? window.location.origin : ""}/quiz/${attempt.quizId}`}
-              resolveUrl={handleShareUrl}
-            />
-          </div>
+          <ShareButton
+            icon={<Share2 className="h-4 w-4" />}
+            buttonAppearance="outline"
+            buttonSize="icon"
+            buttonClassName="h-9 w-9 border border-border/80 bg-surface rounded-lg"
+            shareText={`${attempt.quiz.title} — I scored ${Math.round(attempt.scorePercentage)}% on Quizzer!`}
+            defaultUrl={`${typeof window !== "undefined" ? window.location.origin : ""}/quiz/${attempt.quizId}`}
+            resolveUrl={handleShareUrl}
+          />
 
-          {/* Overflow dropdown (desktop + mobile) */}
           <Dropdown>
             <DropdownTrigger>
               <Button
@@ -531,13 +527,6 @@ export function QuizResults({ attempt }: QuizResultsProps) {
               </Button>
             </DropdownTrigger>
             <DropdownContent align="right" className="w-44">
-              {/* Mobile-only share inside overflow */}
-              <DropdownItem onClick={handleMobileShare} className="sm:hidden">
-                <span className="flex items-center gap-2">
-                  <Share2 className="h-3.5 w-3.5" />
-                  Share
-                </span>
-              </DropdownItem>
               <DropdownItem onClick={() => setIsReviewOpen(true)}>
                 <span className="flex items-center gap-2">
                   <Eye className="h-3.5 w-3.5" />
@@ -545,8 +534,10 @@ export function QuizResults({ attempt }: QuizResultsProps) {
                 </span>
               </DropdownItem>
               <DropdownItem onClick={handleDownloadPDF} disabled={downloading}>
-                {downloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
-                <span>Download PDF</span>
+                <span className="flex items-center gap-2">
+                  {downloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
+                  <span>Download PDF</span>
+                </span>
               </DropdownItem>
             </DropdownContent>
           </Dropdown>

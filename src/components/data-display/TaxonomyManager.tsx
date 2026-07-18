@@ -18,7 +18,6 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { GenerateQuizForm } from "@/components/forms/GenerateQuizForm";
-import { LinkButton } from "@/components/ui/LinkButton";
 import { Alert } from "@/components/ui/Alert";
 import Link from "next/link";
 import NoData from "@/components/feedback/NoData";
@@ -384,13 +383,13 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
   };
 
   // Unlink Subtopic from Parent Main Topic
-  const handleUnlinkSubtopicFromParent = async (subtopicId: string, subtopicTitle: string, parentTitle: string) => {
+  const handleUnlinkSubtopicFromParent = async (subtopicId: string, subtopicTitle: string, parentTitle: string, parentId?: string) => {
     triggerConfirm(
       "Unlink Subtopic",
       `Unlink subtopic "${subtopicTitle}" from parent topic "${parentTitle}"?`,
       async () => {
         setLoading(true);
-        await fetch(`/api/admin/topics/${subtopicId}/unlink-parent`, { method: "POST" });
+        await fetch(`/api/admin/topics/${subtopicId}/unlink-parent${parentId ? `?parentId=${parentId}` : ""}`, { method: "POST" });
         await fetchData();
         if (selectedTopicId) {
           const id = selectedTopicId;
@@ -1058,7 +1057,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       {/* Link Topics to Exam Dialog */}
       <Dialog open={examLinkDialogOpen} onOpenChange={setExamLinkDialogOpen}>
         <DialogSurface className="max-w-[480px]">
-          <DialogTitle>Link Existing Main Topics</DialogTitle>
+          <DialogTitle showClose={false}>Link Existing Main Topics</DialogTitle>
           <DialogContent className="flex flex-col gap-3 mt-3">
             <p className="text-xs text-muted-foreground leading-relaxed">
               Select standalone main topics to associate with this exam category.
@@ -1116,7 +1115,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       {/* Link Subtopics Dialog */}
       <Dialog open={topicLinkDialogOpen} onOpenChange={setTopicLinkDialogOpen}>
         <DialogSurface className="max-w-[480px]">
-          <DialogTitle>Link Existing Sub Topics</DialogTitle>
+          <DialogTitle showClose={false}>Link Existing Sub Topics</DialogTitle>
           <DialogContent className="flex flex-col gap-3 mt-3">
             <p className="text-xs text-muted-foreground leading-relaxed">
               Select existing subtopics to nest under this main topic.
@@ -1174,7 +1173,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       {/* Link Quizzes Dialog */}
       <Dialog open={quizLinkDialogOpen} onOpenChange={setQuizLinkDialogOpen}>
         <DialogSurface className="max-w-[480px]">
-          <DialogTitle>Link Existing Quizzes</DialogTitle>
+          <DialogTitle showClose={false}>Link Existing Quizzes</DialogTitle>
           <DialogContent className="flex flex-col gap-3 mt-3">
             <p className="text-xs text-muted-foreground leading-relaxed">
               Select existing quizzes to pull into this subtopic.
@@ -1314,7 +1313,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
                         variant="ghost" 
                         size="icon" 
                         className="h-8 w-8 text-muted-foreground hover:bg-danger/10 hover:text-danger rounded-lg shrink-0"
-                        onClick={() => handleUnlinkTopicFromExam(t.id, t.title, activeExam?.title || '')}
+                        onClick={() => handleUnlinkTopicFromExam(t.id, t.title, activeExam?.title || '', activeExam?.id)}
                         aria-label="Unlink topic"
                       >
                         <Unlink2 className="h-3.5 w-3.5" />
@@ -1376,7 +1375,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
                           variant="ghost" 
                           size="icon" 
                           className="h-8 w-8 text-muted-foreground hover:bg-danger/10 hover:text-danger rounded-lg shrink-0"
-                          onClick={() => handleUnlinkSubtopicFromParent(t.id, t.title, activeTopic?.title || '')}
+                          onClick={() => handleUnlinkSubtopicFromParent(t.id, t.title, activeTopic?.title || '', activeTopic?.id)}
                           aria-label="Unlink subtopic"
                         >
                           <Unlink2 className="h-3.5 w-3.5" />

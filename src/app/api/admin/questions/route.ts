@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { revalidateQuizAndRelated } from "@/lib/quiz-routing";
 
 /**
  * GET /api/admin/questions
@@ -78,7 +79,9 @@ export async function POST(req: Request) {
       });
       topic?.exams.forEach(e => revalidatePath(`/exams/${e.id}`));
     }
+    await revalidateQuizAndRelated(quizId);
     revalidatePath("/exams");
+    revalidatePath("/deep-dives", "page");
 
     return NextResponse.json(question);
   } catch (e) {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { revalidateQuizAndRelated } from "@/lib/quiz-routing";
 
 /**
  * PUT /api/admin/questions/[id]
@@ -32,7 +33,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       revalidatePath(`/topics/${existing.quiz.topics[0].id}`, "page");
       existing.quiz.topics[0].exams.forEach(e => revalidatePath(`/exams/${e.id}`, "page"));
     }
+    if (existing?.quizId) {
+      await revalidateQuizAndRelated(existing.quizId);
+    }
     revalidatePath("/exams", "page");
+    revalidatePath("/deep-dives", "page");
 
     return NextResponse.json(question);
   } catch (e) {
@@ -62,7 +67,11 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       revalidatePath(`/topics/${existing.quiz.topics[0].id}`, "page");
       existing.quiz.topics[0].exams.forEach(e => revalidatePath(`/exams/${e.id}`, "page"));
     }
+    if (existing?.quizId) {
+      await revalidateQuizAndRelated(existing.quizId);
+    }
     revalidatePath("/exams", "page");
+    revalidatePath("/deep-dives", "page");
 
     return NextResponse.json({ success: true });
   } catch (e) {

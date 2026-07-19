@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { revalidateQuizAndRelated } from "@/lib/quiz-routing";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -47,6 +48,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     revalidatePath("/exams");
     existing?.topics.forEach(t => revalidatePath(`/topics/${t.id}`));
+    await revalidateQuizAndRelated(id);
 
     return NextResponse.json(quiz);
   } catch (error) {
@@ -68,6 +70,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
     revalidatePath("/exams");
     existing?.topics.forEach(t => revalidatePath(`/topics/${t.id}`));
+    await revalidateQuizAndRelated(id);
 
     return NextResponse.json({ success: true });
   } catch (error) {

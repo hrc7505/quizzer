@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions, SessionUser } from "@/lib/auth";
+import { revalidatePath } from "next/cache";
+import { revalidateQuizAndRelated } from "@/lib/quiz-routing";
 
 
 /**
@@ -66,6 +68,11 @@ export async function POST(req: Request) {
         timeTakenSec: timeTakenSec !== undefined ? timeTakenSec : attempt.timeTakenSec,
       },
     });
+
+    // Refresh the statically generated home dashboard and the quiz's
+    // public page (leaderboard + last-played data) after completion.
+    await revalidateQuizAndRelated(attempt.quizId);
+    revalidatePath("/", "page");
 
     return NextResponse.json({
       success: true,

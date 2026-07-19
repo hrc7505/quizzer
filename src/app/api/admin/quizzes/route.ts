@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { revalidateQuizAndRelated } from "@/lib/quiz-routing";
 
 export async function GET() {
   try {
@@ -44,6 +45,7 @@ export async function POST(req: Request) {
 
     revalidatePath("/exams");
     if (topicId) revalidatePath(`/topics/${topicId}`);
+    await revalidateQuizAndRelated(quiz.id);
 
     return NextResponse.json(quiz);
   } catch (error) {

@@ -1,143 +1,31 @@
 "use client";
 
 import * as React from "react";
-import { useRef, useState, useEffect, useMemo } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { GState } from "jspdf";
-import Link from "next/link";
 import {
-  Trophy,
   Share2,
   FileDown,
-  ChevronDown,
-  ChevronUp,
   MoreHorizontal,
-  Sparkles,
-  ArrowRight,
   Eye,
   Loader2,
 } from "lucide-react";
 import { AttemptService, LeaderboardEntry } from "@/lib/services/attempt.service";
-import { splitSentences, formatTime } from "@/lib/text";
+import { generateQuizPDF } from "@/lib/pdf-generator";
 import { QuizResultsProps, QuestionData, UserAnswerData } from "./interfaces/QuizResults.interface";
 import { ShareButton } from "@/components/ui/ShareButton";
 import { Alert } from "@/components/ui/Alert";
-import { NoData } from "@/components/feedback/NoData";
-import { DeepDiveBody } from "./DeepDiveBody";
-import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { Progress } from "@/components/ui/Progress";
 import { usePanel, useDialog } from "@/components/providers/OverlayProvider";
 import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from "@/components/ui/Dropdown";
-import { cn } from "@/utils/cn";
-
-/**
- * Custom Accordion Item for quiz questions in detailed review.
- */
-function DetailedQuestionAccordionItem({
-  question,
-  index,
-  answer,
-  elaborations,
-  activeElaborationId,
-  handleElaborate,
-  onOpenFullPage,
-}: {
-  question: QuestionData;
-  index: number;
-  answer?: UserAnswerData;
-  elaborations: Record<string, { loading: boolean; data?: string; error?: string }>;
-  activeElaborationId: string | null;
-  handleElaborate: (id: string) => void;
-  onOpenFullPage: string;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const isCorrect = answer?.isCorrect;
-
-  return (
-    <div className="border border-border/60 rounded-xl overflow-hidden mb-3 bg-card transition-colors">
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-4 text-left gap-3.5 hover:bg-surface-hover transition-colors duration-150 cursor-pointer"
-      >
-        <div className="flex items-center gap-3 min-w-0">
-          <Badge variant={isCorrect ? "success" : "danger"} className="h-6 w-6 rounded-md flex items-center justify-center font-bold text-xs shrink-0 px-0">
-            {index + 1}
-          </Badge>
-          <span className={cn(
-            "text-sm font-semibold text-foreground leading-snug truncate pr-4",
-            !isCorrect && "text-danger/90 font-bold"
-          )}>
-            {question.text}
-          </span>
-        </div>
-        <div className="shrink-0 text-muted-foreground/60">
-          {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-        </div>
-      </button>
-
-      {isOpen && (
-        <div className="p-4 sm:p-5 bg-secondary/15 border-t border-border/50 flex flex-col gap-4 text-xs">
-          <div className="flex flex-col gap-1 bg-success/10 text-success border border-success/10 p-3 rounded-lg font-medium">
-            <span className="font-bold text-[10px] uppercase tracking-wider opacity-95">✓ Correct Answer</span>
-            <span className="text-foreground font-semibold">{question.correctAnswer}</span>
-          </div>
-
-          {!isCorrect && answer && (
-            <div className="flex flex-col gap-1 bg-danger/10 text-danger border border-danger/10 p-3 rounded-lg font-medium">
-              <span className="font-bold text-[10px] uppercase tracking-wider opacity-95">✗ Your Answer</span>
-              <span className="text-foreground font-semibold">{answer.selectedAnswer}</span>
-            </div>
-          )}
-
-          <div className="flex flex-col gap-1 bg-card border border-border/60 p-3.5 rounded-lg">
-            <span className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground">Explanation</span>
-            <p className="text-foreground/90 leading-relaxed mt-0.5 whitespace-pre-wrap">{question.description}</p>
-          </div>
-
-          <div className="flex items-center gap-2 mt-1">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleElaborate(question.id)}
-              disabled={elaborations[question.id]?.loading && activeElaborationId === question.id}
-              className="gap-1.5 h-8 font-semibold text-xs text-primary border-primary/20 hover:bg-primary/5 hover:border-primary/40"
-            >
-              {elaborations[question.id]?.loading && activeElaborationId === question.id ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Sparkles className="h-3.5 w-3.5" />
-              )}
-              <span>
-                {elaborations[question.id]?.data ? "View Deep Dive" : "Generate Deep Dive"}
-              </span>
-            </Button>
-            
-            {elaborations[question.id]?.data && (
-              <Link href={onOpenFullPage}>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="gap-1.5 h-8 font-semibold text-xs text-muted-foreground/80 hover:text-foreground"
-                >
-                  <span>Open Full Page</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Button>
-              </Link>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+import { QuizScoreCard } from "./QuizScoreCard";
+import { QuizLeaderboard } from "./QuizLeaderboard";
+import { DetailedQuestionAccordion } from "./DetailedQuestionAccordion";
+import { DeepDivePanel } from "./DeepDivePanel";
 
 /**
  * QuizResults component renders the results screen after quiz completion,
- * including score overview, option to download a PDF report, and
- * a Detailed Review dialog modal.
+ * including score overview, leaderboard, and detailed review.
  */
 export function QuizResults({ attempt }: QuizResultsProps) {
   const resultRef = useRef<HTMLDivElement>(null);
@@ -150,21 +38,23 @@ export function QuizResults({ attempt }: QuizResultsProps) {
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchLeaderboard = async () => {
       try {
         const ld = await AttemptService.getLeaderboard(attempt.quizId);
-        setLeaderboard(ld);
+        if (!cancelled) setLeaderboard(ld);
       } catch (err) {
-        console.error("Failed to load leaderboard:", err);
+        if (!cancelled) console.error("Failed to load leaderboard:", err);
       } finally {
-        setLoadingLeaderboard(false);
+        if (!cancelled) setLoadingLeaderboard(false);
       }
     };
     fetchLeaderboard();
+    return () => { cancelled = true; };
   }, [attempt.quizId]);
 
   // Pre-seed in-memory cache from DB-persisted elaborations
-  const initialElaborations = useMemo(() => {
+  const initialElaborations = React.useMemo(() => {
     const cache: Record<string, { loading: boolean; data?: string; error?: string }> = {};
     attempt.quiz.questions.forEach((q: QuestionData) => {
       if (q.elaboration) {
@@ -174,289 +64,84 @@ export function QuizResults({ attempt }: QuizResultsProps) {
     return cache;
   }, [attempt.quiz.questions]);
 
-  const [elaborations, setElaborations] = useState<Record<string, { loading: boolean, data?: string, error?: string }>>(initialElaborations);
+  const [elaborations, setElaborations] = useState<
+    Record<string, { loading: boolean; data?: string; error?: string }>
+  >(initialElaborations);
   const [activeElaborationId, setActiveElaborationId] = useState<string | null>(null);
 
   const panel = usePanel();
   const dialog = useDialog();
 
-  const handleDownloadPDF = async () => {
+  const handleDownloadPDF = useCallback(async () => {
     setDownloading(true);
     try {
-      const { jsPDF } = await import("jspdf");
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 20;
-      const headerHeight = 18;
-
-      const logoRes = await fetch("/quizzer.svg");
-      const logoText = await logoRes.text();
-      const logoBlob = new Blob([logoText], { type: "image/svg+xml" });
-      const logoUrl = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(logoBlob);
+      await generateQuizPDF({
+        title: attempt.quiz.title,
+        questions: attempt.quiz.questions.map((q: QuestionData) => ({
+          text: q.text,
+          options: q.options,
+          correctAnswer: q.correctAnswer,
+          description: q.description,
+        })),
       });
-
-      const svgToPng = (svgUrl: string): Promise<string> =>
-        new Promise((resolve, reject) => {
-          const img = new Image();
-          img.onload = () => {
-            const canvas = document.createElement("canvas");
-            canvas.width = img.naturalWidth;
-            canvas.height = img.naturalHeight;
-            const ctx = canvas.getContext("2d");
-            if (!ctx) return reject(new Error("Canvas context unavailable"));
-            ctx.drawImage(img, 0, 0);
-            resolve(canvas.toDataURL("image/png"));
-          };
-          img.onerror = () => reject(new Error("Failed to load SVG for PDF watermark"));
-          img.src = svgUrl;
-        });
-
-      const logoPng = await svgToPng(logoUrl);
-
-      const logoAspect = 833 / 280;
-      const headerLogoWidth = 24;
-      const headerLogoHeight = headerLogoWidth / logoAspect;
-
-      let useWinkySans = false;
-      try {
-        const fontRes = await fetch("https://raw.githubusercontent.com/google/fonts/main/ofl/winkysans/WinkySans%5Bwght%5D.ttf");
-        if (fontRes.ok) {
-          const fontBuffer = await fontRes.arrayBuffer();
-          const fontBase64 = btoa(
-            Array.from(new Uint8Array(fontBuffer))
-              .map((byte) => String.fromCharCode(byte))
-              .join("")
-          );
-          pdf.addFileToVFS("WinkySans.ttf", fontBase64);
-          pdf.addFont("WinkySans.ttf", "WinkySans", "normal");
-          pdf.addFont("WinkySans.ttf", "WinkySans", "bold");
-          useWinkySans = true;
-        }
-      } catch {
-        useWinkySans = false;
-      }
-
-      const fontFamily = useWinkySans ? "WinkySans" : "helvetica";
-
-      const drawHeader = () => {
-        pdf.setFillColor(248, 249, 250);
-        pdf.rect(0, 0, pageWidth, headerHeight, "F");
-        pdf.setDrawColor(230, 232, 235);
-        pdf.line(0, headerHeight, pageWidth, headerHeight);
-        const logoY = (headerHeight - headerLogoHeight) / 2;
-        pdf.addImage(logoPng, "PNG", margin, logoY, headerLogoWidth, headerLogoHeight);
-        pdf.setFont(fontFamily, "bold");
-        pdf.setFontSize(14);
-        const titleText = attempt.quiz.title;
-        const titleX = margin + headerLogoWidth + 6;
-        const titleY = headerHeight - 6;
-        pdf.setTextColor(30, 41, 59);
-        pdf.text(titleText, titleX, titleY);
-        pdf.setTextColor(0, 0, 0);
-      };
-
-      const addWatermark = () => {
-        const wmWidth = 120;
-        const wmHeight = wmWidth / logoAspect;
-        const wmX = (pageWidth - wmWidth) / 2;
-        const wmY = (pageHeight - wmHeight) / 2;
-        pdf.setGState(new GState({ opacity: 0.12 }));
-        pdf.addImage(logoPng, "PNG", wmX, wmY, wmWidth, wmHeight);
-        pdf.setGState(new GState({ opacity: 1 }));
-      };
-
-      drawHeader();
-      addWatermark();
-
-      let y = headerHeight + 12;
-
-      pdf.setFontSize(12);
-      pdf.setFont(fontFamily, "normal");
-
-      attempt.quiz.questions.forEach((q: QuestionData, i: number) => {
-        const qText = `${i + 1}. ${q.text}`;
-        const splitText = pdf.splitTextToSize(qText, pageWidth - 2 * margin);
-        
-        if (y + (splitText.length * 6) > pageHeight - margin) {
-          pdf.addPage();
-          drawHeader();
-          addWatermark();
-          y = headerHeight + 12;
-        }
-        
-        pdf.setFont(fontFamily, "bold");
-        pdf.setFontSize(12);
-        pdf.text(splitText, margin, y);
-        y += splitText.length * 6;
-        
-        pdf.setFont(fontFamily, "normal");
-        pdf.setFontSize(12);
-        const letters = ["A", "B", "C", "D"];
-        q.options.forEach((opt: string, optIndex: number) => {
-          const optText = `   ${letters[optIndex]}) ${opt}`;
-          const splitOpt = pdf.splitTextToSize(optText, pageWidth - 2 * margin);
-          
-          if (y + (splitOpt.length * 6) > pageHeight - margin) {
-            pdf.addPage();
-            drawHeader();
-            addWatermark();
-            y = headerHeight + 12;
-            pdf.setFont(fontFamily, "normal");
-            pdf.setFontSize(12);
-          }
-          
-          pdf.text(splitOpt, margin, y);
-          y += splitOpt.length * 6;
-        });
-        
-        y += 6; // Space between questions
-      });
-
-      // Answer Key
-      pdf.addPage();
-      drawHeader();
-      addWatermark();
-      y = headerHeight + 12;
-      pdf.setFontSize(16);
-      pdf.setFont(fontFamily, "bold");
-      pdf.text("Answer Key", margin, y);
-      y += 12;
-
-      pdf.setFontSize(12);
-      pdf.setFont(fontFamily, "normal");
-      
-      attempt.quiz.questions.forEach((q: QuestionData, i: number) => {
-        const letters = ["A", "B", "C", "D"];
-        const correctIndex = q.options.indexOf(q.correctAnswer);
-        const correctLetter = correctIndex >= 0 ? letters[correctIndex] : "";
-        
-        const ansText = `${i + 1}. ${correctLetter} - ${q.correctAnswer}`;
-        const splitAns = pdf.splitTextToSize(ansText, pageWidth - 2 * margin);
-        
-        if (y + (splitAns.length * 6) > pageHeight - margin) {
-          pdf.addPage();
-          drawHeader();
-          addWatermark();
-          y = headerHeight + 12;
-          pdf.setFont(fontFamily, "normal");
-          pdf.setFontSize(12);
-        }
-        
-        pdf.setFont(fontFamily, "bold");
-        pdf.setFontSize(12);
-        pdf.text(splitAns, margin, y);
-        y += splitAns.length * 6;
-
-        if (q.description) {
-          const descParts = q.description.split("\n").flatMap((line: string) =>
-            splitSentences(line)
-          );
-
-          descParts.forEach((part: string) => {
-            const bulletText = part.trim();
-            const splitBullet = pdf.splitTextToSize(bulletText, pageWidth - 2 * (margin + 8));
-            const lineCount = splitBullet.length;
-            const lineHeight = 4.5;
-            const boxPadding = 3;
-            const boxHeight = lineCount * lineHeight + boxPadding * 2;
-
-            if (y + boxHeight > pageHeight - margin) {
-              pdf.addPage();
-              drawHeader();
-              addWatermark();
-              y = headerHeight + 12;
-              pdf.setFont(fontFamily, "normal");
-              pdf.setFontSize(9);
-            }
-
-            pdf.setFillColor(240, 249, 255);
-            pdf.setGState(new GState({ opacity: 0.6 }));
-            pdf.roundedRect(margin + 2, y, pageWidth - 2 * (margin + 2), boxHeight, 2, 2, "F");
-            pdf.setGState(new GState({ opacity: 1 }));
-            pdf.setFont(fontFamily, "normal");
-            pdf.setFontSize(9);
-            pdf.setTextColor(15, 23, 42);
-            
-            const circleX = margin + 7;
-            const circleY = y + boxPadding + 1;
-            pdf.setFillColor(16, 185, 129);
-            pdf.circle(circleX, circleY, 1, "F");
-            pdf.text(splitBullet, margin + 11, y + boxPadding + 2.5);
-            
-            pdf.setTextColor(0, 0, 0);
-            y += boxHeight;
-          });
-
-          y += 4;
-        }
-
-        y += 4;
-      });
-
-      pdf.save(`quiz-${attempt.quiz.title.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase()}.pdf`);
     } catch (e) {
       console.error("PDF generation failed", e);
       setError("Failed to generate PDF");
     } finally {
       setDownloading(false);
     }
-  };
+  }, [attempt.quiz.title, attempt.quiz.questions]);
 
-  const handleElaborate = async (questionId: string) => {
-    setActiveElaborationId(questionId);
-    const question = attempt.quiz.questions.find((qi: QuestionData) => qi.id === questionId) ?? null;
-    const cached = elaborations[questionId];
-    panel.open({
-      title: "AI Deep Dive",
-      width: "max-w-2xl",
-      body: (
-        <DeepDivePanel
-          question={question}
-          quiz={attempt.quiz}
-          initialElaboration={cached?.data}
-          initialError={cached?.error}
-        />
-      ),
-    });
-    if (cached?.data || cached?.loading) return;
-    
-    setElaborations(prev => ({ ...prev, [questionId]: { loading: true } }));
-    try {
-      const res = await fetch("/api/admin/elaborate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ questionId })
+  const handleElaborate = useCallback(
+    async (questionId: string) => {
+      setActiveElaborationId(questionId);
+      const question =
+        attempt.quiz.questions.find((qi: QuestionData) => qi.id === questionId) ?? null;
+      const cached = elaborations[questionId];
+      panel.open({
+        title: "AI Deep Dive",
+        width: "max-w-2xl",
+        body: (
+          <DeepDivePanel
+            question={question}
+            quiz={attempt.quiz}
+            initialElaboration={cached?.data}
+            initialError={cached?.error}
+          />
+        ),
       });
-      const json = await res.json();
-      if (json.success) {
-        setElaborations(prev => ({ ...prev, [questionId]: { loading: false, data: json.markdown } }));
-      } else {
-        setElaborations(prev => ({ ...prev, [questionId]: { loading: false, error: json.error } }));
+      if (cached?.data || cached?.loading) return;
+
+      setElaborations((prev) => ({ ...prev, [questionId]: { loading: true } }));
+      try {
+        const res = await fetch("/api/admin/elaborate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ questionId }),
+        });
+        const json = await res.json();
+        if (json.success) {
+          setElaborations((prev) => ({
+            ...prev,
+            [questionId]: { loading: false, data: json.markdown },
+          }));
+        } else {
+          setElaborations((prev) => ({
+            ...prev,
+            [questionId]: { loading: false, error: json.error },
+          }));
+        }
+      } catch {
+        setElaborations((prev) => ({
+          ...prev,
+          [questionId]: { loading: false, error: "Failed to load" },
+        }));
       }
-    } catch {
-      setElaborations(prev => ({ ...prev, [questionId]: { loading: false, error: "Failed to load" } }));
-    }
-  };
+    },
+    [attempt.quiz, elaborations, panel]
+  );
 
-  const scoreIndicatorClass = 
-    attempt.scorePercentage >= 80 
-      ? "bg-success" 
-      : attempt.scorePercentage >= 50 
-        ? "bg-warning" 
-        : "bg-danger";
-
-  const scoreTextClass = 
-    attempt.scorePercentage >= 80 
-      ? "text-success" 
-      : attempt.scorePercentage >= 50 
-        ? "text-warning" 
-        : "text-danger";
-
-  const handleShareUrl = async () => {
+  const handleShareUrl = useCallback(async () => {
     const origin = window.location.origin;
     let shareUrl = `${origin}/quiz/${attempt.quizId}`;
 
@@ -471,7 +156,7 @@ export function QuizResults({ attempt }: QuizResultsProps) {
     }
 
     return shareUrl;
-  };
+  }, [attempt.quizId, attempt.id]);
 
   return (
     <div className="flex flex-col gap-6 w-full py-2">
@@ -480,12 +165,10 @@ export function QuizResults({ attempt }: QuizResultsProps) {
           {error}
         </Alert>
       )}
-      
+
       {/* Header section */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border/80 pb-5">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground m-0">
-          Quiz Results
-        </h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground m-0">Quiz Results</h1>
 
         <div className="flex items-center gap-2">
           <ShareButton
@@ -510,19 +193,23 @@ export function QuizResults({ attempt }: QuizResultsProps) {
               </Button>
             </DropdownTrigger>
             <DropdownContent align="right" className="w-44">
-              <DropdownItem onClick={() => dialog.open({
-                title: "Detailed Review",
-                className: "max-w-720px p-6",
-                body: (
-                  <DetailedReviewBody
-                    questions={attempt.quiz.questions}
-                    answers={attempt.answers}
-                    elaborations={elaborations}
-                    activeElaborationId={activeElaborationId}
-                    handleElaborate={handleElaborate}
-                  />
-                ),
-              })}>
+              <DropdownItem
+                onClick={() =>
+                  dialog.open({
+                    title: "Detailed Review",
+                    className: "max-w-720px p-6",
+                    body: (
+                      <DetailedReviewBody
+                        questions={attempt.quiz.questions}
+                        answers={attempt.answers}
+                        elaborations={elaborations}
+                        activeElaborationId={activeElaborationId}
+                        handleElaborate={handleElaborate}
+                      />
+                    ),
+                  })
+                }
+              >
                 <span className="flex items-center gap-2">
                   <Eye className="h-3.5 w-3.5" />
                   Detailed Review
@@ -530,7 +217,11 @@ export function QuizResults({ attempt }: QuizResultsProps) {
               </DropdownItem>
               <DropdownItem onClick={handleDownloadPDF} disabled={downloading}>
                 <span className="flex items-center gap-2">
-                  {downloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
+                  {downloading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <FileDown className="h-3.5 w-3.5" />
+                  )}
                   <span>Download PDF</span>
                 </span>
               </DropdownItem>
@@ -541,119 +232,20 @@ export function QuizResults({ attempt }: QuizResultsProps) {
 
       <div ref={resultRef} className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
         {/* Score Overview Card */}
-        <Card className="p-6 border-border/80 shadow-xs flex flex-col gap-5">
-          <div className="flex flex-col gap-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Quiz Title</span>
-            <span className="text-base font-bold text-foreground leading-snug">{attempt.quiz.title}</span>
-          </div>
-          
-          <div className="flex flex-col items-center justify-center py-6 border border-border/40 rounded-2xl bg-secondary/5">
-            <span className={cn("text-5xl font-extrabold tracking-tight", scoreTextClass)}>
-              {Math.round(attempt.scorePercentage)}%
-            </span>
-            <span className="text-xs font-semibold text-muted-foreground/80 mt-1 uppercase tracking-wider">Final Score</span>
-          </div>
-          
-          <div className="w-full">
-            <Progress value={attempt.scorePercentage} indicatorClassName={scoreIndicatorClass} />
-          </div>
-
-          <div className="grid grid-cols-3 gap-2 border-t border-border/30 pt-4 mt-1 text-center">
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase">Correct</span>
-              <span className="text-base font-bold text-success">{attempt.correctCount}</span>
-            </div>
-            <div className="flex flex-col gap-0.5 border-l border-r border-border/40">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase">Incorrect</span>
-              <span className="text-base font-bold text-danger">{attempt.wrongCount}</span>
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase">Time Taken</span>
-              <span className="text-base font-bold text-foreground">{Math.floor(attempt.timeTakenSec / 60)}m {attempt.timeTakenSec % 60}s</span>
-            </div>
-          </div>
-        </Card>
+        <QuizScoreCard
+          title={attempt.quiz.title}
+          scorePercentage={attempt.scorePercentage}
+          correctCount={attempt.correctCount}
+          wrongCount={attempt.wrongCount}
+          timeTakenSec={attempt.timeTakenSec}
+        />
 
         {/* Leaderboard Card */}
-        <Card className="p-6 border-border/80 shadow-xs flex flex-col gap-4">
-          <div className="flex items-center gap-2 border-b border-border/40 pb-3">
-            <Trophy className="h-5 w-5 text-warning shrink-0" />
-            <h2 className="text-sm font-bold text-foreground tracking-tight">Quiz Leaderboard - Top 10</h2>
-          </div>
-
-          {loadingLeaderboard ? (
-            <div className="flex flex-col items-center justify-center py-12 gap-2 text-xs text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin text-primary" />
-              <span>Loading leaderboard...</span>
-            </div>
-          ) : leaderboard.length === 0 ? (
-            <NoData title="No rankings available yet." description="Be the first to top the leaderboard!" icon="sparkle" compact />
-          ) : (
-            <div className="overflow-x-auto w-full">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-border/40 text-muted-foreground font-bold">
-                    <th scope="col" className="py-2.5 px-3 w-16 text-center">Rank</th>
-                    <th scope="col" className="py-2.5 px-2">Player</th>
-                    <th scope="col" className="py-2.5 px-2 text-center w-20">Score</th>
-                    <th scope="col" className="py-2.5 px-2 text-center w-20">Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {leaderboard.map((rank, index) => {
-                    let badgeClass = "bg-secondary text-secondary-foreground";
-                    if (index === 0) badgeClass = "bg-amber-500 text-white font-black shadow-xs shadow-amber-500/25";
-                    else if (index === 1) badgeClass = "bg-slate-400 text-white font-black shadow-xs shadow-slate-400/25";
-                    else if (index === 2) badgeClass = "bg-amber-700 text-white font-black shadow-xs shadow-amber-700/25";
-
-                    return (
-                      <tr key={rank.userId} className="border-b border-border/20 hover:bg-secondary/20 transition-colors">
-                        <td className="py-2.5 px-3 text-center">
-                          <span className={cn(
-                            "inline-flex items-center justify-center w-5 h-5 rounded-md font-bold text-[10px]",
-                            badgeClass
-                          )}>
-                            {index + 1}
-                          </span>
-                        </td>
-                        <td className="py-2.5 px-2">
-                          <div className="flex items-center gap-2 min-w-0">
-                            {rank.image ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={rank.image} alt={rank.name} className="h-5 w-5 rounded-full object-cover border border-border/40 shrink-0" />
-                            ) : (
-                              <div className="h-5 w-5 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-[9px] shrink-0">
-                                {rank.name.slice(0, 2).toUpperCase()}
-                              </div>
-                            )}
-                            <span className={cn("truncate font-medium text-foreground", index < 3 && "font-semibold")}>
-                              {rank.name}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-2.5 px-2 text-center">
-                          <span className={cn(
-                            "font-bold",
-                            (rank.scorePercentage ?? 0) >= 80 
-                              ? "text-success" 
-                              : (rank.scorePercentage ?? 0) >= 50 
-                                ? "text-warning" 
-                                : "text-danger"
-                          )}>
-                            {Math.round(rank.scorePercentage ?? 0)}%
-                          </span>
-                        </td>
-                        <td className="py-2.5 px-2 text-center text-muted-foreground/80 font-medium">
-                          {formatTime(rank.timeTakenSec ?? 0)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Card>
+        <QuizLeaderboard
+          leaderboard={leaderboard}
+          loading={loadingLeaderboard}
+          title="Quiz Leaderboard - Top 10"
+        />
       </div>
     </div>
   );
@@ -667,13 +259,19 @@ interface DetailedReviewBodyProps {
   handleElaborate: (questionId: string) => void;
 }
 
-function DetailedReviewBody({ questions, answers, elaborations, activeElaborationId, handleElaborate }: DetailedReviewBodyProps) {
+function DetailedReviewBody({
+  questions,
+  answers,
+  elaborations,
+  activeElaborationId,
+  handleElaborate,
+}: DetailedReviewBodyProps) {
   return (
     <div className="flex flex-col max-h-[60vh] overflow-y-auto pr-1">
       {questions.map((question: QuestionData, index: number) => {
         const answer = answers.find((a: UserAnswerData) => a.questionId === question.id);
         return (
-          <DetailedQuestionAccordionItem
+          <DetailedQuestionAccordion
             key={question.id}
             question={question}
             index={index}
@@ -689,64 +287,4 @@ function DetailedReviewBody({ questions, answers, elaborations, activeElaboratio
   );
 }
 
-interface DeepDivePanelProps {
-  question: QuestionData | null;
-  quiz: { id: string; title: string; difficulty?: string };
-  initialElaboration?: string;
-  initialError?: string;
-}
-
-function DeepDivePanel({ question, quiz, initialElaboration, initialError }: DeepDivePanelProps) {
-  const [loading, setLoading] = React.useState(!initialElaboration && !initialError);
-  const [data, setData] = React.useState<string | undefined>(initialElaboration);
-  const [error, setError] = React.useState<string | undefined>(initialError);
-
-  React.useEffect(() => {
-    if (initialElaboration || initialError) return;
-    if (!question) return;
-    const controller = new AbortController();
-    (async () => {
-      try {
-        const res = await fetch("/api/admin/elaborate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ questionId: question.id }),
-          signal: controller.signal,
-        });
-        const json = await res.json();
-        if (json.success) setData(json.markdown);
-        else setError(json.error);
-      } catch {
-        setError("Failed to load deep dive.");
-      } finally {
-        setLoading(false);
-      }
-    })();
-    return () => controller.abort();
-  }, [question, initialElaboration, initialError]);
-
-  if (!question) return null;
-
-  return (
-    <div className="flex flex-col h-full">
-      {loading && (
-        <div className="flex flex-col items-center justify-center py-20 gap-3 text-sm text-muted-foreground">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span>AI is formulating detailed concept breakdown…</span>
-        </div>
-      )}
-      {error && <Alert variant="danger" title="Error">{error}</Alert>}
-      {data && question && (
-        <DeepDiveBody
-          question={{
-            ...question,
-            elaboration: data,
-            quiz: { id: quiz.id, title: quiz.title, difficulty: quiz.difficulty || "Medium" },
-            topic: question.topic || { id: "", title: "General" },
-          }}
-        />
-      )}
-    </div>
-  );
-}
 export default QuizResults;

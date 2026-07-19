@@ -8,6 +8,7 @@ import {
   RefreshCw,
   Eye,
   Loader2,
+  Download,
 } from "lucide-react";
 import { LinkButton } from "@/components/ui/LinkButton";
 import NoData from "@/components/feedback/NoData";
@@ -16,8 +17,10 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { useDialog } from "@/components/providers/OverlayProvider";
+import { useToast } from "@/components/providers/ToastProvider";
 import { Pagination } from "@/components/data-display/Pagination";
 import { SearchFilterBar } from "@/components/data-display/SearchFilterBar";
+import { downloadCSV } from "@/lib/csv-export";
 
 interface QuestionRecord {
   id: string;
@@ -46,9 +49,22 @@ export function AdminDeepDivesManager({ questions: initialQuestions }: AdminDeep
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const dialog = useDialog();
+  const toast = useToast();
 
   const triggerConfirm = (title: string, description: string, onConfirm: () => Promise<void>) =>
     dialog.confirm({ title, description, onConfirm });
+
+  const handleExportCSV = () => {
+    const headers = ["Question", "Topic", "Quiz", "Difficulty"];
+    const rows = filtered.map(q => [
+      q.text,
+      q.topic.title === "__internal__" ? "General" : q.topic.title,
+      q.quiz?.title || "Unlinked",
+      q.quiz?.difficulty || "",
+    ]);
+    downloadCSV("deep-dives.csv", headers, rows);
+    toast.addToast({ type: "success", message: `Exported ${filtered.length} elaborations` });
+  };
 
   const uniqueTopics = Array.from(new Set(questions.map(q => q.topic.title))).sort();
 
@@ -78,6 +94,7 @@ export function AdminDeepDivesManager({ questions: initialQuestions }: AdminDeep
           item.id === q.id ? { ...item, elaboration: json.markdown } : item
         ));
         router.refresh();
+        toast.addToast({ type: "success", message: "Elaboration regenerated" });
       }
     } finally {
       setLoadingId(null);
@@ -96,6 +113,7 @@ export function AdminDeepDivesManager({ questions: initialQuestions }: AdminDeep
           body: JSON.stringify({ questionId: q.id })
         });
         setQuestions(prev => prev.filter(item => item.id !== q.id));
+        toast.addToast({ type: "success", message: "Elaboration deleted" });
       }
     );
   };
@@ -108,6 +126,7 @@ export function AdminDeepDivesManager({ questions: initialQuestions }: AdminDeep
         setLoadingId("bulk");
         await fetch("/api/admin/elaborate/all", { method: "DELETE" });
         setQuestions([]);
+        toast.addToast({ type: "success", message: "All elaborations deleted" });
       }
     );
   };
@@ -133,16 +152,27 @@ export function AdminDeepDivesManager({ questions: initialQuestions }: AdminDeep
 
         <div className="flex items-center gap-2 flex-wrap">
           {questions.length > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleBulkDelete}
-              disabled={loadingId === "bulk"}
-              className="text-danger border-danger/20 hover:bg-danger/10 hover:border-danger/40 h-9 font-semibold text-xs gap-1.5"
-            >
-              {loadingId === "bulk" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-              <span>{loadingId === "bulk" ? "Deleting..." : "Delete All"}</span>
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportCSV}
+                className="text-xs font-semibold h-9 gap-1.5"
+              >
+                <Download className="h-3.5 w-3.5" />
+                <span>Export CSV</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBulkDelete}
+                disabled={loadingId === "bulk"}
+                className="text-danger border-danger/20 hover:bg-danger/10 hover:border-danger/40 h-9 font-semibold text-xs gap-1.5"
+              >
+                {loadingId === "bulk" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                <span>{loadingId === "bulk" ? "Deleting..." : "Delete All"}</span>
+              </Button>
+            </>
           )}
 
           <LinkButton href="/deep-dives" variant="primary" className="h-9 px-4 font-semibold text-xs gap-1.5">
@@ -177,7 +207,7 @@ export function AdminDeepDivesManager({ questions: initialQuestions }: AdminDeep
           <div className="overflow-x-auto w-full">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-border/40 text-muted-foreground font-bold bg-secondary/10">
+                <tr className="border-b border-border/40 text-muted-foreground font-bold bg-secondary/10 sticky top-0 z-10">
                   <th scope="col" className="py-3 px-4 font-bold max-w-md">Question</th>
                   <th scope="col" className="py-3 px-4 font-bold">Topic</th>
                   <th scope="col" className="py-3 px-4 font-bold">Quiz</th>
@@ -197,7 +227,7 @@ export function AdminDeepDivesManager({ questions: initialQuestions }: AdminDeep
                       {item.quiz ? (
                         <div className="flex flex-col gap-1 min-w-0">
                           <span className="text-[10px] text-foreground font-bold truncate leading-none">{item.quiz.title}</span>
-                          <Badge variant={difficultyColor(item.quiz.difficulty)} className="capitalize text-[8px] font-bold px-1 py-0 w-fit">
+                          <Badge variant={difficultyColor(item.quiz.difficulty)} className="capitalize text-[10px] font-bold px-1 py-0 w-fit animate-none">
                             {item.quiz.difficulty}
                           </Badge>
                         </div>

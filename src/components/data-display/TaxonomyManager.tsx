@@ -20,10 +20,10 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { useDialog, usePanel } from "@/components/providers/OverlayProvider";
+import { useToast } from "@/components/providers/ToastProvider";
 import { LinkPicker } from "@/components/data-display/LinkPicker";
 import { ExamDrawerBody, TopicDrawerBody, QuizDrawerBody } from "@/components/data-display/TaxonomyDrawers";
 import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from "@/components/ui/Dropdown";
-import { Dialog, DialogSurface, DialogTitle, DialogContent, DialogActions } from "@/components/ui/Dialog";
 
 import type { Exam, Topic, QuizSummary, QuizDetail, QuizQuestionDetail, FlatTopic } from "./TaxonomyManager.types";
 
@@ -41,6 +41,196 @@ interface ExamForm {
   description: string;
 }
 
+interface TopicForm {
+  id: string;
+  title: string;
+  description: string;
+  examId: string;
+  parentId: string;
+}
+
+interface QuestionForm {
+  id: string;
+  text: string;
+  options: string[];
+  correctAnswer: string;
+  hint: string;
+  description: string;
+}
+
+interface ExamDialogBodyProps {
+  initialForm: ExamForm;
+  onSave: (form: ExamForm) => Promise<void>;
+  loading: boolean;
+}
+
+function ExamDialogBody({ initialForm, onSave, loading }: ExamDialogBodyProps) {
+  const [form, setForm] = useState<ExamForm>(initialForm);
+  const dialog = useDialog();
+
+  return (
+    <div className="flex flex-col gap-4 mt-3">
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Exam Title <span className="text-danger">*</span></label>
+        <Input value={form.title} onChange={e => setForm({...form, title: e.target.value})} required />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Description</label>
+        <Textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={3} />
+      </div>
+      <div className="flex items-center justify-end space-x-2 mt-6 pt-3 border-t border-border/30">
+        <Button variant="outline" onClick={() => dialog.close()}>Cancel</Button>
+        <Button variant="primary" onClick={async () => { await onSave(form); dialog.close(); }} disabled={!form.title || loading}>Save</Button>
+      </div>
+    </div>
+  );
+}
+
+interface TopicDialogBodyProps {
+  initialForm: TopicForm;
+  onSave: (form: TopicForm) => Promise<void>;
+  loading: boolean;
+}
+
+function TopicDialogBody({ initialForm, onSave, loading }: TopicDialogBodyProps) {
+  const [form, setForm] = useState<TopicForm>(initialForm);
+  const dialog = useDialog();
+
+  return (
+    <div className="flex flex-col gap-4 mt-3">
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Topic Title <span className="text-danger">*</span></label>
+        <Input value={form.title} onChange={e => setForm({...form, title: e.target.value})} required />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Description</label>
+        <Textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={3} />
+      </div>
+      <div className="flex items-center justify-end space-x-2 mt-6 pt-3 border-t border-border/30">
+        <Button variant="outline" onClick={() => dialog.close()}>Cancel</Button>
+        <Button variant="primary" onClick={async () => { await onSave(form); dialog.close(); }} disabled={!form.title || loading}>Save</Button>
+      </div>
+    </div>
+  );
+}
+
+interface QuizDialogBodyProps {
+  initialTopicId: string;
+  onSuccess: (result: { totalQuestions: number; quizzesCreated: number }) => Promise<void>;
+}
+
+function QuizDialogBody({ initialTopicId, onSuccess }: QuizDialogBodyProps) {
+  const dialog = useDialog();
+
+  return (
+    <GenerateQuizForm
+      initialTopicId={initialTopicId}
+      onSuccess={async (result) => {
+        await onSuccess(result);
+        dialog.close();
+      }}
+    />
+  );
+}
+
+interface QuestionDialogBodyProps {
+  initialForm: QuestionForm;
+  onSave: (form: QuestionForm) => Promise<void>;
+  loading: boolean;
+}
+
+function QuestionDialogBody({ initialForm, onSave, loading }: QuestionDialogBodyProps) {
+  const [form, setForm] = useState<QuestionForm>(initialForm);
+  const dialog = useDialog();
+
+  const handleOptionChange = (idx: number, val: string) => {
+    setForm(prev => {
+      const newOpts = [...prev.options];
+      newOpts[idx] = val;
+      let newCorrect = prev.correctAnswer;
+      if (prev.correctAnswer === prev.options[idx]) {
+        newCorrect = val;
+      }
+      return { ...prev, options: newOpts, correctAnswer: newCorrect };
+    });
+  };
+
+  const handleSave = async () => {
+    await onSave(form);
+    dialog.close();
+  };
+
+  return (
+    <div className="flex flex-col gap-4 mt-3">
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Question Text <span className="text-danger">*</span></label>
+        <Textarea
+          value={form.text}
+          onChange={e => setForm(prev => ({ ...prev, text: e.target.value }))}
+          placeholder="Enter the question text..."
+          rows={3}
+          required
+        />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {form.options.map((opt, idx) => (
+          <div key={idx} className="flex flex-col gap-1.5">
+            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Option {idx + 1} <span className="text-danger">*</span></label>
+            <Input
+              value={opt}
+              onChange={e => handleOptionChange(idx, e.target.value)}
+              placeholder={`Option ${idx + 1}`}
+              required
+            />
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Correct Answer <span className="text-danger">*</span></label>
+        <Select
+          value={form.correctAnswer}
+          onChange={e => setForm(prev => ({ ...prev, correctAnswer: e.target.value }))}
+          required
+        >
+          <option value="">Select correct option...</option>
+          {form.options.map((opt, idx) => (
+            opt.trim() && <option key={idx} value={opt}>{opt}</option>
+          ))}
+        </Select>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Hint (Optional)</label>
+        <Input
+          value={form.hint}
+          onChange={e => setForm(prev => ({ ...prev, hint: e.target.value }))}
+          placeholder="e.g. Think about..."
+        />
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Explanation / Description <span className="text-danger">*</span></label>
+        <Textarea
+          value={form.description}
+          onChange={e => setForm(prev => ({ ...prev, description: e.target.value }))}
+          placeholder="Explain why this option is correct..."
+          rows={3}
+          required
+        />
+      </div>
+
+      <div className="flex items-center justify-end space-x-2 mt-6 pt-3 border-t border-border/30">
+        <Button variant="outline" onClick={() => dialog.close()}>Cancel</Button>
+        <Button variant="primary" onClick={handleSave} disabled={!form.text || !form.correctAnswer || !form.description || loading}>
+          Save
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "subtopics" }) {
   const [exams, setExams] = useState<Exam[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
@@ -49,17 +239,8 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Creation/Edit Dialog Controls
-  const [examForm, setExamForm] = useState({ id: '', title: '', description: '' });
-  const [topicForm, setTopicForm] = useState({ id: '', title: '', description: '', examId: '', parentId: '' });
-  const [quizForm, setQuizForm] = useState({ id: '', title: '', quizOrder: '', topicId: '', difficulty: 'Medium' });
-  const [questionForm, setQuestionForm] = useState({ id: "", text: "", options: ["", "", "", ""], correctAnswer: "", hint: "", description: "" });
-  const [examDialogOpen, setExamDialogOpen] = useState(false);
-  const [topicDialogOpen, setTopicDialogOpen] = useState(false);
-  const [quizDialogOpen, setQuizDialogOpen] = useState(false);
-  const [questionDialogOpen, setQuestionDialogOpen] = useState(false);
-
-  // Selection states for linking existing items
+   // Creation/Edit Dialog Controls
+   // Selection states for linking existing items
   const [linkExamId, setLinkExamId] = useState<string | null>(null);
   const [linkTopicId, setLinkTopicId] = useState<string | null>(null);
   const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
@@ -83,6 +264,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
 
   const dialog = useDialog();
   const panel = usePanel();
+  const toast = useToast();
 
   const openExamLinkDialog = () =>
     dialog.open({
@@ -220,6 +402,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       const data = await res.json();
       if (!data.error) {
         await fetchData();
+        toast.addToast({ type: "success", message: "Exam saved" });
       } else {
         setError(data.error);
       }
@@ -239,16 +422,17 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
         setLoading(true);
         await fetch(`/api/admin/exams/${examId}`, { method: "DELETE" });
         await fetchData();
+        toast.addToast({ type: "success", message: "Exam deleted" });
       }
     );
   };
 
   // Save / Update Topic (or Subtopic)
-  const handleSaveTopic = async () => {
+  const handleSaveTopic = async (form: TopicForm) => {
     setLoading(true);
     setError(null);
-    const isEdit = !!topicForm.id;
-    const url = isEdit ? `/api/admin/topics/${topicForm.id}` : "/api/admin/topics";
+    const isEdit = !!form.id;
+    const url = isEdit ? `/api/admin/topics/${form.id}` : "/api/admin/topics";
     const method = isEdit ? "PUT" : "POST";
 
     try {
@@ -256,16 +440,16 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: topicForm.title,
-          description: topicForm.description,
-          examId: topicForm.examId || null,
-          parentId: topicForm.parentId || null
+          title: form.title,
+          description: form.description,
+          examId: form.examId || null,
+          parentId: form.parentId || null
         })
       });
       const data = await res.json();
       if (!data.error) {
-        setTopicDialogOpen(false);
         await fetchData();
+        toast.addToast({ type: "success", message: "Topic saved" });
         if (selectedTopicId) {
           setSelectedTopicId(null);
         }
@@ -288,6 +472,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
         setLoading(true);
         await fetch(`/api/admin/topics/${topicId}`, { method: "DELETE" });
         await fetchData();
+        toast.addToast({ type: "success", message: "Topic deleted" });
         if (selectedTopicId === topicId) setSelectedTopicId(null);
       }
     );
@@ -306,14 +491,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       const data = await res.json();
       if (!data.error) {
         await fetchData();
-        if (selectedExamId === linkExamId) {
-          // Refresh open drawer state
-          const refreshed = exams.find(e => e.id === linkExamId);
-          if (refreshed) {
-            setSelectedExamId(null);
-            setTimeout(() => setSelectedExamId(linkExamId), 50);
-          }
-        }
+        toast.addToast({ type: "success", message: "Topics linked to exam" });
       } else {
         setError(data.error);
       }
@@ -333,12 +511,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
         setLoading(true);
         await fetch(`/api/admin/topics/${topicId}/unlink-exam${examId ? `?examId=${examId}` : ""}`, { method: "POST" });
         await fetchData();
-        // Refresh drawer
-        if (selectedExamId) {
-          const id = selectedExamId;
-          setSelectedExamId(null);
-          setTimeout(() => setSelectedExamId(id), 50);
-        }
+        toast.addToast({ type: "success", message: "Topic unlinked from exam" });
       }
     );
   };
@@ -356,10 +529,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       const data = await res.json();
       if (!data.error) {
         await fetchData();
-        if (selectedTopicId === linkTopicId) {
-          setSelectedTopicId(null);
-          setTimeout(() => setSelectedTopicId(linkTopicId), 50);
-        }
+        toast.addToast({ type: "success", message: "Subtopics linked" });
       } else {
         setError(data.error);
       }
@@ -379,11 +549,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
         setLoading(true);
         await fetch(`/api/admin/topics/${subtopicId}/unlink-parent${parentId ? `?parentId=${parentId}` : ""}`, { method: "POST" });
         await fetchData();
-        if (selectedTopicId) {
-          const id = selectedTopicId;
-          setSelectedTopicId(null);
-          setTimeout(() => setSelectedTopicId(id), 50);
-        }
+        toast.addToast({ type: "success", message: "Subtopic unlinked" });
       }
     );
   };
@@ -401,10 +567,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       const data = await res.json();
       if (!data.error) {
         await fetchData();
-        if (selectedTopicId === linkTopicId) {
-          setSelectedTopicId(null);
-          setTimeout(() => setSelectedTopicId(linkTopicId), 50);
-        }
+        toast.addToast({ type: "success", message: "Quizzes linked to topic" });
       } else {
         setError(data.error);
       }
@@ -424,7 +587,6 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
         if (!selectedTopicId) return;
         setLoading(true);
         
-        // Find existing linked quizzes in subtopic and unlink this one
         const currentQuizzes = flatTopics.find(t => t.id === selectedTopicId)?.quizzes?.map(q => q.id) || [];
         const nextQuizzes = currentQuizzes.filter(id => id !== quizId);
 
@@ -435,11 +597,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
         });
 
         await fetchData();
-        if (selectedTopicId) {
-          const id = selectedTopicId;
-          setSelectedTopicId(null);
-          setTimeout(() => setSelectedTopicId(id), 50);
-        }
+        toast.addToast({ type: "success", message: "Quiz unlinked" });
       }
     );
   };
@@ -453,84 +611,87 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
         setLoading(true);
         await fetch(`/api/admin/quizzes/${quizId}`, { method: "DELETE" });
         await fetchData();
-        if (selectedTopicId) {
-          const id = selectedTopicId;
-          setSelectedTopicId(null);
-          setTimeout(() => setSelectedTopicId(id), 50);
-        }
+        toast.addToast({ type: "success", message: "Quiz deleted" });
       }
     );
   };
 
   // Open add child topic dialog
   const openNewTopicDialog = (examId: string, parentId: string) => {
-    setTopicForm({
-      id: "",
-      title: "",
-      description: "",
-      examId: examId,
-      parentId: parentId
-    });
     setError(null);
-    setTopicDialogOpen(true);
+    dialog.open({
+      title: parentId ? "Add Sub Topic" : (examId ? "Add Main Topic" : "Add Topic"),
+      body: (
+        <TopicDialogBody
+          initialForm={{ id: "", title: "", description: "", examId, parentId }}
+          onSave={handleSaveTopic}
+          loading={loading}
+        />
+      ),
+    });
   };
 
   // Open add quiz dialog (nested inside topic details)
   const openNewQuizDialog = (topicId: string) => {
-    setQuizForm({
-      id: "",
-      title: "",
-      quizOrder: "",
-      topicId: topicId,
-      difficulty: "Medium"
-    });
     setError(null);
-    setQuizDialogOpen(true);
+    dialog.open({
+      title: "Generate Quiz with AI",
+      body: (
+        <QuizDialogBody
+          initialTopicId={topicId}
+          onSuccess={async () => {
+            await fetchData();
+          }}
+        />
+      ),
+    });
   };
 
   // Add Question inside Quiz Detail Drawer
   const handleOpenAddQuestion = () => {
-    setQuestionForm({
-      id: "",
-      text: "",
-      options: ["", "", "", ""],
-      correctAnswer: "",
-      hint: "",
-      description: ""
-    });
     setError(null);
-    setQuestionDialogOpen(true);
+    dialog.open({
+      title: "Add Question",
+      body: (
+        <QuestionDialogBody
+          initialForm={{ id: "", text: "", options: ["", "", "", ""], correctAnswer: "", hint: "", description: "" }}
+          onSave={handleSaveQuestion}
+          loading={loading}
+        />
+      ),
+    });
   };
 
   // Edit Question inside Quiz Detail Drawer
   const handleOpenEditQuestion = (q: QuizQuestionDetail) => {
-    setQuestionForm({
-      id: q.id,
-      text: q.text,
-      options: [...q.options],
-      correctAnswer: q.correctAnswer,
-      hint: q.hint || "",
-      description: q.description || ""
-    });
     setError(null);
-    setQuestionDialogOpen(true);
+    dialog.open({
+      title: "Edit Question",
+      body: (
+        <QuestionDialogBody
+          initialForm={{ id: q.id, text: q.text, options: [...q.options], correctAnswer: q.correctAnswer, hint: q.hint || "", description: q.description || "" }}
+          onSave={handleSaveQuestion}
+          loading={loading}
+        />
+      ),
+    });
   };
 
   // Save question inside drawer
-  const handleSaveQuestion = async () => {
+  const handleSaveQuestion = async (form: QuestionForm) => {
     if (!selectedQuizId) return;
     setLoading(true);
-    const isEdit = !!questionForm.id;
-    const url = isEdit ? `/api/admin/questions/${questionForm.id}` : "/api/admin/questions";
+    const isEdit = !!form.id;
+    const url = isEdit ? `/api/admin/questions/${form.id}` : "/api/admin/questions";
     const method = isEdit ? "PUT" : "POST";
 
     const payload = {
       quizId: selectedQuizId,
-      text: questionForm.text,
-      options: questionForm.options,
-      correctAnswer: questionForm.correctAnswer,
-      hint: questionForm.hint,
-      description: questionForm.description
+      text: form.text,
+      options: form.options,
+      correctAnswer: form.correctAnswer,
+      hint: form.hint,
+      description: form.description
     };
 
     try {
@@ -541,9 +702,9 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       });
       const data = await res.json();
       if (!data.error) {
-        setQuestionDialogOpen(false);
         await refreshActiveQuizDetail(selectedQuizId);
         await fetchData();
+        toast.addToast({ type: "success", message: "Question saved" });
       } else {
         setError(data.error);
       }
@@ -568,6 +729,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
           if (data.success) {
             await refreshActiveQuizDetail(selectedQuizId);
             await fetchData();
+            toast.addToast({ type: "success", message: "Question deleted" });
           }
         } catch (e) {
           console.error(e);
@@ -746,7 +908,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
             <div>
               <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
                 <span>Exams</span>
-                <Badge variant="secondary" className="px-2 py-0.5 font-bold text-[10px]">
+                <Badge variant="secondary" className="px-2 py-0.5 font-bold text-[10px] animate-none">
                   {filteredExams.length}
                 </Badge>
               </h1>
@@ -760,8 +922,16 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
               size="sm" 
               className="gap-1.5 font-semibold text-xs h-9 px-4 shadow-xs" 
               onClick={() => {
-                setExamForm({ id: '', title: '', description: '' });
-                setExamDialogOpen(true);
+                dialog.open({
+                  title: "Add Exam",
+                  body: (
+                    <ExamDialogBody
+                      initialForm={{ id: '', title: '', description: '' }}
+                      onSave={handleSaveExam}
+                      loading={loading}
+                    />
+                  ),
+                });
               }}
             >
               <Plus className="h-3.5 w-3.5" />
@@ -787,8 +957,16 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
               icon="warning"
               action={
                 <Button variant="primary" className="gap-1.5 font-semibold text-xs h-9 px-4" onClick={() => {
-                  setExamForm({ id: '', title: '', description: '' });
-                  setExamDialogOpen(true);
+                  dialog.open({
+                    title: "Add Exam",
+                    body: (
+                      <ExamDialogBody
+                        initialForm={{ id: '', title: '', description: '' }}
+                        onSave={handleSaveExam}
+                        loading={loading}
+                      />
+                    ),
+                  });
                 }}>
                   <Plus className="h-3.5 w-3.5" />
                   <span>Create First Exam</span>
@@ -800,7 +978,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
               <div className="overflow-x-auto w-full">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-border/40 text-muted-foreground font-bold bg-secondary/10">
+                    <tr className="border-b border-border/40 text-muted-foreground font-bold bg-secondary/10 sticky top-0 z-10">
                       <th scope="col" className="py-3.5 px-4 font-bold max-w-sm">Exam Title</th>
                       <th scope="col" className="py-3.5 px-4 font-bold">Description</th>
                       <th scope="col" className="py-3.5 px-4 font-bold text-center w-24">Main Topics</th>
@@ -846,8 +1024,16 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
                               <DropdownContent align="right" className="w-44">
                                 <DropdownItem onClick={() => setSelectedExamId(item.id)}>Manage Topics</DropdownItem>
                                 <DropdownItem onClick={() => {
-                                  setExamForm({ id: item.id, title: item.title, description: item.description || '' });
-                                  setExamDialogOpen(true);
+                                  dialog.open({
+                                    title: "Edit Exam",
+                                    body: (
+                                      <ExamDialogBody
+                                        initialForm={{ id: item.id, title: item.title, description: item.description || '' }}
+                                        onSave={handleSaveExam}
+                                        loading={loading}
+                                      />
+                                    ),
+                                  });
                                 }}>Edit Settings</DropdownItem>
                                 <DropdownItem onClick={() => handleDeleteExam(item.id, item.title)} className="text-danger">Delete Exam</DropdownItem>
                               </DropdownContent>
@@ -914,7 +1100,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
             <div>
               <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
                 <span>{view === "main-topics" ? "Main Topics" : "Sub Topics"}</span>
-                <Badge variant="secondary" className="px-2 py-0.5 font-bold text-[10px]">
+                <Badge variant="secondary" className="px-2 py-0.5 font-bold text-[10px] animate-none">
                   {filteredTopics.length}
                 </Badge>
               </h1>
@@ -978,7 +1164,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
               <div className="overflow-x-auto w-full">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-border/40 text-muted-foreground font-bold bg-secondary/10">
+                    <tr className="border-b border-border/40 text-muted-foreground font-bold bg-secondary/10 sticky top-0 z-10">
                       <th scope="col" className="py-3.5 px-4 font-bold max-w-sm">Topic Title</th>
                       <th scope="col" className="py-3.5 px-4 font-bold">Hierarchy Level</th>
                       <th scope="col" className="py-3.5 px-4 font-bold text-center w-28">Stats</th>
@@ -1053,8 +1239,16 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
                                 )}
 
                                 <DropdownItem onClick={() => {
-                                  setTopicForm({ id: item.id, title: item.title, description: item.description || '', examId: '', parentId: item.parentTopics?.[0]?.id || '' });
-                                  setTopicDialogOpen(true);
+                                  dialog.open({
+                                    title: item.id ? "Edit Topic Settings" : (item.parentTopics?.[0]?.id ? "Add Sub Topic" : "Add Topic"),
+                                    body: (
+                                      <TopicDialogBody
+                                        initialForm={{ id: item.id, title: item.title, description: item.description || '', examId: '', parentId: item.parentTopics?.[0]?.id || '' }}
+                                        onSave={handleSaveTopic}
+                                        loading={loading}
+                                      />
+                                    ),
+                                  });
                                 }}>Edit Settings</DropdownItem>
                                 <DropdownItem onClick={() => handleDeleteTopic(item.id, item.title)} className="text-danger">Delete Topic</DropdownItem>
                               </DropdownContent>
@@ -1114,141 +1308,6 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
         </>
       )}
 
-      {/* Exam Settings Dialog */}
-      <Dialog open={examDialogOpen} onOpenChange={setExamDialogOpen}>
-        <DialogSurface className="max-w-[440px]">
-          <DialogTitle>{examForm.id ? "Edit Exam" : "Add Exam"}</DialogTitle>
-          <DialogContent className="flex flex-col gap-4 mt-3">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Exam Title <span className="text-danger">*</span></label>
-              <Input value={examForm.title} onChange={e => setExamForm({...examForm, title: e.target.value})} required />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Description</label>
-              <Textarea value={examForm.description} onChange={e => setExamForm({...examForm, description: e.target.value})} rows={3} />
-            </div>
-          </DialogContent>
-          <DialogActions>
-            <Button variant="outline" onClick={() => setExamDialogOpen(false)}>Cancel</Button>
-            <Button variant="primary" onClick={() => handleSaveExam(examForm)} disabled={!examForm.title || loading}>Save</Button>
-          </DialogActions>
-        </DialogSurface>
-      </Dialog>
-
-      {/* Generate Quiz (AI-powered) Dialog */}
-      <Dialog open={quizDialogOpen} onOpenChange={setQuizDialogOpen}>
-        <DialogSurface className="max-w-[540px]">
-          <DialogTitle>Generate Quiz with AI</DialogTitle>
-          <DialogContent className="mt-3">
-            <GenerateQuizForm 
-              initialTopicId={quizForm.topicId}
-              onSuccess={async () => {
-                await fetchData();
-                setQuizDialogOpen(false);
-              }} 
-            />
-          </DialogContent>
-        </DialogSurface>
-      </Dialog>
-
-      {/* Topic / Subtopic Settings Dialog */}
-      <Dialog open={topicDialogOpen} onOpenChange={setTopicDialogOpen}>
-        <DialogSurface className="max-w-[440px]">
-          <DialogTitle>
-            {topicForm.id ? "Edit Topic Settings" : (topicForm.parentId ? "Add Sub Topic" : (topicForm.examId ? "Add Main Topic" : "Add Topic"))}
-          </DialogTitle>
-          <DialogContent className="flex flex-col gap-4 mt-3">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Topic Title <span className="text-danger">*</span></label>
-              <Input value={topicForm.title} onChange={e => setTopicForm({...topicForm, title: e.target.value})} required />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Description</label>
-              <Textarea value={topicForm.description} onChange={e => setTopicForm({...topicForm, description: e.target.value})} rows={3} />
-            </div>
-          </DialogContent>
-          <DialogActions>
-            <Button variant="outline" onClick={() => setTopicDialogOpen(false)}>Cancel</Button>
-            <Button variant="primary" onClick={handleSaveTopic} disabled={!topicForm.title || loading}>Save</Button>
-          </DialogActions>
-        </DialogSurface>
-      </Dialog>
-
-      {/* Add / Edit Question Dialog (nested under drawer context) */}
-      <Dialog open={questionDialogOpen} onOpenChange={setQuestionDialogOpen}>
-        <DialogSurface className="max-w-[600px]">
-          <DialogTitle>{questionForm.id ? "Edit Question" : "Add Question"}</DialogTitle>
-          <DialogContent className="max-h-[60vh] overflow-y-auto pr-1 flex flex-col gap-4 mt-3">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Question Text <span className="text-danger">*</span></label>
-              <Textarea 
-                value={questionForm.text} 
-                onChange={e => setQuestionForm(prev => ({ ...prev, text: e.target.value }))} 
-                placeholder="Enter the question text..." 
-                rows={3}
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {questionForm.options.map((opt, idx) => (
-                <div key={idx} className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Option {idx + 1} <span className="text-danger">*</span></label>
-                  <Input
-                    value={opt}
-                    onChange={e => setQuestionForm(prev => ({
-                      ...prev,
-                      options: prev.options.map((o, i) => (i === idx ? e.target.value : o)),
-                    }))}
-                    placeholder={`Option ${idx + 1}`}
-                    required
-                  />
-                </div>
-              ))}
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Correct Answer <span className="text-danger">*</span></label>
-              <Select 
-                value={questionForm.correctAnswer} 
-                onChange={e => setQuestionForm(prev => ({ ...prev, correctAnswer: e.target.value }))}
-                required
-              >
-                <option value="">Select correct option...</option>
-                {questionForm.options.map((opt, idx) => (
-                  opt.trim() && <option key={idx} value={opt}>{opt}</option>
-                ))}
-              </Select>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Hint (Optional)</label>
-              <Input 
-                value={questionForm.hint} 
-                onChange={e => setQuestionForm(prev => ({ ...prev, hint: e.target.value }))} 
-                placeholder="e.g. Think about..."
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Explanation / Description <span className="text-danger">*</span></label>
-              <Textarea 
-                value={questionForm.description} 
-                onChange={e => setQuestionForm(prev => ({ ...prev, description: e.target.value }))} 
-                placeholder="Explain why this option is correct..."
-                rows={3}
-                required
-              />
-            </div>
-          </DialogContent>
-          <DialogActions>
-            <Button variant="outline" onClick={() => setQuestionDialogOpen(false)}>Cancel</Button>
-            <Button variant="primary" onClick={handleSaveQuestion} disabled={!questionForm.text || !questionForm.correctAnswer || !questionForm.description || loading}>
-              Save
-            </Button>
-          </DialogActions>
-        </DialogSurface>
-      </Dialog>
     </div>
   );
 }

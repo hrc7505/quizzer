@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 import { useDialog } from "@/components/providers/OverlayProvider";
+import { useToast } from "@/components/providers/ToastProvider";
 import { QuestionCard } from "@/components/data-display/QuestionCard";
 import { QuestionEditorBody } from "@/components/data-display/QuestionEditorBody";
 
@@ -50,6 +51,7 @@ interface AdminQuizQuestionsManagerProps {
  */
 export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuestionsManagerProps) {
   const router = useRouter();
+  const toast = useToast();
   const [quiz, setQuiz] = useState<QuizDetail>(initialQuiz);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -140,6 +142,7 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
       const data = await res.json();
       if (!data.error) {
         await refreshQuiz();
+        toast.addToast({ type: "success", message: "Question saved" });
       } else {
         setError(data.error || "Failed to save question");
       }
@@ -162,6 +165,7 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
           const data = await res.json();
           if (data.success) {
             await refreshQuiz();
+            toast.addToast({ type: "success", message: "Question deleted" });
           }
         } catch (e) {
           console.error(e);
@@ -205,7 +209,7 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
             <h1 className="text-2xl font-bold tracking-tight text-foreground">{quiz.title} Questions</h1>
-            <Badge variant={difficultyColor(quiz.difficulty)} className="capitalize font-bold text-[10px] px-2 py-0.5 select-none">
+            <Badge variant={difficultyColor(quiz.difficulty)} className="capitalize font-bold text-[10px] px-2 py-0.5 select-none animate-none">
               {quiz.difficulty}
             </Badge>
           </div>

@@ -26,7 +26,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { useDialog } from "@/components/providers/OverlayProvider";
+import { useDialog, usePanel } from "@/components/providers/OverlayProvider";
 import { cn } from "@/utils/cn";
 
 export function NavBar({ maxWidth = "1200px" }: { maxWidth?: string }) {
@@ -35,11 +35,8 @@ export function NavBar({ maxWidth = "1200px" }: { maxWidth?: string }) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const dialog = useDialog();
+  const panel = usePanel();
 
-  const [isAdminDrawerOpen, setIsAdminDrawerOpen] = useState(false);
-  const [adminDrawerSide, setAdminDrawerSide] = useState<"left" | "right">("left");
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
   // State for Admin sub-menu dropdown
   const [isTaxonomyOpen, setIsTaxonomyOpen] = useState(true);
 
@@ -59,6 +56,183 @@ export function NavBar({ maxWidth = "1200px" }: { maxWidth?: string }) {
     { href: "/deep-dives", label: "Deep Dives", icon: <Brain className="h-4 w-4" /> },
   ];
 
+  const MobileNavDrawerBody = ({ onClose }: { onClose: () => void }) => (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center justify-between">
+        <Image
+          src="/quizzer.svg"
+          alt="Quizzer Logo"
+          width={71}
+          height={24}
+          priority
+          className="dark:invert"
+        />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-muted-foreground"
+          onClick={onClose}
+          aria-label="Close menu"
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        {publicNavLinks.map((link, idx) => {
+          const isActive = pathname === link.href;
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 animate-fade-in-up",
+                isActive 
+                  ? "bg-secondary text-foreground font-semibold" 
+                  : "text-muted-foreground hover:bg-surface-hover hover:text-foreground"
+              )}
+              style={{ animationDelay: `${idx * 50}ms`, animationFillMode: "both" }}
+              onClick={onClose}
+            >
+              {link.icon}
+              {link.label}
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  const AdminNavDrawerBody = ({ onClose }: { onClose: () => void }) => (
+    <>
+      <div className="flex flex-col gap-6 overflow-y-auto pr-1">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Image
+              src="/quizzer.svg"
+              alt="Quizzer Logo"
+              width={71}
+              height={24}
+              className="dark:invert"
+            />
+            <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-sm bg-primary/10 text-primary border border-primary/20">Admin</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground"
+            onClick={onClose}
+            aria-label="Close admin menu"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Navigation list */}
+        <div className="flex flex-col gap-1">
+          {[
+            { href: "/admin", label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
+            { href: "/admin/generate", label: "Generate Quiz", icon: <Plus className="h-4 w-4" /> },
+          ].map((item, idx) => (
+            <Link key={item.href} href={item.href} onClick={onClose}>
+              <span className={cn(
+                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer animate-fade-in-up",
+                pathname === item.href
+                  ? "bg-secondary text-foreground font-semibold"
+                  : "text-muted-foreground hover:bg-surface-hover hover:text-foreground"
+              )}
+              style={{ animationDelay: `${idx * 60}ms`, animationFillMode: "both" }}
+              >
+                {item.icon}
+                <span>{item.label}</span>
+              </span>
+            </Link>
+          ))}
+
+          {/* Sub category with collapse/expand */}
+          <div className="flex flex-col animate-fade-in-up" style={{ animationDelay: `120ms`, animationFillMode: "both" }}>
+            <button
+              onClick={() => setIsTaxonomyOpen(!isTaxonomyOpen)}
+              className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-surface-hover hover:text-foreground transition-colors duration-200 cursor-pointer"
+            >
+              <div className="flex items-center gap-3">
+                <Settings className="h-4 w-4" />
+                <span>Taxonomy</span>
+              </div>
+              {isTaxonomyOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            </button>
+
+            {isTaxonomyOpen && (
+              <div className="pl-8 pr-2 py-1 flex flex-col gap-0.5 border-l border-border/80 ml-5 mt-1">
+                {[
+                  { href: "/admin/manage/exams", label: "Exams" },
+                  { href: "/admin/manage/topics", label: "Main Topics" },
+                  { href: "/admin/manage/subtopics", label: "Sub Topics" },
+                ].map((item, idx) => (
+                  <Link 
+                    key={item.href} 
+                    href={item.href} 
+                    onClick={onClose}
+                  >
+                    <span
+                      className={cn(
+                        "block px-3 py-1.5 text-xs rounded-md transition-all duration-200 cursor-pointer font-medium animate-fade-in-up",
+                        pathname === item.href
+                          ? "bg-secondary text-foreground font-semibold"
+                          : "text-muted-foreground hover:text-foreground hover:bg-surface-hover"
+                      )}
+                      style={{ animationDelay: `${180 + idx * 50}ms`, animationFillMode: "both" }}
+                    >
+                      {item.label}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {[
+            { href: "/admin/manage/quizzes", label: "Quizzes", icon: <Database className="h-4 w-4" />, match: "/admin/manage/quizzes" },
+            { href: "/admin/manage/users", label: "Users", icon: <Users className="h-4 w-4" />, match: "/admin/manage/users" },
+            { href: "/admin/manage/deep-dives", label: "Deep Dives", icon: <Brain className="h-4 w-4" />, match: "/admin/manage/deep-dives" },
+          ].map((item, idx) => (
+            <Link key={item.href} href={item.href} onClick={onClose}>
+              <span className={cn(
+                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer animate-fade-in-up",
+                pathname.startsWith(item.match)
+                  ? "bg-secondary text-foreground font-semibold"
+                  : "text-muted-foreground hover:bg-surface-hover hover:text-foreground"
+              )}
+              style={{ animationDelay: `${300 + idx * 60}ms`, animationFillMode: "both" }}
+              >
+                {item.icon}
+                <span>{item.label}</span>
+              </span>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* Admin Footer LogOut */}
+      <div className="border-t border-border/80 pt-4">
+        <Button
+          variant="secondary"
+          className="w-full justify-start gap-3 text-sm text-danger hover:bg-danger/10 hover:border-danger/20 font-medium h-10 px-3"
+          onClick={() => dialog.confirm({
+            title: "Confirm logout",
+            description: "Are you sure you want to log out of the admin portal?",
+            okText: "Logout",
+            okVariant: "danger",
+            onConfirm: () => signOut({ callbackUrl: "/auth/admin-signin" }),
+          })}
+        >
+          <LogOut className="h-4 w-4" />
+          <span>Logout Admin</span>
+        </Button>
+      </div>
+    </>
+  );
+
   return (
     <>
       <nav className="sticky top-0 z-40 w-full border-b border-border/80 bg-background/85 backdrop-blur-md transition-colors duration-200">
@@ -73,11 +247,16 @@ export function NavBar({ maxWidth = "1200px" }: { maxWidth?: string }) {
               size="icon"
               className="lg:hidden h-8 w-8 text-muted-foreground hover:bg-surface-hover hover:text-foreground"
               onClick={() => {
-                setAdminDrawerSide("left");
                 if (isAdminRoute) {
-                  setIsAdminDrawerOpen(true);
+                  panel.open({
+                    side: "left",
+                    body: <AdminNavDrawerBody onClose={() => panel.close()} />,
+                  });
                 } else {
-                  setIsMobileMenuOpen(true);
+                  panel.open({
+                    side: "left",
+                    body: <MobileNavDrawerBody onClose={() => panel.close()} />,
+                  });
                 }
               }}
               aria-label="Open navigation menu"
@@ -187,8 +366,10 @@ export function NavBar({ maxWidth = "1200px" }: { maxWidth?: string }) {
                 size="icon"
                 className="hidden lg:flex h-8 w-8 text-muted-foreground hover:bg-surface-hover hover:text-foreground"
                 onClick={() => {
-                  setAdminDrawerSide("right");
-                  setIsAdminDrawerOpen(true);
+                  panel.open({
+                    side: "right",
+                    body: <AdminNavDrawerBody onClose={() => panel.close()} />,
+                  });
                 }}
                 aria-label="Toggle admin navigation"
               >
@@ -198,250 +379,6 @@ export function NavBar({ maxWidth = "1200px" }: { maxWidth?: string }) {
           </div>
         </div>
       </nav>
-
-      {/* ── Mobile Public Nav Drawer (Slide-out menu) ── */}
-      {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          {/* Backdrop overlay */}
-          <div
-            className="fixed inset-0 bg-overlay/40 backdrop-blur-xs transition-opacity duration-300"
-            onClick={() => setIsMobileMenuOpen(false)}
-          />
-          {/* Slider content */}
-          <div className="fixed inset-y-0 left-0 w-72 max-w-[80vw] bg-card border-r border-border p-6 shadow-lg flex flex-col justify-between animate-slide-in-left">
-            <div className="flex flex-col gap-6">
-              <div className="flex items-center justify-between">
-                <Image
-                  src="/quizzer.svg"
-                  alt="Quizzer Logo"
-                  width={71}
-                  height={24}
-                  priority
-                  className="dark:invert"
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  aria-label="Close menu"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                {publicNavLinks.map((link, idx) => {
-                  const isActive = pathname === link.href;
-                  return (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      className={cn(
-                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 animate-fade-in-up",
-                        isActive 
-                          ? "bg-secondary text-foreground font-semibold" 
-                          : "text-muted-foreground hover:bg-surface-hover hover:text-foreground"
-                      )}
-                      style={{ animationDelay: `${idx * 50}ms`, animationFillMode: "both" }}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      {link.icon}
-                      {link.label}
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="border-t border-border/80 pt-4 flex flex-col gap-4">
-              {isStudentUser ? (
-                <>
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm border border-primary/20">
-                      {session!.user!.name?.slice(0, 2).toUpperCase() || "U"}
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-sm font-semibold text-foreground truncate">
-                        {session!.user!.name}
-                      </span>
-                      <span className="text-xs text-muted-foreground truncate">
-                        {session!.user!.email}
-                      </span>
-                    </div>
-                  </div>
-                  <Button
-                    variant="secondary"
-                    className="w-full justify-center gap-2 text-danger hover:bg-danger/10 hover:border-danger/20"
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      signOut({ callbackUrl: "/" });
-                    }}
-                  >
-                    <LogOut className="h-4 w-4" />
-                    <span>Sign Out</span>
-                  </Button>
-                </>
-              ) : (
-                <Link
-                  href="/auth/login"
-                  className="w-full"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <Button variant="primary" className="w-full justify-center gap-2">
-                    <User className="h-4 w-4" />
-                    <span>Sign In</span>
-                  </Button>
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Admin NavDrawer (Overlay, slide-out menu) ── */}
-      {isAdminRoute && isAdminDrawerOpen && (
-        <div className="fixed inset-0 z-50">
-          {/* Backdrop overlay */}
-          <div
-            className="fixed inset-0 bg-overlay/50 backdrop-blur-xs transition-opacity duration-300"
-            onClick={() => setIsAdminDrawerOpen(false)}
-          />
-          {/* Drawer content */}
-          <div className={cn(
-            "fixed inset-y-0 w-80 bg-card border p-6 shadow-lg flex flex-col justify-between duration-300",
-            adminDrawerSide === "left"
-              ? "left-0 border-r border-border animate-slide-in-left"
-              : "right-0 border-l border-border animate-slide-in-right"
-          )}>
-            <div className="flex flex-col gap-6 overflow-y-auto pr-1">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Image
-                    src="/quizzer.svg"
-                    alt="Quizzer Logo"
-                    width={71}
-                    height={24}
-                    className="dark:invert"
-                  />
-                  <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-sm bg-primary/10 text-primary border border-primary/20">Admin</span>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground"
-                  onClick={() => setIsAdminDrawerOpen(false)}
-                  aria-label="Close admin menu"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-
-              {/* Navigation list */}
-              <div className="flex flex-col gap-1">
-                {[
-                  { href: "/admin", label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
-                  { href: "/admin/generate", label: "Generate Quiz", icon: <Plus className="h-4 w-4" /> },
-                ].map((item, idx) => (
-                  <Link key={item.href} href={item.href} onClick={() => setIsAdminDrawerOpen(false)}>
-                    <span className={cn(
-                      "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer animate-fade-in-up",
-                      pathname === item.href
-                        ? "bg-secondary text-foreground font-semibold"
-                        : "text-muted-foreground hover:bg-surface-hover hover:text-foreground"
-                    )}
-                    style={{ animationDelay: `${idx * 60}ms`, animationFillMode: "both" }}
-                    >
-                      {item.icon}
-                      <span>{item.label}</span>
-                    </span>
-                  </Link>
-                ))}
-
-                {/* Sub category with collapse/expand */}
-                <div className="flex flex-col animate-fade-in-up" style={{ animationDelay: `120ms`, animationFillMode: "both" }}>
-                  <button
-                    onClick={() => setIsTaxonomyOpen(!isTaxonomyOpen)}
-                    className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-surface-hover hover:text-foreground transition-colors duration-200 cursor-pointer"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Settings className="h-4 w-4" />
-                      <span>Taxonomy</span>
-                    </div>
-                    {isTaxonomyOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                  </button>
-
-                  {isTaxonomyOpen && (
-                    <div className="pl-8 pr-2 py-1 flex flex-col gap-0.5 border-l border-border/80 ml-5 mt-1">
-                      {[
-                        { href: "/admin/manage/exams", label: "Exams" },
-                        { href: "/admin/manage/topics", label: "Main Topics" },
-                        { href: "/admin/manage/subtopics", label: "Sub Topics" },
-                      ].map((item, idx) => (
-                        <Link 
-                          key={item.href} 
-                          href={item.href} 
-                          onClick={() => setIsAdminDrawerOpen(false)}
-                        >
-                          <span
-                            className={cn(
-                              "block px-3 py-1.5 text-xs rounded-md transition-all duration-200 cursor-pointer font-medium animate-fade-in-up",
-                              pathname === item.href
-                                ? "bg-secondary text-foreground font-semibold"
-                                : "text-muted-foreground hover:text-foreground hover:bg-surface-hover"
-                            )}
-                            style={{ animationDelay: `${180 + idx * 50}ms`, animationFillMode: "both" }}
-                          >
-                            {item.label}
-                          </span>
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {[
-                  { href: "/admin/manage/quizzes", label: "Quizzes", icon: <Database className="h-4 w-4" />, match: "/admin/manage/quizzes" },
-                  { href: "/admin/manage/users", label: "Users", icon: <Users className="h-4 w-4" />, match: "/admin/manage/users" },
-                  { href: "/admin/manage/deep-dives", label: "Deep Dives", icon: <Brain className="h-4 w-4" />, match: "/admin/manage/deep-dives" },
-                ].map((item, idx) => (
-                  <Link key={item.href} href={item.href} onClick={() => setIsAdminDrawerOpen(false)}>
-                    <span className={cn(
-                      "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer animate-fade-in-up",
-                      pathname.startsWith(item.match)
-                        ? "bg-secondary text-foreground font-semibold"
-                        : "text-muted-foreground hover:bg-surface-hover hover:text-foreground"
-                    )}
-                    style={{ animationDelay: `${300 + idx * 60}ms`, animationFillMode: "both" }}
-                    >
-                      {item.icon}
-                      <span>{item.label}</span>
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            {/* Admin Footer LogOut */}
-            <div className="border-t border-border/80 pt-4">
-              <Button
-                variant="secondary"
-                className="w-full justify-start gap-3 text-sm text-danger hover:bg-danger/10 hover:border-danger/20 font-medium h-10 px-3"
-                onClick={() => dialog.confirm({
-                  title: "Confirm logout",
-                  description: "Are you sure you want to log out of the admin portal?",
-                  okText: "Logout",
-                  okVariant: "danger",
-                  onConfirm: () => signOut({ callbackUrl: "/auth/admin-signin" }),
-                })}
-              >
-                <LogOut className="h-4 w-4" />
-                <span>Logout Admin</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

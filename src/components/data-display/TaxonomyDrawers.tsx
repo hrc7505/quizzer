@@ -194,7 +194,7 @@ export function TopicDrawerBody({
                   </span>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <Badge variant={difficultyBadgeVariant(q.difficulty)} className="capitalize font-bold text-[8px] px-2 py-0.5">
+                  <Badge variant={difficultyBadgeVariant(q.difficulty)} className="capitalize font-bold text-[10px] px-2 py-0.5 animate-none">
                     {q.difficulty}
                   </Badge>
                   <Button
@@ -250,7 +250,7 @@ export function QuizDrawerBody({
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-muted-foreground">Order #{quiz?.quizOrder}</span>
           {quiz && (
-            <Badge variant={difficultyBadgeVariant(quiz.difficulty)} className="capitalize font-bold text-[9px] px-2 py-0.5">
+            <Badge variant={difficultyBadgeVariant(quiz.difficulty)} className="capitalize font-bold text-[10px] px-2 py-0.5 animate-none">
               {quiz.difficulty}
             </Badge>
           )}

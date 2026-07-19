@@ -4,6 +4,7 @@ import * as React from "react";
 import { X } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { Button } from "@/components/ui/Button";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 
 export interface DialogConfig {
   title?: React.ReactNode;
@@ -27,6 +28,7 @@ interface DialogHostProps {
 export function DialogHost({ config, onClose }: DialogHostProps) {
   const [okBusy, setOkBusy] = React.useState(false);
   const [prevConfig, setPrevConfig] = React.useState<DialogConfig | null>(config);
+  const contentRef = useFocusTrap<HTMLDivElement>(config);
 
   if (config !== prevConfig) {
     setOkBusy(false);
@@ -54,6 +56,7 @@ export function DialogHost({ config, onClose }: DialogHostProps) {
         onClick={onClose}
       />
       <div
+        ref={contentRef}
         role="dialog"
         aria-modal="true"
         className={cn(

@@ -276,14 +276,14 @@ export function AdminQuestionsManager({ questions: initial, quizzes }: AdminQues
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex flex-col gap-2.5 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap select-none">
-                      <Badge variant="default" className="bg-primary/5 text-primary border-primary/20 text-[10px] px-2 py-0.5">
-                        Quiz: {q.quiz?.title || "Unassigned"}
+                      <Badge variant="default" className="bg-primary/5 text-primary border-primary/20 text-[10px] px-2 py-0.5 animate-none">
+                         Quiz: {q.quiz?.title || "Unassigned"}
                       </Badge>
-                      {q.topic && (
-                        <Badge variant="secondary" className="text-[10px] px-2 py-0.5">
-                          Topic: {q.topic.title}
-                        </Badge>
-                      )}
+                       {q.topic && (
+                         <Badge variant="secondary" className="text-[10px] px-2 py-0.5 animate-none">
+                           Topic: {q.topic.title}
+                         </Badge>
+                       )}
                     </div>
                   </div>
 

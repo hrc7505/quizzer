@@ -1,6 +1,5 @@
 "use client";
 
-import { Card } from "@/components/ui/Card";
 import { LinkButton } from "@/components/ui/LinkButton";
 
 interface Stats {
@@ -14,12 +13,12 @@ interface Stats {
 
 export function AdminDashboard({ stats }: { stats: Stats }) {
   const statCards = [
-    { label: "Topics", value: stats.topicsCount },
-    { label: "Sub Topics", value: stats.subtopicsCount },
-    { label: "Quizzes", value: stats.quizzesCount },
-    { label: "Questions", value: stats.questionsCount },
-    { label: "Attempts", value: stats.attemptsCount },
-    { label: "Average Score", value: `${stats.avgScore}%` },
+    { label: "Topics", value: stats.topicsCount, href: "/admin/manage/topics" },
+    { label: "Sub Topics", value: stats.subtopicsCount, href: "/admin/manage/subtopics" },
+    { label: "Quizzes", value: stats.quizzesCount, href: "/admin/manage/quizzes" },
+    { label: "Questions", value: stats.questionsCount, href: "/admin/manage/quizzes" },
+    { label: "Attempts", value: stats.attemptsCount, href: "/admin/manage/quizzes" },
+    { label: "Average Score", value: `${stats.avgScore}%`, href: "/admin" },
   ];
 
   return (
@@ -37,25 +36,20 @@ export function AdminDashboard({ stats }: { stats: Stats }) {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {statCards.map((card, idx) => (
-          <Card key={idx} className="flex flex-col justify-between p-5 bg-card border-border/80 hover:shadow-sm transition-all duration-200">
+        {statCards.map((card) => (
+          <LinkButton
+            key={card.label}
+            href={card.href}
+            className="flex flex-col justify-between p-5 bg-card border-border/80 hover:shadow-sm transition-all duration-200"
+          >
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               {card.label}
             </span>
             <span className="text-3xl font-extrabold text-foreground tracking-tight mt-3">
               {card.value}
             </span>
-          </Card>
+          </LinkButton>
         ))}
-      </div>
-
-      <div className="flex items-center gap-3 mt-6">
-        <LinkButton href="/admin/generate" variant="primary" className="h-10 px-5 font-semibold text-sm">
-          Generate New Quiz
-        </LinkButton>
-        <LinkButton href="/admin/manage/exams" variant="secondary" className="h-10 px-5 font-semibold text-sm">
-          Manage Taxonomy
-        </LinkButton>
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import * as React from "react";
 import { X } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { Button } from "@/components/ui/Button";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 
 export interface PanelConfig {
   title?: React.ReactNode;
@@ -22,6 +23,8 @@ interface PanelHostProps {
 }
 
 export function PanelHost({ config, onClose }: PanelHostProps) {
+  const contentRef = useFocusTrap<HTMLDivElement>(config);
+
   if (!config) return null;
 
   return (
@@ -31,6 +34,7 @@ export function PanelHost({ config, onClose }: PanelHostProps) {
         onClick={onClose}
       />
       <div
+        ref={contentRef}
         role="dialog"
         aria-modal="true"
         className={cn(

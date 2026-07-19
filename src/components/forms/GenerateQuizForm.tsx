@@ -24,6 +24,33 @@ interface GenerateQuizFormProps {
  */
 export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizFormProps = {}) {
   const [mode, setMode] = useState<"title" | "text" | "pdf">("title");
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const tablistRef = useRef<HTMLDivElement>(null);
+
+  const setTabRef = (index: number) => (el: HTMLButtonElement | null) => {
+    tabRefs.current[index] = el;
+  };
+
+  const handleTabKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const tabs: ("title" | "text" | "pdf")[] = ["title", "text", "pdf"];
+    const currentIndex = tabs.indexOf(mode);
+    let newIndex = currentIndex;
+
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      newIndex = (currentIndex + 1) % tabs.length;
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      newIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+    }
+
+    if (newIndex !== currentIndex) {
+      setMode(tabs[newIndex]);
+      setError(null);
+      setResult(null);
+      tabRefs.current[newIndex]?.focus();
+    }
+  };
   const [quizTitle, setQuizTitle] = useState("");
   const [topicText, setTopicText] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -117,7 +144,7 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
       )}
 
       {/* Mode tabs */}
-      <div className="flex border-b border-border/80 gap-6">
+      <div ref={tablistRef} role="tablist" aria-label="Generation mode" className="flex border-b border-border/80 gap-6" onKeyDown={handleTabKeyDown}>
         {([
           { id: "title", label: "From Title Only" },
           { id: "text", label: "From Text" },
@@ -127,7 +154,12 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
           return (
             <button
               key={tab.id}
+              ref={setTabRef(["title", "text", "pdf"].indexOf(tab.id))}
               type="button"
+              role="tab"
+              aria-selected={isActive}
+              aria-controls={`panel-${tab.id}`}
+              tabIndex={isActive ? 0 : -1}
               onClick={() => {
                 setMode(tab.id);
                 setError(null);
@@ -193,6 +225,15 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-semibold text-foreground/90">Upload PDF <span className="text-danger">*</span></label>
           <div
+            role="button"
+            tabIndex={0}
+            aria-label="Upload PDF file"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                fileInputRef.current?.click();
+              }
+            }}
             className={cn(
               "flex flex-col items-center justify-center p-8 border-2 border-dashed border-border rounded-xl cursor-pointer hover:bg-surface-hover hover:border-primary/50 transition-colors duration-150 text-center gap-1.5 select-none",
               isDragging && "border-primary bg-primary/5",

@@ -5,6 +5,7 @@ import {
   Link as LinkIcon,
   MoreHorizontal,
   Sparkles,
+  Download,
 } from "lucide-react";
 import { GenerateQuizForm } from "@/components/forms/GenerateQuizForm";
 import { Alert } from "@/components/ui/Alert";
@@ -14,9 +15,11 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { useDialog, usePanel } from "@/components/providers/OverlayProvider";
+import { useToast } from "@/components/providers/ToastProvider";
 import { LinkPicker } from "@/components/data-display/LinkPicker";
 import { EditQuizBody, QuizDrawerBody } from "@/components/data-display/QuizManagerBodies";
 import { QuestionEditorBody } from "@/components/data-display/QuestionEditorBody";
+import { downloadCSV } from "@/lib/csv-export";
 import { Pagination } from "@/components/data-display/Pagination";
 import { SearchFilterBar } from "@/components/data-display/SearchFilterBar";
 import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from "@/components/ui/Dropdown";
@@ -54,9 +57,10 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Dialog / panel hooks
+  // Dialog / panel / toast hooks
   const dialog = useDialog();
   const panel = usePanel();
+  const toast = useToast();
 
   // Form state
   const [quizForm, setQuizForm] = useState({ id: "", title: "", difficulty: "Medium", quizOrder: "" });
@@ -104,6 +108,20 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
 
   const triggerConfirm = (title: string, description: string, onConfirm: () => Promise<void>) =>
     dialog.confirm({ title, description, onConfirm });
+
+  const handleExportCSV = () => {
+    const headers = ["Title", "Difficulty", "Order", "Questions", "Attempts", "Linked Topics"];
+    const rows = filtered.map(q => [
+      q.title,
+      q.difficulty,
+      String(q.quizOrder),
+      String(q._count.questions),
+      String(q._count.attempts),
+      q.topics.map(t => t.title).join("; "),
+    ]);
+    downloadCSV("quizzes.csv", headers, rows);
+    toast.addToast({ type: "success", message: `Exported ${filtered.length} quizzes` });
+  };
 
   // Refresh quizzes list
   const fetchQuizzes = async () => {
@@ -190,6 +208,7 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
       const data = await res.json();
       if (!data.error) {
         await fetchQuizzes();
+        toast.addToast({ type: "success", message: "Quiz updated" });
       } else {
         setError(data.error || "Failed to edit quiz");
       }
@@ -209,6 +228,7 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
         setLoading(true);
         await fetch(`/api/admin/quizzes/${quiz.id}`, { method: "DELETE" });
         setQuizzes(prev => prev.filter(q => q.id !== quiz.id));
+        toast.addToast({ type: "success", message: "Quiz deleted" });
         if (selectedQuizId === quiz.id) setSelectedQuizId(null);
         setLoading(false);
       }
@@ -250,6 +270,7 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
       const data = await res.json();
       if (!data.error) {
         await fetchQuizzes();
+        toast.addToast({ type: "success", message: "Topics linked to quiz" });
       } else {
         setError(data.error || "Failed to link topics");
       }
@@ -293,6 +314,7 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
         });
         
         await fetchQuizzes();
+        toast.addToast({ type: "success", message: "Topic unlinked from quiz" });
         setLoading(false);
       }
     );
@@ -375,6 +397,7 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
       if (!data.error) {
         await fetchActiveQuizDetail(selectedQuizId);
         await fetchQuizzes();
+        toast.addToast({ type: "success", message: "Question saved" });
       } else {
         setError(data.error || "Failed to save question");
       }
@@ -399,6 +422,7 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
           if (data.success) {
             await fetchActiveQuizDetail(selectedQuizId);
             await fetchQuizzes();
+            toast.addToast({ type: "success", message: "Question deleted" });
           }
         } catch (e) {
           console.error(e);
@@ -478,6 +502,17 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
           <Sparkles className="h-3.5 w-3.5" />
           <span>Generate Quiz</span>
         </Button>
+        {quizzes.length > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportCSV}
+            className="gap-1.5 font-semibold text-xs h-9"
+          >
+            <Download className="h-3.5 w-3.5" />
+            <span>Export CSV</span>
+          </Button>
+        )}
       </div>
 
       {/* Toolbar Search & Filter Box */}
@@ -511,7 +546,7 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
           <div className="overflow-x-auto w-full">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-border/40 text-muted-foreground font-bold bg-secondary/10">
+                <tr className="border-b border-border/40 text-muted-foreground font-bold bg-secondary/10 sticky top-0 z-10">
                   <th scope="col" className="py-3.5 px-4 font-bold w-16 text-center">Order</th>
                   <th scope="col" className="py-3.5 px-4 font-bold max-w-sm">Title</th>
                   <th scope="col" className="py-3.5 px-4 font-bold text-center w-24">Difficulty</th>
@@ -536,7 +571,7 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
                       </button>
                     </td>
                     <td className="py-3 px-4 text-center select-none">
-                      <Badge variant={difficultyColor(item.difficulty)} className="capitalize font-bold text-[8px] px-2 py-0.5">
+                      <Badge variant={difficultyColor(item.difficulty)} className="capitalize font-bold text-[10px] px-2 py-0.5 animate-none">
                         {item.difficulty}
                       </Badge>
                     </td>
@@ -546,12 +581,12 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
                       <div className="flex flex-wrap gap-1">
                         {item.topics.length > 0 ? (
                           item.topics.map(t => (
-                            <Badge key={t.id} variant="secondary" className="text-[8px] px-1.5 py-0">
+                            <Badge key={t.id} variant="secondary" className="text-[10px] px-1.5 py-0 animate-none">
                               {t.title}
                             </Badge>
                           ))
                         ) : (
-                          <span className="text-[9px] text-muted-foreground/60 italic font-medium">Unlinked</span>
+                           <span className="text-[10px] text-muted-foreground/60 italic font-medium">Unlinked</span>
                         )}
                       </div>
                     </td>

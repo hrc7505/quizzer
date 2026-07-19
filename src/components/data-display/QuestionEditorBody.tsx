@@ -68,11 +68,11 @@ export function QuestionEditorBody({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {form.options.map((opt, idx) => (
           <div key={idx} className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Option {idx + 1} <span className="text-danger">*</span></label>
+            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Option {String.fromCharCode(65 + idx)} <span className="text-danger">*</span></label>
             <Input
               value={opt}
               onChange={e => onOptionChange(idx, e.target.value)}
-              placeholder={`Enter option ${idx + 1}`}
+              placeholder={`Enter option ${String.fromCharCode(65 + idx)}`}
               required
             />
           </div>

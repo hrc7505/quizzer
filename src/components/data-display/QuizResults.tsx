@@ -512,7 +512,7 @@ export function QuizResults({ attempt }: QuizResultsProps) {
             <DropdownContent align="right" className="w-44">
               <DropdownItem onClick={() => dialog.open({
                 title: "Detailed Review",
-                className: "max-w-[720px] p-6",
+                className: "max-w-720px p-6",
                 body: (
                   <DetailedReviewBody
                     questions={attempt.quiz.questions}

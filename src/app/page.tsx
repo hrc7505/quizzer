@@ -116,8 +116,8 @@ export default async function HomePage() {
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-primary/5 via-background to-accent/30 text-foreground py-16 md:py-24 px-4 md:px-6 text-center relative overflow-hidden border-b border-border/10">
         {/* Decorative background gradients */}
-        <div className="absolute -top-1/2 left-1/4 w-[600px] h-[600px] rounded-full bg-[radial-gradient(circle,rgba(99,102,241,0.10)_0%,transparent_75%)] pointer-events-none dark:bg-[radial-gradient(circle,rgba(129,140,248,0.12)_0%,transparent_75%)]" />
-        <div className="absolute -bottom-1/2 right-1/4 w-[600px] h-[600px] rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.06)_0%,transparent_75%)] pointer-events-none" />
+        <div className="absolute -top-1/2 left-1/4 w-600px h-600px rounded-full bg-[radial-gradient(circle,rgba(99,102,241,0.10)_0%,transparent_75%)] pointer-events-none dark:bg-[radial-gradient(circle,rgba(129,140,248,0.12)_0%,transparent_75%)]" />
+        <div className="absolute -bottom-1/2 right-1/4 w-600px h-600px rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.06)_0%,transparent_75%)] pointer-events-none" />
 
         <div className="max-w-3xl mx-auto relative z-10">
           <div className="inline-flex items-center gap-2 bg-primary/10 px-3.5 py-1.5 rounded-full border border-primary/20 mb-6 backdrop-blur-xs select-none">
@@ -152,7 +152,7 @@ export default async function HomePage() {
       </section>
 
       {studentView && (
-        <section className="max-w-[1100px] mx-auto mt-10 mb-6 w-full px-4 relative z-10">
+        <section className="max-w-1100px mx-auto mt-10 mb-6 w-full px-4 relative z-10">
           <div className="flex flex-col gap-6">
 
             {/* Dashboard Header */}
@@ -279,7 +279,7 @@ export default async function HomePage() {
       )}
 
       {/* Live Statistics */}
-      <section className={cn("max-w-[1100px] mx-auto mb-16 w-full px-4 relative z-10", studentView ? "mt-6" : "mt-10")}>
+      <section className={cn("max-w-1100px mx-auto mb-16 w-full px-4 relative z-10", studentView ? "mt-6" : "mt-10")}>
         <div className="bg-card rounded-2xl shadow-xs border border-border/80 grid grid-cols-2 md:grid-cols-4 py-6 px-4 text-center gap-6">
           <div className="flex flex-col">
             <span className="block text-3xl font-extrabold text-primary">{examsCount}</span>
@@ -301,7 +301,7 @@ export default async function HomePage() {
       </section>
 
       {/* Features Grid */}
-      <section className="max-w-[1100px] mx-auto mb-20 w-full px-4">
+      <section className="max-w-1100px mx-auto mb-20 w-full px-4">
         <div className="text-center mb-12">
           <h2 className="text-2xl font-bold text-foreground mb-2">Key Features & Highlights</h2>
           <p className="text-muted-foreground text-sm max-w-lg mx-auto">Everything you need to master topics and pass your exams.</p>

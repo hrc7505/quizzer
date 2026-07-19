@@ -56,7 +56,7 @@ export function NoData({
       </span>
       
       {description && (
-        <span className="text-xs text-muted-foreground leading-relaxed max-w-[360px] mt-0.5">
+        <span className="text-xs text-muted-foreground leading-relaxed max-w-360px mt-0.5">
           {description}
         </span>
       )}

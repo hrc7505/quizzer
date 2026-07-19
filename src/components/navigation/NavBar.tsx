@@ -331,7 +331,7 @@ export function NavBar({ maxWidth = "1200px" }: { maxWidth?: string }) {
                     <div className="h-7 w-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20">
                       {session!.user!.name?.slice(0, 2).toUpperCase() || "U"}
                     </div>
-                    <span className="hidden sm:inline text-xs font-semibold text-foreground/90 max-w-[120px] truncate">
+                    <span className="hidden sm:inline text-xs font-semibold text-foreground/90 max-w-120px truncate">
                       {session!.user!.name || session!.user!.email?.split("@")[0]}
                     </span>
                     <Button

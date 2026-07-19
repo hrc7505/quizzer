@@ -44,7 +44,7 @@ function QuizScoreCardInner({
       </div>
 
       <div className="flex flex-col items-center justify-center py-6 border border-border/40 rounded-2xl bg-secondary/5">
-        <span className={cn("text-5xl font-extrabold tracking-tight", scoreTextClass)}>
+        <span className={cn("text-5xl font-semibold tracking-tight", scoreTextClass)}>
           {Math.round(scorePercentage)}%
         </span>
         <span className="text-xs font-semibold text-muted-foreground/80 mt-1 uppercase tracking-wider">

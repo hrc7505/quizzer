@@ -45,7 +45,7 @@ export function AdminDashboard({ stats }: { stats: Stats }) {
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               {card.label}
             </span>
-            <span className="text-3xl font-extrabold text-foreground tracking-tight mt-3">
+            <span className="text-3xl font-bold text-foreground tracking-tight mt-3">
               {card.value}
             </span>
           </LinkButton>

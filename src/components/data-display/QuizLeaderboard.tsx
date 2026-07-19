@@ -16,9 +16,9 @@ interface QuizLeaderboardProps {
 }
 
 const rankBadgeClass = (index: number) => {
-  if (index === 0) return "bg-amber-500 text-white font-black shadow-xs shadow-amber-500/25";
-  if (index === 1) return "bg-slate-400 text-white font-black shadow-xs shadow-slate-400/25";
-  if (index === 2) return "bg-amber-700 text-white font-black shadow-xs shadow-amber-700/25";
+  if (index === 0) return "bg-amber-500 text-white font-bold shadow-xs shadow-amber-500/25";
+  if (index === 1) return "bg-slate-400 text-white font-bold shadow-xs shadow-slate-400/25";
+  if (index === 2) return "bg-amber-700 text-white font-bold shadow-xs shadow-amber-700/25";
   return "bg-secondary text-secondary-foreground";
 };
 

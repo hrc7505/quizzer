@@ -52,7 +52,7 @@ function QuizLobbyInner({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <h1 className="text-xl font-extrabold tracking-tight text-foreground">{quiz.title}</h1>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">{quiz.title}</h1>
           <div className="flex items-center gap-1.5 justify-center text-xs text-muted-foreground font-semibold flex-wrap">
             <span>Difficulty:</span>
             <Badge

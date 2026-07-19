@@ -125,7 +125,7 @@ export default async function HomePage() {
             <span className="text-primary text-xs font-semibold">AI-Powered Study Assistant</span>
           </div>
 
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight mb-4 tracking-tight">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight mb-4 tracking-tight">
             Smart Study. AI-Powered Preparation.
           </h1>
           
@@ -225,7 +225,7 @@ export default async function HomePage() {
                         {lastCompletedAttempt.quiz.title}
                       </span>
                       <div className="flex gap-4 items-center my-2">
-                        <div className={`text-3xl font-extrabold ${
+                        <div className={`text-3xl font-bold ${
                           lastCompletedAttempt.scorePercentage >= 80 ? "text-success" : lastCompletedAttempt.scorePercentage >= 50 ? "text-warning" : "text-danger"
                         }`}>
                           {Math.round(lastCompletedAttempt.scorePercentage)}%
@@ -282,19 +282,19 @@ export default async function HomePage() {
       <section className={cn("max-w-1100px mx-auto mb-16 w-full px-4 relative z-10", studentView ? "mt-6" : "mt-10")}>
         <div className="bg-card rounded-2xl shadow-xs border border-border/80 grid grid-cols-2 md:grid-cols-4 py-6 px-4 text-center gap-6">
           <div className="flex flex-col">
-            <span className="block text-3xl font-extrabold text-primary">{examsCount}</span>
+            <span className="block text-3xl font-bold text-primary">{examsCount}</span>
             <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mt-1.5">Exams Structured</span>
           </div>
           <div className="border-l border-r border-border/50 flex flex-col">
-            <span className="block text-3xl font-extrabold text-info">{quizzesCount}</span>
+            <span className="block text-3xl font-bold text-info">{quizzesCount}</span>
             <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mt-1.5">Interactive Quizzes</span>
           </div>
           <div className="md:border-r border-border/50 flex flex-col">
-            <span className="block text-3xl font-extrabold text-success">{questionsCount}</span>
+            <span className="block text-3xl font-bold text-success">{questionsCount}</span>
             <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mt-1.5">Practice Questions</span>
           </div>
           <div className="flex flex-col">
-            <span className="block text-3xl font-extrabold text-warning">{deepDivesCount}</span>
+            <span className="block text-3xl font-bold text-warning">{deepDivesCount}</span>
             <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mt-1.5">AI Explanations</span>
           </div>
         </div>

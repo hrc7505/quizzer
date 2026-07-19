@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 import { useDialog } from "@/components/providers/OverlayProvider";
 import { useToast } from "@/components/providers/ToastProvider";
+import { PageHeader } from "@/components/data-display/PageHeader";
 import { QuestionCard } from "@/components/data-display/QuestionCard";
 import { QuestionEditorBody } from "@/components/data-display/QuestionEditorBody";
 
@@ -205,24 +206,22 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
       </div>
 
       {/* Header section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/80 pb-5">
-        <div>
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">{quiz.title} Questions</h1>
-            <Badge variant={difficultyColor(quiz.difficulty)} className="capitalize font-bold text-[10px] px-2 py-0.5 select-none animate-none">
-              {quiz.difficulty}
-            </Badge>
-          </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Compose, modify, or remove questions linked to this quiz.
-          </p>
-        </div>
-
-        <Button variant="primary" className="h-9 px-4 font-semibold text-xs gap-1.5 shadow-xs" onClick={handleOpenAdd}>
-          <Plus className="h-3.5 w-3.5" />
-          <span>Add Question</span>
-        </Button>
-      </div>
+      <PageHeader
+        title={`${quiz.title} Questions`}
+        badge={
+          <Badge variant={difficultyColor(quiz.difficulty)} className="capitalize font-bold text-[10px] px-2 py-0.5 select-none animate-none">
+            {quiz.difficulty}
+          </Badge>
+        }
+        description="Compose, modify, or remove questions linked to this quiz."
+        actions={
+          <Button variant="primary" className="h-9 px-4 font-semibold text-xs gap-1.5 shadow-xs" onClick={handleOpenAdd}>
+            <Plus className="h-3.5 w-3.5" />
+            <span>Add Question</span>
+          </Button>
+        }
+        titleClassName="text-2xl"
+      />
 
       {/* Questions list */}
       {quiz.questions.length === 0 ? (

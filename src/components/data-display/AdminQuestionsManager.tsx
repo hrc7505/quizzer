@@ -9,6 +9,7 @@ import { Alert } from "@/components/ui/Alert";
 import { useDialog } from "@/components/providers/OverlayProvider";
 import { Pagination } from "@/components/data-display/Pagination";
 import { SearchFilterBar } from "@/components/data-display/SearchFilterBar";
+import { PageHeader } from "@/components/data-display/PageHeader";
 import { QuestionCard } from "@/components/data-display/QuestionCard";
 import { QuestionEditorBody, type QuestionEditorForm } from "@/components/data-display/QuestionEditorBody";
 
@@ -222,24 +223,21 @@ export function AdminQuestionsManager({ questions: initial, quizzes }: AdminQues
         )}
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/80 pb-5">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <span>Questions Directory</span>
-            <Badge variant="secondary" className="px-2 py-0.5 font-bold text-[10px]">
-              {questions.length}
-            </Badge>
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Inspect, search, edit, or manually compose questions for any quiz.
-          </p>
-        </div>
-
-        <Button variant="primary" size="sm" className="gap-1.5 font-semibold text-xs h-9 px-4 shadow-xs" onClick={handleOpenAdd}>
-          <Plus className="h-3.5 w-3.5" />
-          <span>Add Question</span>
-        </Button>
-      </div>
+      <PageHeader
+        title="Questions Directory"
+        badge={
+          <Badge variant="secondary" className="px-2 py-0.5 font-bold text-[10px]">
+            {questions.length}
+          </Badge>
+        }
+        description="Inspect, search, edit, or manually compose questions for any quiz."
+        actions={
+          <Button variant="primary" size="sm" className="gap-1.5 font-semibold text-xs h-9 px-4 shadow-xs" onClick={handleOpenAdd}>
+            <Plus className="h-3.5 w-3.5" />
+            <span>Add Question</span>
+          </Button>
+        }
+      />
 
       {/* Toolbar Search & Filter Box */}
       {questions.length > 0 && (

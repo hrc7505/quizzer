@@ -1,15 +1,12 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
-  Link as LinkIcon,
-  MoreHorizontal,
   Sparkles,
   Download,
 } from "lucide-react";
 import { GenerateQuizForm } from "@/components/forms/GenerateQuizForm";
 import { Alert } from "@/components/ui/Alert";
-import { difficultyColor } from "@/lib/format";
 import NoData from "@/components/feedback/NoData";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -22,7 +19,8 @@ import { QuestionEditorBody } from "@/components/data-display/QuestionEditorBody
 import { downloadCSV } from "@/lib/csv-export";
 import { Pagination } from "@/components/data-display/Pagination";
 import { SearchFilterBar } from "@/components/data-display/SearchFilterBar";
-import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from "@/components/ui/Dropdown";
+import { PageHeader } from "@/components/data-display/PageHeader";
+import { QuizRow } from "@/components/data-display/QuizRow";
 
 interface TopicRef {
   id: string;
@@ -109,7 +107,22 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
   const triggerConfirm = (title: string, description: string, onConfirm: () => Promise<void>) =>
     dialog.confirm({ title, description, onConfirm });
 
-  const handleExportCSV = () => {
+  const filtered = useMemo(() => {
+    return quizzes.filter(q => {
+      const matchSearch = q.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        q.topics.some(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchDiff = !difficultyFilter || q.difficulty === difficultyFilter;
+      return matchSearch && matchDiff;
+    });
+  }, [quizzes, searchQuery, difficultyFilter]);
+
+  const paginated = useMemo(() => {
+    return filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  }, [filtered, currentPage, pageSize]);
+
+  const totalItems = filtered.length;
+
+  const handleExportCSV = useCallback(() => {
     const headers = ["Title", "Difficulty", "Order", "Questions", "Attempts", "Linked Topics"];
     const rows = filtered.map(q => [
       q.title,
@@ -121,7 +134,7 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
     ]);
     downloadCSV("quizzes.csv", headers, rows);
     toast.addToast({ type: "success", message: `Exported ${filtered.length} quizzes` });
-  };
+  }, [filtered, toast]);
 
   // Refresh quizzes list
   const fetchQuizzes = async () => {
@@ -143,17 +156,6 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
       setActiveQuizLoading(false);
     }
   };
-
-  // Filter quizzes by search query and difficulty
-  const filtered = quizzes.filter(q => {
-    const matchSearch = q.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      q.topics.some(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchDiff = !difficultyFilter || q.difficulty === difficultyFilter;
-    return matchSearch && matchDiff;
-  });
-
-  const totalItems = filtered.length;
-  const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   // Load active quiz details when drawer opens
   useEffect(() => {
@@ -480,40 +482,29 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
         )}
 
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/80 pb-5">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <span>Quizzes</span>
-            <Badge variant="secondary" className="px-2 py-0.5 font-bold text-[10px]">
-              {quizzes.length}
-            </Badge>
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Manage quizzes, link topics, and inspect questions.
-          </p>
-        </div>
-
-        <Button 
-          variant="primary" 
-          size="sm" 
-          className="gap-1.5 font-semibold text-xs h-9 px-4 shadow-xs" 
-          onClick={openGenerateDialog}
-        >
-          <Sparkles className="h-3.5 w-3.5" />
-          <span>Generate Quiz</span>
-        </Button>
-        {quizzes.length > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportCSV}
-            className="gap-1.5 font-semibold text-xs h-9"
-          >
-            <Download className="h-3.5 w-3.5" />
-            <span>Export CSV</span>
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Quizzes"
+        badge={
+          <Badge variant="secondary" className="px-2 py-0.5 font-bold text-[10px]">
+            {quizzes.length}
+          </Badge>
+        }
+        description="Manage quizzes, link topics, and inspect questions."
+        actions={
+          <>
+            <Button variant="primary" size="sm" className="gap-1.5 font-semibold text-xs h-9 px-4 shadow-xs" onClick={openGenerateDialog}>
+              <Sparkles className="h-3.5 w-3.5" />
+              <span>Generate Quiz</span>
+            </Button>
+            {quizzes.length > 0 && (
+              <Button variant="outline" size="sm" onClick={handleExportCSV} className="gap-1.5 font-semibold text-xs h-9">
+                <Download className="h-3.5 w-3.5" />
+                <span>Export CSV</span>
+              </Button>
+            )}
+          </>
+        }
+      />
 
       {/* Toolbar Search & Filter Box */}
       {quizzes.length > 0 && (
@@ -558,70 +549,14 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
               </thead>
               <tbody>
                 {paginated.map((item) => (
-                  <tr key={item.id} className="border-b border-border/20 hover:bg-secondary/20 transition-colors">
-                    <td className="py-3 px-4 text-center font-bold text-muted-foreground">
-                      #{item.quizOrder}
-                    </td>
-                    <td className="py-3 px-4">
-                      <button
-                        onClick={() => setSelectedQuizId(item.id)}
-                        className="text-left font-semibold text-foreground hover:text-primary transition-colors cursor-pointer block max-w-sm truncate border-0 bg-transparent p-0"
-                      >
-                        {item.title}
-                      </button>
-                    </td>
-                    <td className="py-3 px-4 text-center select-none">
-                      <Badge variant={difficultyColor(item.difficulty)} className="capitalize font-bold text-[10px] px-2 py-0.5 animate-none">
-                        {item.difficulty}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-4 text-center font-bold text-foreground/90">{item._count.questions}</td>
-                    <td className="py-3 px-4 text-center font-bold text-foreground/80">{item._count.attempts}</td>
-                    <td className="py-3 px-4 max-w-xs select-none">
-                      <div className="flex flex-wrap gap-1">
-                        {item.topics.length > 0 ? (
-                          item.topics.map(t => (
-                            <Badge key={t.id} variant="secondary" className="text-[10px] px-1.5 py-0 animate-none">
-                              {t.title}
-                            </Badge>
-                          ))
-                        ) : (
-                           <span className="text-[10px] text-muted-foreground/60 italic font-medium">Unlinked</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-center select-none">
-                      <div className="flex items-center justify-center gap-1.5">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={() => openLinkDialog(item)}
-                          className="h-8 w-8 text-muted-foreground hover:bg-surface-hover hover:text-primary rounded-lg border border-border/50 bg-surface"
-                          aria-label="Link topics"
-                        >
-                          <LinkIcon className="h-3.5 w-3.5" />
-                        </Button>
-                        
-                        <Dropdown>
-                          <DropdownTrigger>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 text-muted-foreground hover:bg-surface-hover rounded-lg"
-                              aria-label="More actions"
-                            >
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownTrigger>
-                          <DropdownContent align="right" className="w-44">
-                            <DropdownItem onClick={() => openEditDialog(item)}>Edit Details</DropdownItem>
-                            <DropdownItem onClick={() => setSelectedQuizId(item.id)}>Manage Questions</DropdownItem>
-                            <DropdownItem onClick={() => handleDeleteQuiz(item)} className="text-danger">Delete Quiz</DropdownItem>
-                          </DropdownContent>
-                        </Dropdown>
-                      </div>
-                    </td>
-                  </tr>
+                  <QuizRow
+                    key={item.id}
+                    quiz={item}
+                    onSelectQuiz={setSelectedQuizId}
+                    onOpenLinkDialog={openLinkDialog}
+                    onOpenEditDialog={openEditDialog}
+                    onDeleteQuiz={handleDeleteQuiz}
+                  />
                 ))}
               </tbody>
             </table>

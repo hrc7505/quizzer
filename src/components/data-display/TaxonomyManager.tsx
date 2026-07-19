@@ -7,7 +7,6 @@ import {
   ChevronRight,
   MoreHorizontal,
   Search,
-  Loader2,
   Link as LinkIcon,
 } from "lucide-react";
 import { GenerateQuizForm } from "@/components/forms/GenerateQuizForm";
@@ -24,6 +23,12 @@ import { useToast } from "@/components/providers/ToastProvider";
 import { LinkPicker } from "@/components/data-display/LinkPicker";
 import { ExamDrawerBody, TopicDrawerBody, QuizDrawerBody } from "@/components/data-display/TaxonomyDrawers";
 import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from "@/components/ui/Dropdown";
+import { PageHeader } from "@/components/data-display/PageHeader";
+import { LoadingSpinner } from "@/components/data-display/LoadingSpinner";
+import { Pagination } from "@/components/data-display/Pagination";
+import { TaxonomyExamRow } from "@/components/data-display/TaxonomyExamRow";
+import { TaxonomyTopicRow } from "@/components/data-display/TaxonomyTopicRow";
+import { ExamDialogBody, TopicDialogBody, QuizDialogBody, QuestionDialogBody } from "@/components/data-display/TaxonomyDialogBodies";
 
 import type { Exam, Topic, QuizSummary, QuizDetail, QuizQuestionDetail, FlatTopic } from "./TaxonomyManager.types";
 
@@ -56,179 +61,6 @@ interface QuestionForm {
   correctAnswer: string;
   hint: string;
   description: string;
-}
-
-interface ExamDialogBodyProps {
-  initialForm: ExamForm;
-  onSave: (form: ExamForm) => Promise<void>;
-  loading: boolean;
-}
-
-function ExamDialogBody({ initialForm, onSave, loading }: ExamDialogBodyProps) {
-  const [form, setForm] = useState<ExamForm>(initialForm);
-  const dialog = useDialog();
-
-  return (
-    <div className="flex flex-col gap-4 mt-3">
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Exam Title <span className="text-danger">*</span></label>
-        <Input value={form.title} onChange={e => setForm({...form, title: e.target.value})} required />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Description</label>
-        <Textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={3} />
-      </div>
-      <div className="flex items-center justify-end space-x-2 mt-6 pt-3 border-t border-border/30">
-        <Button variant="outline" onClick={() => dialog.close()}>Cancel</Button>
-        <Button variant="primary" onClick={async () => { await onSave(form); dialog.close(); }} disabled={!form.title || loading}>Save</Button>
-      </div>
-    </div>
-  );
-}
-
-interface TopicDialogBodyProps {
-  initialForm: TopicForm;
-  onSave: (form: TopicForm) => Promise<void>;
-  loading: boolean;
-}
-
-function TopicDialogBody({ initialForm, onSave, loading }: TopicDialogBodyProps) {
-  const [form, setForm] = useState<TopicForm>(initialForm);
-  const dialog = useDialog();
-
-  return (
-    <div className="flex flex-col gap-4 mt-3">
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Topic Title <span className="text-danger">*</span></label>
-        <Input value={form.title} onChange={e => setForm({...form, title: e.target.value})} required />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Description</label>
-        <Textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={3} />
-      </div>
-      <div className="flex items-center justify-end space-x-2 mt-6 pt-3 border-t border-border/30">
-        <Button variant="outline" onClick={() => dialog.close()}>Cancel</Button>
-        <Button variant="primary" onClick={async () => { await onSave(form); dialog.close(); }} disabled={!form.title || loading}>Save</Button>
-      </div>
-    </div>
-  );
-}
-
-interface QuizDialogBodyProps {
-  initialTopicId: string;
-  onSuccess: (result: { totalQuestions: number; quizzesCreated: number }) => Promise<void>;
-}
-
-function QuizDialogBody({ initialTopicId, onSuccess }: QuizDialogBodyProps) {
-  const dialog = useDialog();
-
-  return (
-    <GenerateQuizForm
-      initialTopicId={initialTopicId}
-      onSuccess={async (result) => {
-        await onSuccess(result);
-        dialog.close();
-      }}
-    />
-  );
-}
-
-interface QuestionDialogBodyProps {
-  initialForm: QuestionForm;
-  onSave: (form: QuestionForm) => Promise<void>;
-  loading: boolean;
-}
-
-function QuestionDialogBody({ initialForm, onSave, loading }: QuestionDialogBodyProps) {
-  const [form, setForm] = useState<QuestionForm>(initialForm);
-  const dialog = useDialog();
-
-  const handleOptionChange = (idx: number, val: string) => {
-    setForm(prev => {
-      const newOpts = [...prev.options];
-      newOpts[idx] = val;
-      let newCorrect = prev.correctAnswer;
-      if (prev.correctAnswer === prev.options[idx]) {
-        newCorrect = val;
-      }
-      return { ...prev, options: newOpts, correctAnswer: newCorrect };
-    });
-  };
-
-  const handleSave = async () => {
-    await onSave(form);
-    dialog.close();
-  };
-
-  return (
-    <div className="flex flex-col gap-4 mt-3">
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Question Text <span className="text-danger">*</span></label>
-        <Textarea
-          value={form.text}
-          onChange={e => setForm(prev => ({ ...prev, text: e.target.value }))}
-          placeholder="Enter the question text..."
-          rows={3}
-          required
-        />
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {form.options.map((opt, idx) => (
-          <div key={idx} className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Option {idx + 1} <span className="text-danger">*</span></label>
-            <Input
-              value={opt}
-              onChange={e => handleOptionChange(idx, e.target.value)}
-              placeholder={`Option ${idx + 1}`}
-              required
-            />
-          </div>
-        ))}
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Correct Answer <span className="text-danger">*</span></label>
-        <Select
-          value={form.correctAnswer}
-          onChange={e => setForm(prev => ({ ...prev, correctAnswer: e.target.value }))}
-          required
-        >
-          <option value="">Select correct option...</option>
-          {form.options.map((opt, idx) => (
-            opt.trim() && <option key={idx} value={opt}>{opt}</option>
-          ))}
-        </Select>
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Hint (Optional)</label>
-        <Input
-          value={form.hint}
-          onChange={e => setForm(prev => ({ ...prev, hint: e.target.value }))}
-          placeholder="e.g. Think about..."
-        />
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Explanation / Description <span className="text-danger">*</span></label>
-        <Textarea
-          value={form.description}
-          onChange={e => setForm(prev => ({ ...prev, description: e.target.value }))}
-          placeholder="Explain why this option is correct..."
-          rows={3}
-          required
-        />
-      </div>
-
-      <div className="flex items-center justify-end space-x-2 mt-6 pt-3 border-t border-border/30">
-        <Button variant="outline" onClick={() => dialog.close()}>Cancel</Button>
-        <Button variant="primary" onClick={handleSave} disabled={!form.text || !form.correctAnswer || !form.description || loading}>
-          Save
-        </Button>
-      </div>
-    </div>
-  );
 }
 
 export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "subtopics" }) {
@@ -885,12 +717,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
   }, [selectedQuizId, activeQuizDetail, activeQuizLoading, panel]);
 
   if (loading && exams.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 gap-2 text-xs text-muted-foreground select-none">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        <span>Loading taxonomy registry…</span>
-      </div>
-    );
+    return <LoadingSpinner text="Loading taxonomy registry..." className="py-20" />;
   }
 
   return (
@@ -904,40 +731,37 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       {/* EXAMS VIEW */}
       {view === "exams" && (
         <>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/80 pb-5">
-            <div>
-              <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                <span>Exams</span>
-                <Badge variant="secondary" className="px-2 py-0.5 font-bold text-[10px] animate-none">
-                  {filteredExams.length}
-                </Badge>
-              </h1>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Manage the top-level exams representing major categories of your curriculum.
-              </p>
-            </div>
-
-            <Button 
-              variant="primary" 
-              size="sm" 
-              className="gap-1.5 font-semibold text-xs h-9 px-4 shadow-xs" 
-              onClick={() => {
-                dialog.open({
-                  title: "Add Exam",
-                  body: (
-                    <ExamDialogBody
-                      initialForm={{ id: '', title: '', description: '' }}
-                      onSave={handleSaveExam}
-                      loading={loading}
-                    />
-                  ),
-                });
-              }}
-            >
-              <Plus className="h-3.5 w-3.5" />
-              <span>Add Exam</span>
-            </Button>
-          </div>
+          <PageHeader
+            title="Exams"
+            badge={
+              <Badge variant="secondary" className="px-2 py-0.5 font-bold text-[10px] animate-none">
+                {filteredExams.length}
+              </Badge>
+            }
+            description="Manage the top-level exams representing major categories of your curriculum."
+            actions={
+              <Button 
+                variant="primary" 
+                size="sm" 
+                className="gap-1.5 font-semibold text-xs h-9 px-4 shadow-xs" 
+                onClick={() => {
+                  dialog.open({
+                    title: "Add Exam",
+                    body: (
+                      <ExamDialogBody
+                        initialForm={{ id: '', title: '', description: '' }}
+                        onSave={handleSaveExam}
+                        loading={loading}
+                      />
+                    ),
+                  });
+                }}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span>Add Exam</span>
+              </Button>
+            }
+          />
 
           {/* Search bar */}
           <div className="relative w-full max-w-md">
@@ -1035,7 +859,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
                                     ),
                                   });
                                 }}>Edit Settings</DropdownItem>
-                                <DropdownItem onClick={() => handleDeleteExam(item.id, item.title)} className="text-danger">Delete Exam</DropdownItem>
+                                 <DropdownItem onClick={() => handleDeleteExam(item.id, item.title)} className="text-danger">Delete Exam</DropdownItem>
                               </DropdownContent>
                             </Dropdown>
                           </div>
@@ -1047,47 +871,13 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
               </div>
 
               {/* Pagination footer */}
-              <div className="flex flex-col sm:flex-row items-center justify-between p-4 border-t border-border/40 gap-4 bg-secondary/5 text-xs select-none">
-                <div className="flex items-center gap-2 text-muted-foreground/80 font-medium">
-                  <span>Show</span>
-                  <Select 
-                    value={pageSize.toString()} 
-                    onChange={e => { setPageSize(parseInt(e.target.value)); setCurrentPage(1); }} 
-                    className="h-8 w-16"
-                  >
-                    <option value="5">5</option>
-                    <option value="10">10</option>
-                    <option value="20">20</option>
-                    <option value="50">50</option>
-                  </Select>
-                  <span>entries</span>
-                </div>
-
-                <span className="text-muted-foreground/80 font-medium">
-                  Showing {totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, totalItems)} of {totalItems} entries
-                </span>
-
-                <div className="flex items-center gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    disabled={currentPage === 1} 
-                    onClick={() => setCurrentPage(p => p - 1)}
-                    className="h-8 font-semibold text-xs"
-                  >
-                    Previous
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    disabled={currentPage === totalPages} 
-                    onClick={() => setCurrentPage(p => p + 1)}
-                    className="h-8 font-semibold text-xs"
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
+              <Pagination
+                totalItems={totalItems}
+                pageSize={pageSize}
+                currentPage={currentPage}
+                onPageSizeChange={v => { setPageSize(v); setCurrentPage(1); }}
+                onPageChange={setCurrentPage}
+              />
             </Card>
           )}
         </>
@@ -1096,22 +886,19 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
       {/* TOPICS / SUBTOPICS VIEW */}
       {(view === "main-topics" || view === "subtopics") && (
         <>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/80 pb-5">
-            <div>
-              <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                <span>{view === "main-topics" ? "Main Topics" : "Sub Topics"}</span>
-                <Badge variant="secondary" className="px-2 py-0.5 font-bold text-[10px] animate-none">
-                  {filteredTopics.length}
-                </Badge>
-              </h1>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {view === "main-topics" 
-                  ? "Manage top-level topic nodes under Exams or Standalone Topics." 
-                  : "Manage fine-grained subtopics nested under Main Topics."}
-              </p>
-            </div>
-
-            {view === "main-topics" ? (
+          <PageHeader
+            title={view === "main-topics" ? "Main Topics" : "Sub Topics"}
+            badge={
+              <Badge variant="secondary" className="px-2 py-0.5 font-bold text-[10px] animate-none">
+                {filteredTopics.length}
+              </Badge>
+            }
+            description={
+              view === "main-topics"
+                ? "Manage top-level topic nodes under Exams or Standalone Topics."
+                : "Manage fine-grained subtopics nested under Main Topics."
+            }
+            actions={
               <Button 
                 variant="primary" 
                 size="sm" 
@@ -1119,20 +906,10 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
                 onClick={() => openNewTopicDialog('', '')}
               >
                 <Plus className="h-3.5 w-3.5" />
-                <span>Add Standalone Topic</span>
+                <span>{view === "main-topics" ? "Add Standalone Topic" : "Add Sub Topic"}</span>
               </Button>
-            ) : (
-              <Button 
-                variant="primary" 
-                size="sm" 
-                className="gap-1.5 font-semibold text-xs h-9 px-4 shadow-xs" 
-                onClick={() => openNewTopicDialog('', '')}
-              >
-                <Plus className="h-3.5 w-3.5" />
-                <span>Add Sub Topic</span>
-              </Button>
-            )}
-          </div>
+            }
+          />
 
           {/* Search bar */}
           <div className="relative w-full max-w-md">
@@ -1250,7 +1027,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
                                     ),
                                   });
                                 }}>Edit Settings</DropdownItem>
-                                <DropdownItem onClick={() => handleDeleteTopic(item.id, item.title)} className="text-danger">Delete Topic</DropdownItem>
+                                 <DropdownItem onClick={() => handleDeleteTopic(item.id, item.title)} className="text-danger">Delete Topic</DropdownItem>
                               </DropdownContent>
                             </Dropdown>
                           </div>
@@ -1262,47 +1039,13 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
               </div>
 
               {/* Pagination footer */}
-              <div className="flex flex-col sm:flex-row items-center justify-between p-4 border-t border-border/40 gap-4 bg-secondary/5 text-xs select-none">
-                <div className="flex items-center gap-2 text-muted-foreground/80 font-medium">
-                  <span>Show</span>
-                  <Select 
-                    value={pageSize.toString()} 
-                    onChange={e => { setPageSize(parseInt(e.target.value)); setCurrentPage(1); }} 
-                    className="h-8 w-16"
-                  >
-                    <option value="5">5</option>
-                    <option value="10">10</option>
-                    <option value="20">20</option>
-                    <option value="50">50</option>
-                  </Select>
-                  <span>entries</span>
-                </div>
-
-                <span className="text-muted-foreground/80 font-medium">
-                  Showing {totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, totalItems)} of {totalItems} entries
-                </span>
-
-                <div className="flex items-center gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    disabled={currentPage === 1} 
-                    onClick={() => setCurrentPage(p => p - 1)}
-                    className="h-8 font-semibold text-xs"
-                  >
-                    Previous
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    disabled={currentPage === totalPages} 
-                    onClick={() => setCurrentPage(p => p + 1)}
-                    className="h-8 font-semibold text-xs"
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
+              <Pagination
+                totalItems={totalItems}
+                pageSize={pageSize}
+                currentPage={currentPage}
+                onPageSizeChange={v => { setPageSize(v); setCurrentPage(1); }}
+                onPageChange={setCurrentPage}
+              />
             </Card>
           )}
         </>

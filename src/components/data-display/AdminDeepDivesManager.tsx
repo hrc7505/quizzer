@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Brain,
   Trash2,
   RefreshCw,
   Eye,
@@ -21,6 +20,7 @@ import { useToast } from "@/components/providers/ToastProvider";
 import { Pagination } from "@/components/data-display/Pagination";
 import { SearchFilterBar } from "@/components/data-display/SearchFilterBar";
 import { downloadCSV } from "@/lib/csv-export";
+import { PageHeader } from "@/components/data-display/PageHeader";
 
 interface QuestionRecord {
   id: string;
@@ -134,34 +134,23 @@ export function AdminDeepDivesManager({ questions: initialQuestions }: AdminDeep
   return (
     <div className="flex flex-col gap-6 py-4 w-full">
       {/* Page header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/80 pb-5">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary border border-primary/10 flex items-center justify-center shrink-0 shadow-xs">
-            <Brain className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-              <span>Deep Dives</span>
-              <Badge variant="secondary" className="px-2 py-0.5 font-bold text-[10px]">
-                {questions.length}
-              </Badge>
-            </h1>
-            <p className="text-xs text-muted-foreground mt-0.5">Manage saved AI elaborations</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          {questions.length > 0 && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExportCSV}
-                className="text-xs font-semibold h-9 gap-1.5"
-              >
+      <PageHeader
+        title="Deep Dives"
+        badge={
+          <Badge variant="secondary" className="px-2 py-0.5 font-bold text-[10px]">
+            {questions.length}
+          </Badge>
+        }
+        description="Manage saved AI elaborations"
+        actions={
+          <>
+            {questions.length > 0 && (
+              <Button variant="outline" size="sm" onClick={handleExportCSV} className="text-xs font-semibold h-9 gap-1.5">
                 <Download className="h-3.5 w-3.5" />
                 <span>Export CSV</span>
               </Button>
+            )}
+            {questions.length > 0 && (
               <Button
                 variant="outline"
                 size="sm"
@@ -172,15 +161,14 @@ export function AdminDeepDivesManager({ questions: initialQuestions }: AdminDeep
                 {loadingId === "bulk" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                 <span>{loadingId === "bulk" ? "Deleting..." : "Delete All"}</span>
               </Button>
-            </>
-          )}
-
-          <LinkButton href="/deep-dives" variant="primary" className="h-9 px-4 font-semibold text-xs gap-1.5">
-            <Eye className="h-3.5 w-3.5" />
-            <span>View Public Library</span>
-          </LinkButton>
-        </div>
-      </div>
+            )}
+            <LinkButton href="/deep-dives" variant="primary" className="h-9 px-4 font-semibold text-xs gap-1.5">
+              <Eye className="h-3.5 w-3.5" />
+              <span>View Public Library</span>
+            </LinkButton>
+          </>
+        }
+      />
 
       {/* Toolbar Search & Filter Box */}
       {questions.length > 0 && (

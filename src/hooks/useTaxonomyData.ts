@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { api } from "@/lib/api";
 import type { Exam, Topic, FlatTopic, QuizSummary } from "@/components/data-display/TaxonomyManager.types";
 
 interface TaxonomyData {
@@ -38,27 +39,23 @@ export function useTaxonomyData(): [TaxonomyData, TaxonomyActions] {
     setLoading(true);
     try {
       const [examsRes, topicsRes, quizzesRes] = await Promise.all([
-        fetch("/api/admin/exams"),
-        fetch("/api/admin/topics?all=true"),
-        fetch("/api/admin/quizzes"),
+        api.get<Exam[]>("/api/admin/exams"),
+        api.get<Topic[]>("/api/admin/topics?all=true"),
+        api.get<QuizSummary[]>("/api/admin/quizzes"),
       ]);
-
-      const examsData = await examsRes.json();
-      const topicsData = await topicsRes.json();
-      const quizzesData = await quizzesRes.json();
 
       if (!mountedRef.current) return;
 
-      if (Array.isArray(examsData)) setExams(examsData);
-      if (Array.isArray(topicsData)) {
-        setTopics(topicsData);
-        const flats: FlatTopic[] = topicsData.map((t: Topic) => ({
+      if (examsRes.success && examsRes.data) setExams(examsRes.data);
+      if (topicsRes.success && topicsRes.data) {
+        setTopics(topicsRes.data);
+        const flats: FlatTopic[] = topicsRes.data.map((t: Topic) => ({
           ...t,
           displayType: t.parentTopics && t.parentTopics.length > 0 ? "Sub Topic" : "Main Topic",
         }));
         setFlatTopics(flats);
       }
-      if (Array.isArray(quizzesData)) setAllQuizzes(quizzesData);
+      if (quizzesRes.success && quizzesRes.data) setAllQuizzes(quizzesRes.data);
     } catch (err) {
       if (!mountedRef.current) return;
       console.error(err);

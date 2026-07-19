@@ -1,47 +1,25 @@
-/**
- * Service to handle user-related API requests for admin panel.
- */
-import { Prisma } from "@prisma/client";
+import { api } from "@/lib/api";
 
-export type AdminUser = Prisma.UserGetPayload<{
-  include: {
-    _count: {
-      select: {
-        attempts: true;
-      };
-    };
-  };
-}>;
+export interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+  image?: string | null;
+  role: string;
+  createdAt: string;
+  _count?: { attempts: number };
+}
 
 export const UserService = {
-  /**
-   * Fetches all users from the admin API.
-   * 
-   * @returns A promise resolving to a list of users.
-   */
   getAllUsers: async (): Promise<AdminUser[]> => {
-    const res = await fetch("/api/admin/users");
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error || "Failed to fetch users");
-    }
-    return data;
+    const res = await api.get<AdminUser[]>("/api/admin/users");
+    if (res.success && res.data) return res.data;
+    return [];
   },
 
-  /**
-   * Deletes a user by their ID.
-   * 
-   * @param userId - The ID of the user to delete.
-   * @returns A promise resolving to a success confirmation.
-   */
   deleteUser: async (userId: string): Promise<{ success: boolean }> => {
-    const res = await fetch(`/api/admin/users/${userId}`, {
-      method: "DELETE",
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error || "Failed to delete user");
-    }
-    return data;
+    const res = await api.delete<{ success: boolean }>(`/api/admin/users/${userId}`);
+    if (res.success && res.data) return res.data;
+    return { success: false };
   },
 };

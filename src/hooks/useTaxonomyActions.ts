@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
+import { api } from "@/lib/api";
 
 interface ExamForm {
   id: string;
@@ -45,26 +46,16 @@ export function useTaxonomyActions(deps: TaxonomyActionsDeps) {
     setError(null);
     const isEdit = !!form.id;
     const url = isEdit ? `/api/admin/exams/${form.id}` : "/api/admin/exams";
-    const method = isEdit ? "PUT" : "POST";
+    const method = isEdit ? api.put : api.post;
 
-    try {
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: form.title, description: form.description }),
-      });
-      const data = await res.json();
-      if (!data.error) {
-        await fetchData();
-        toast.addToast({ type: "success", message: "Exam saved" });
-      } else {
-        setError(data.error);
-      }
-    } catch {
-      setError("Failed to save exam settings.");
-    } finally {
-      setLoading(false);
+    const res = await method(url, { title: form.title, description: form.description });
+    if (res.success) {
+      await fetchData();
+      toast.addToast({ type: "success", message: "Exam saved" });
+    } else {
+      setError(res.error);
     }
+    setLoading(false);
   }, [fetchData, setLoading, setError, toast]);
 
   const handleDeleteExam = useCallback((examId: string, title: string) => {
@@ -73,7 +64,7 @@ export function useTaxonomyActions(deps: TaxonomyActionsDeps) {
       `Permanently delete exam "${title}"? This unlinks all associated topics, but does not delete them.`,
       async () => {
         setLoading(true);
-        await fetch(`/api/admin/exams/${examId}`, { method: "DELETE" });
+        await api.delete(`/api/admin/exams/${examId}`);
         await fetchData();
         toast.addToast({ type: "success", message: "Exam deleted" });
       }
@@ -85,34 +76,24 @@ export function useTaxonomyActions(deps: TaxonomyActionsDeps) {
     setError(null);
     const isEdit = !!form.id;
     const url = isEdit ? `/api/admin/topics/${form.id}` : "/api/admin/topics";
-    const method = isEdit ? "PUT" : "POST";
+    const method = isEdit ? api.put : api.post;
 
-    try {
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: form.title,
-          description: form.description,
-          examId: form.examId || null,
-          parentId: form.parentId || null,
-        }),
-      });
-      const data = await res.json();
-      if (!data.error) {
-        await fetchData();
-        toast.addToast({ type: "success", message: "Topic saved" });
-        if (selectedTopicId) {
-          setSelectedTopicId(null);
-        }
-      } else {
-        setError(data.error);
+    const res = await method(url, {
+      title: form.title,
+      description: form.description,
+      examId: form.examId || null,
+      parentId: form.parentId || null,
+    });
+    if (res.success) {
+      await fetchData();
+      toast.addToast({ type: "success", message: "Topic saved" });
+      if (selectedTopicId) {
+        setSelectedTopicId(null);
       }
-    } catch {
-      setError("Failed to save topic settings.");
-    } finally {
-      setLoading(false);
+    } else {
+      setError(res.error);
     }
+    setLoading(false);
   }, [fetchData, setLoading, setError, toast, selectedTopicId, setSelectedTopicId]);
 
   const handleDeleteTopic = useCallback((topicId: string, title: string) => {
@@ -121,7 +102,7 @@ export function useTaxonomyActions(deps: TaxonomyActionsDeps) {
       `Permanently delete topic "${title}"? This unlinks nested elements and attempts.`,
       async () => {
         setLoading(true);
-        await fetch(`/api/admin/topics/${topicId}`, { method: "DELETE" });
+        await api.delete(`/api/admin/topics/${topicId}`);
         await fetchData();
         toast.addToast({ type: "success", message: "Topic deleted" });
         if (selectedTopicId === topicId) setSelectedTopicId(null);
@@ -132,24 +113,14 @@ export function useTaxonomyActions(deps: TaxonomyActionsDeps) {
   const handleSaveExamLinks = useCallback(async (linkExamId: string | null, selectedTopicIds: string[]) => {
     if (!linkExamId) return;
     setLoading(true);
-    try {
-      const res = await fetch(`/api/admin/exams/${linkExamId}/link-topics`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topicIds: selectedTopicIds }),
-      });
-      const data = await res.json();
-      if (!data.error) {
-        await fetchData();
-        toast.addToast({ type: "success", message: "Topics linked to exam" });
-      } else {
-        setError(data.error);
-      }
-    } catch {
-      setError("Failed to associate topics.");
-    } finally {
-      setLoading(false);
+    const res = await api.post(`/api/admin/exams/${linkExamId}/link-topics`, { topicIds: selectedTopicIds });
+    if (res.success) {
+      await fetchData();
+      toast.addToast({ type: "success", message: "Topics linked to exam" });
+    } else {
+      setError(res.error);
     }
+    setLoading(false);
   }, [fetchData, setLoading, setError, toast]);
 
   const handleUnlinkTopicFromExam = useCallback(async (topicId: string, topicTitle: string, examTitle: string, examId?: string) => {
@@ -158,7 +129,7 @@ export function useTaxonomyActions(deps: TaxonomyActionsDeps) {
       `Unlink topic "${topicTitle}" from exam "${examTitle}"?`,
       async () => {
         setLoading(true);
-        await fetch(`/api/admin/topics/${topicId}/unlink-exam${examId ? `?examId=${examId}` : ""}`, { method: "POST" });
+        await api.post(`/api/admin/topics/${topicId}/unlink-exam${examId ? `?examId=${examId}` : ""}`);
         await fetchData();
         toast.addToast({ type: "success", message: "Topic unlinked from exam" });
       }
@@ -168,24 +139,14 @@ export function useTaxonomyActions(deps: TaxonomyActionsDeps) {
   const handleSaveTopicLinks = useCallback(async (linkTopicId: string | null, selectedSubtopicIds: string[]) => {
     if (!linkTopicId) return;
     setLoading(true);
-    try {
-      const res = await fetch(`/api/admin/topics/${linkTopicId}/link-subtopics`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subtopicIds: selectedSubtopicIds }),
-      });
-      const data = await res.json();
-      if (!data.error) {
-        await fetchData();
-        toast.addToast({ type: "success", message: "Subtopics linked" });
-      } else {
-        setError(data.error);
-      }
-    } catch {
-      setError("Failed to link subtopics.");
-    } finally {
-      setLoading(false);
+    const res = await api.post(`/api/admin/topics/${linkTopicId}/link-subtopics`, { subtopicIds: selectedSubtopicIds });
+    if (res.success) {
+      await fetchData();
+      toast.addToast({ type: "success", message: "Subtopics linked" });
+    } else {
+      setError(res.error);
     }
+    setLoading(false);
   }, [fetchData, setLoading, setError, toast]);
 
   const handleUnlinkSubtopicFromParent = useCallback(async (subtopicId: string, subtopicTitle: string, parentTitle: string, parentId?: string) => {
@@ -194,7 +155,7 @@ export function useTaxonomyActions(deps: TaxonomyActionsDeps) {
       `Unlink subtopic "${subtopicTitle}" from parent topic "${parentTitle}"?`,
       async () => {
         setLoading(true);
-        await fetch(`/api/admin/topics/${subtopicId}/unlink-parent${parentId ? `?parentId=${parentId}` : ""}`, { method: "POST" });
+        await api.post(`/api/admin/topics/${subtopicId}/unlink-parent${parentId ? `?parentId=${parentId}` : ""}`);
         await fetchData();
         toast.addToast({ type: "success", message: "Subtopic unlinked" });
       }
@@ -204,24 +165,14 @@ export function useTaxonomyActions(deps: TaxonomyActionsDeps) {
   const handleSaveQuizLinks = useCallback(async (linkTopicId: string | null, selectedQuizIds: string[]) => {
     if (!linkTopicId) return;
     setLoading(true);
-    try {
-      const res = await fetch(`/api/admin/topics/${linkTopicId}/link-quizzes`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ quizIds: selectedQuizIds }),
-      });
-      const data = await res.json();
-      if (!data.error) {
-        await fetchData();
-        toast.addToast({ type: "success", message: "Quizzes linked to topic" });
-      } else {
-        setError(data.error);
-      }
-    } catch {
-      setError("Failed to link quizzes.");
-    } finally {
-      setLoading(false);
+    const res = await api.post(`/api/admin/topics/${linkTopicId}/link-quizzes`, { quizIds: selectedQuizIds });
+    if (res.success) {
+      await fetchData();
+      toast.addToast({ type: "success", message: "Quizzes linked to topic" });
+    } else {
+      setError(res.error);
     }
+    setLoading(false);
   }, [fetchData, setLoading, setError, toast]);
 
   const handleUnlinkQuizFromSubtopic = useCallback(async (quizId: string, quizTitle: string, topicTitle: string, flatTopics: { id: string; quizzes?: { id: string }[] }[]) => {
@@ -233,11 +184,7 @@ export function useTaxonomyActions(deps: TaxonomyActionsDeps) {
         setLoading(true);
         const currentQuizzes = flatTopics.find(t => t.id === selectedTopicId)?.quizzes?.map(q => q.id) || [];
         const nextQuizzes = currentQuizzes.filter(id => id !== quizId);
-        await fetch(`/api/admin/topics/${selectedTopicId}/link-quizzes`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ quizIds: nextQuizzes }),
-        });
+        await api.post(`/api/admin/topics/${selectedTopicId}/link-quizzes`, { quizIds: nextQuizzes });
         await fetchData();
         toast.addToast({ type: "success", message: "Quiz unlinked" });
       }
@@ -250,7 +197,7 @@ export function useTaxonomyActions(deps: TaxonomyActionsDeps) {
       `Permanently delete quiz "${quizTitle}"? This will delete all of its questions and attempt history.`,
       async () => {
         setLoading(true);
-        await fetch(`/api/admin/quizzes/${quizId}`, { method: "DELETE" });
+        await api.delete(`/api/admin/quizzes/${quizId}`);
         await fetchData();
         toast.addToast({ type: "success", message: "Quiz deleted" });
       }
@@ -262,7 +209,7 @@ export function useTaxonomyActions(deps: TaxonomyActionsDeps) {
     setLoading(true);
     const isEdit = !!form.id;
     const url = isEdit ? `/api/admin/questions/${form.id}` : "/api/admin/questions";
-    const method = isEdit ? "PUT" : "POST";
+    const method = isEdit ? api.put : api.post;
 
     const payload = {
       quizId: selectedQuizId,
@@ -273,25 +220,15 @@ export function useTaxonomyActions(deps: TaxonomyActionsDeps) {
       description: form.description,
     };
 
-    try {
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!data.error) {
-        if (refreshActiveQuizDetail) await refreshActiveQuizDetail(selectedQuizId);
-        await fetchData();
-        toast.addToast({ type: "success", message: "Question saved" });
-      } else {
-        setError(data.error);
-      }
-    } catch {
-      setError("Failed to save question.");
-    } finally {
-      setLoading(false);
+    const res = await method(url, payload);
+    if (res.success) {
+      if (refreshActiveQuizDetail) await refreshActiveQuizDetail(selectedQuizId);
+      await fetchData();
+      toast.addToast({ type: "success", message: "Question saved" });
+    } else {
+      setError(res.error);
     }
+    setLoading(false);
   }, [selectedQuizId, fetchData, setLoading, setError, toast, refreshActiveQuizDetail]);
 
   const handleDeleteQuestion = useCallback((questionId: string, text: string) => {
@@ -301,19 +238,13 @@ export function useTaxonomyActions(deps: TaxonomyActionsDeps) {
       async () => {
         if (!selectedQuizId) return;
         setLoading(true);
-        try {
-          const res = await fetch(`/api/admin/questions/${questionId}`, { method: "DELETE" });
-          const data = await res.json();
-          if (data.success) {
-            if (refreshActiveQuizDetail) await refreshActiveQuizDetail(selectedQuizId);
-            await fetchData();
-            toast.addToast({ type: "success", message: "Question deleted" });
-          }
-        } catch (e) {
-          console.error(e);
-        } finally {
-          setLoading(false);
+        const res = await api.delete(`/api/admin/questions/${questionId}`);
+        if (res.success) {
+          if (refreshActiveQuizDetail) await refreshActiveQuizDetail(selectedQuizId);
+          await fetchData();
+          toast.addToast({ type: "success", message: "Question deleted" });
         }
+        setLoading(false);
       }
     );
   }, [selectedQuizId, fetchData, setLoading, triggerConfirm, toast, refreshActiveQuizDetail]);

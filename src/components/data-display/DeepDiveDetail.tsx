@@ -1,8 +1,9 @@
 "use client";
 
 import { ArrowLeft } from "lucide-react";
+
 import { LinkButton } from "@/components/ui/LinkButton";
-import { DeepDiveBody } from "./DeepDiveBody";
+import { DeepDiveBody } from "@/components/data-display/DeepDiveBody";
 
 interface Question {
   id: string;

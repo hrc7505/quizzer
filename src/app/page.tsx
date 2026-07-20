@@ -1,21 +1,14 @@
+import Link from "next/link";
+import { getServerSession } from "next-auth/next";
+import { Prisma } from "@prisma/client";
+import { Brain, BookOpen, Sparkles, ArrowRight, Trophy, Timer, LayoutDashboard } from "lucide-react";
+
 import { Container } from "@/components/layouts/Container";
 import { PageLayout } from "@/components/layouts/PageLayout";
 import { prisma } from "@/lib/prisma";
-import Link from "next/link";
-import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { isStudent, getSessionUser, getDisplayName } from "@/lib/session";
 import { resolveQuizRoute } from "@/lib/quiz-routing";
-import { Prisma } from "@prisma/client";
-import {
-  Brain,
-  BookOpen,
-  Sparkles,
-  ArrowRight,
-  Trophy,
-  Timer,
-  LayoutDashboard,
-} from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/utils/cn";
 
@@ -113,7 +106,7 @@ export default async function HomePage() {
   return (
     <PageLayout contained={false}>
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-primary/5 via-background to-accent/30 text-foreground py-16 md:py-24 px-4 sm:px-6 lg:px-8 text-center relative overflow-hidden border-b border-border/10">
+      <section className="bg-linear-to-br from-primary/5 via-background to-accent/30 text-foreground py-16 md:py-24 px-4 sm:px-6 lg:px-8 text-center relative overflow-hidden border-b border-border/10">
         {/* Decorative background gradients */}
         <div className="absolute -top-1/2 left-1/4 w-[600px] h-[600px] rounded-full bg-[radial-gradient(circle,rgba(99,102,241,0.10)_0%,transparent_75%)] pointer-events-none dark:bg-[radial-gradient(circle,rgba(129,140,248,0.12)_0%,transparent_75%)]" />
         <div className="absolute -bottom-1/2 right-1/4 w-[600px] h-[600px] rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.06)_0%,transparent_75%)] pointer-events-none" />
@@ -254,7 +247,7 @@ export default async function HomePage() {
               </div>
 
               {/* Card: Quick Start */}
-              <div className="bg-card p-6 sm:p-7 rounded-2xl border border-border/80 shadow-xs flex flex-col gap-4 justify-between bg-gradient-to-br from-surface to-surface-hover/30">
+              <div className="bg-card p-6 sm:p-7 rounded-2xl border border-border/80 shadow-xs flex flex-col gap-4 justify-between bg-linear-to-br from-surface to-surface-hover/30">
                 <div>
                   <h3 className="text-lg font-bold text-foreground m-0 flex items-center gap-2 mb-2">
                     <LayoutDashboard className="h-5 w-5 text-primary" />

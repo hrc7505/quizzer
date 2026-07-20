@@ -1,8 +1,9 @@
 "use client";
 
 import { type ReactNode } from "react";
+
 import NavBar from "@/components/navigation/NavBar";
-import { Container, CONTAINER_MAX_WIDTH } from "./Container";
+import { Container, CONTAINER_MAX_WIDTH } from "@/components/layouts/Container";
 import { cn } from "@/utils/cn";
 
 type PageLayoutVariant = "public" | "admin" | "deep-dives" | "deep-dives-detail";

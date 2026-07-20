@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+
 import { resolveQuizRoute } from "@/lib/quiz-routing";
 
 export async function GET(

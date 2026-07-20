@@ -1,16 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+
 import { Alert } from "@/components/ui/Alert";
 import { LoadingSpinner } from "@/components/data-display/LoadingSpinner";
 import { useDialog, usePanel } from "@/components/providers/OverlayProvider";
 import { useToast, type ToastType } from "@/components/providers/ToastProvider";
 import { LinkPicker } from "@/components/data-display/LinkPicker";
-import {
-  ExamDrawerBody,
-  TopicDrawerBody,
-  QuizDrawerBody,
-} from "@/components/data-display/TaxonomyDrawers";
+import { ExamDrawerBody, TopicDrawerBody, QuizDrawerBody } from "@/components/data-display/TaxonomyDrawers";
 import {
   ExamDialogBody,
   TopicDialogBody,
@@ -21,10 +18,7 @@ import { TaxonomyExamsView } from "@/components/data-display/TaxonomyExamsView";
 import { TaxonomyTopicsView } from "@/components/data-display/TaxonomyTopicsView";
 import { useTaxonomyData } from "@/hooks/useTaxonomyData";
 import { useTaxonomyActions } from "@/hooks/useTaxonomyActions";
-import type {
-  QuizDetail,
-  QuizQuestionDetail,
-} from "./TaxonomyManager.types";
+import { QuizDetail, QuizQuestionDetail } from "@/components/data-display/TaxonomyManager.types";
 
 const difficultyBadgeVariant = (difficulty: string) => {
   const diff = difficulty.toLowerCase();

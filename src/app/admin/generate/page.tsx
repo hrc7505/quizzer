@@ -1,7 +1,8 @@
 "use client";
 
-import { GenerateQuizForm } from "@/components/forms/GenerateQuizForm";
 import { useRouter } from "next/navigation";
+
+import { GenerateQuizForm } from "@/components/forms/GenerateQuizForm";
 
 /**
  * Standalone Generate Quiz page.

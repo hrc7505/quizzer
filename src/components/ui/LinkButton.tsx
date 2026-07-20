@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { forwardRef } from "react";
-import { Button, type ButtonProps } from "./Button";
+
+import { Button, type ButtonProps } from "@/components/ui/Button";
 
 export type LinkButtonProps = ButtonProps & {
   /** Destination route. Enables Next.js prefetching via the underlying Link. */

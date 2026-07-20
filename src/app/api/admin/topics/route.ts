@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
-import { INTERNAL_TOPIC_TITLE } from "@/lib/constants";
 import { revalidatePath } from "next/cache";
+
+import { prisma } from "@/lib/prisma";
+import { INTERNAL_TOPIC_TITLE } from "@/lib/constants";
+
 
 export async function GET(req: Request) {
   try {

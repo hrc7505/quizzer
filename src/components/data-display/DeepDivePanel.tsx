@@ -2,9 +2,11 @@
 
 import * as React from "react";
 import { Loader2 } from "lucide-react";
+
 import { Alert } from "@/components/ui/Alert";
-import { DeepDiveBody } from "./DeepDiveBody";
-import type { QuestionData } from "./interfaces/QuizResults.interface";
+import { DeepDiveBody } from "@/components/data-display/DeepDiveBody";
+
+import type { QuestionData } from "@/components/data-display/interfaces/QuizResults.interface";
 
 interface DeepDivePanelProps {
   question: QuestionData | null;

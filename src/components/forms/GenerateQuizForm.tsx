@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { GenerateQuizResponse, GenerateQuizPayload } from "./interfaces/GenerateQuizForm.interface";
+
+import { GenerateQuizResponse, GenerateQuizPayload } from "@/components/forms/interfaces/GenerateQuizForm.interface";
 import { QuizService } from "@/lib/services/quiz.service";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";

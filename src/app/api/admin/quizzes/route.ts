@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+
+import { prisma } from "@/lib/prisma";
 import { revalidateQuizAndRelated } from "@/lib/quiz-routing";
 
 export async function GET() {

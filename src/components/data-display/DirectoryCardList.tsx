@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Search, ArrowRight } from "lucide-react";
+
 import NoData from "@/components/feedback/NoData";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";

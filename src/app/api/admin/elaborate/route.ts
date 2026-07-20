@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
+
 import { ai, GEMINI_MODEL, describeAiError } from "@/lib/gemini";
 import { prisma } from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
 import { sanitizeImageText } from "@/lib/format";
 
 /**

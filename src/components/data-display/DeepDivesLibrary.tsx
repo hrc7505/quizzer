@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Brain, BookOpen, Search, X } from "lucide-react";
+
 import NoData from "@/components/feedback/NoData";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";

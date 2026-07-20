@@ -1,14 +1,15 @@
 "use client";
 
 import { Loader2, Timer, Share2 } from "lucide-react";
+
 import { Badge } from "@/components/ui/Badge";
 import { Progress } from "@/components/ui/Progress";
 import { Alert } from "@/components/ui/Alert";
 import { ShareButton } from "@/components/ui/ShareButton";
 import { formatTime } from "@/lib/text";
 import { useQuizWizard } from "@/hooks/useQuizWizard";
-import { QuizLobby } from "./QuizLobby";
-import { QuizQuestionCard } from "./QuizQuestionCard";
+import { QuizLobby } from "@/components/data-display/QuizLobby";
+import { QuizQuestionCard } from "@/components/data-display/QuizQuestionCard";
 
 interface QuizWizardQuestion {
   id: string;

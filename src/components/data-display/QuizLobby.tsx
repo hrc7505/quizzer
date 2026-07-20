@@ -2,11 +2,13 @@
 
 import { memo } from "react";
 import { Play, RotateCcw, BookOpen, Share2 } from "lucide-react";
+
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { ShareButton } from "@/components/ui/ShareButton";
-import { QuizLeaderboard } from "./QuizLeaderboard";
+import { QuizLeaderboard } from "@/components/data-display/QuizLeaderboard";
+
 import type { LeaderboardEntry } from "@/lib/services/attempt.service";
 
 interface QuizLobbyProps {

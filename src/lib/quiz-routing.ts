@@ -1,5 +1,6 @@
-import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+
+import { prisma } from "@/lib/prisma";
 
 export async function resolveQuizRoute(quizId: string) {
   const quiz = await prisma.quiz.findUnique({

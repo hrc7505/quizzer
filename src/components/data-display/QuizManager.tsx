@@ -1,10 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import {
-  Sparkles,
-  Download,
-} from "lucide-react";
+import { Sparkles, Download } from "lucide-react";
+
 import { GenerateQuizForm } from "@/components/forms/GenerateQuizForm";
 import { Alert } from "@/components/ui/Alert";
 import NoData from "@/components/feedback/NoData";

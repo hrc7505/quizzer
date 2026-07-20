@@ -1,11 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { Button } from "@/components/ui/Button";
-import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from "@/components/ui/Dropdown";
 import { Layers, ChevronRight, Link as LinkIcon, MoreHorizontal } from "lucide-react";
 
-import type { FlatTopic } from "./TaxonomyManager.types";
+import { Button } from "@/components/ui/Button";
+import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from "@/components/ui/Dropdown";
+
+import type { FlatTopic } from "@/components/data-display/TaxonomyManager.types";
 
 export interface TaxonomyTopicRowProps {
   topic: FlatTopic;

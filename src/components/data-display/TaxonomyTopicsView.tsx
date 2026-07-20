@@ -2,6 +2,7 @@
 
 import { memo } from "react";
 import { Plus, Search, ChevronRight, Layers, Link as LinkIcon, MoreHorizontal } from "lucide-react";
+
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -10,6 +11,7 @@ import { PageHeader } from "@/components/data-display/PageHeader";
 import { Pagination } from "@/components/data-display/Pagination";
 import { NoData } from "@/components/feedback/NoData";
 import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from "@/components/ui/Dropdown";
+
 import type { FlatTopic } from "@/components/data-display/TaxonomyManager.types";
 
 interface TaxonomyTopicsViewProps {

@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
-import { authOptions, SessionUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+
+import { prisma } from "@/lib/prisma";
+import { authOptions, SessionUser } from "@/lib/auth";
 import { revalidateQuizAndRelated } from "@/lib/quiz-routing";
 
 

@@ -1,6 +1,7 @@
+import { notFound, redirect } from "next/navigation";
+
 import { prisma } from "@/lib/prisma";
 import { resolveQuizRoute } from "@/lib/quiz-routing";
-import { notFound, redirect } from "next/navigation";
 
 export const revalidate = 60;
 

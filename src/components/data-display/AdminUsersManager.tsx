@@ -4,8 +4,9 @@ import { useState } from "react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { Trash2, Search, AlertTriangle, Loader2, Download } from "lucide-react";
+
 import { downloadCSV } from "@/lib/csv-export";
-import { AdminUsersManagerProps, UserData } from "./interfaces/AdminUsersManager.interface";
+import { AdminUsersManagerProps, UserData } from "@/components/data-display/interfaces/AdminUsersManager.interface";
 import { UserService } from "@/lib/services/user.service";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";

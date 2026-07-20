@@ -3,7 +3,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
+
 import { AttemptService } from "@/lib/services/attempt.service";
+
 import type { LeaderboardEntry } from "@/lib/services/attempt.service";
 
 interface QuizWizardQuestion {

@@ -1,13 +1,8 @@
 "use client";
 
 import { memo } from "react";
-import {
-  Sparkles,
-  Check,
-  Lightbulb,
-  X,
-  Loader2,
-} from "lucide-react";
+import { Sparkles, Check, Lightbulb, X, Loader2 } from "lucide-react";
+
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/utils/cn";

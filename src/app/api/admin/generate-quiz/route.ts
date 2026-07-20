@@ -1,14 +1,16 @@
 import { NextResponse } from "next/server";
-import { ai, GEMINI_MODEL, describeAiError } from "@/lib/gemini";
 import { Type } from "@google/genai";
-import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { getServerSession } from "next-auth/next";
-import { authOptions, SessionUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import PDFParser from "pdf2json";
+
+import { authOptions, SessionUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { ai, GEMINI_MODEL, describeAiError } from "@/lib/gemini";
 import { INTERNAL_TOPIC_TITLE } from "@/lib/constants";
 import { sanitizeImageText } from "@/lib/format";
+
 import fs from "fs";
 import path from "path";
 import os from "os";

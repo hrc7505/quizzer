@@ -1,9 +1,10 @@
 "use client";
 
+import { BookOpen } from "lucide-react";
+
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { ContentHeader } from "@/components/layouts/ContentHeader";
 import { DirectoryCardList } from "@/components/data-display/DirectoryCardList";
-import { BookOpen } from "lucide-react";
 
 interface ExamsPageClientProps {
   examItems: Array<{

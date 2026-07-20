@@ -1,7 +1,8 @@
+import { notFound } from "next/navigation";
+
 import { PageLayout } from "@/components/layouts/PageLayout";
 import { prisma } from "@/lib/prisma";
 import { QuizResults } from "@/components/data-display/QuizResults";
-import { notFound } from "next/navigation";
 
 export default async function ResultsPage({ params }: { params: Promise<{ attemptId: string }> }) {
   const { attemptId } = await params;

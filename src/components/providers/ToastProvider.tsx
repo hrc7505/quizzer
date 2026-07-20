@@ -3,6 +3,7 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
 import { X, CheckCircle2, AlertCircle, Info, AlertTriangle } from "lucide-react";
+
 import { cn } from "@/utils/cn";
 
 export type ToastType = "success" | "error" | "info" | "warning";

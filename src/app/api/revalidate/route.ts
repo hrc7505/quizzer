@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions, SessionUser } from "@/lib/auth";
 import { revalidatePath, revalidateTag } from "next/cache";
+
+import { authOptions, SessionUser } from "@/lib/auth";
 
 export async function POST(req: Request) {
   try {

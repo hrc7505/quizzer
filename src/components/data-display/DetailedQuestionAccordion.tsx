@@ -3,10 +3,12 @@
 import { memo, useState } from "react";
 import { ChevronDown, ChevronUp, Sparkles, Loader2, ArrowRight } from "lucide-react";
 import Link from "next/link";
+
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/utils/cn";
-import type { QuestionData, UserAnswerData } from "./interfaces/QuizResults.interface";
+
+import type { QuestionData, UserAnswerData } from "@/components/data-display/interfaces/QuizResults.interface";
 
 interface DetailedQuestionAccordionProps {
   question: QuestionData;

@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+
 import { api } from "@/lib/api";
+
 import type { Exam, Topic, FlatTopic, QuizSummary } from "@/components/data-display/TaxonomyManager.types";
 
 interface TaxonomyData {

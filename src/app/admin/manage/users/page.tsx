@@ -1,9 +1,11 @@
+import { getServerSession } from "next-auth/next";
+import { redirect } from "next/navigation";
+
 import { prisma } from "@/lib/prisma";
 import { AdminUsersManager } from "@/components/data-display/AdminUsersManager";
-import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { isAdmin } from "@/lib/session";
-import { redirect } from "next/navigation";
+
 
 export const dynamic = "force-dynamic";
 

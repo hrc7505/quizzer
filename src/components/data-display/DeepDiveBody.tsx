@@ -2,10 +2,11 @@
 
 import { Brain, BookOpen } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+
 import { NoData } from "@/components/feedback/NoData";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { DeepDiveBodyProps } from "./interfaces/DeepDiveBody.interface";
+import { DeepDiveBodyProps } from "@/components/data-display/interfaces/DeepDiveBody.interface";
 
 /**
  * DeepDiveBody component displays the full detail of a deep dive,
@@ -28,7 +29,7 @@ export function DeepDiveBody({ question }: DeepDiveBodyProps) {
       {/* Header card */}
       <Card className="border-border/80 bg-card overflow-hidden shadow-sm p-0">
         {/* Gradient banner */}
-        <div className="bg-gradient-to-br from-primary to-accent p-6 sm:p-7 flex items-start gap-4 text-primary-foreground">
+        <div className="bg-linear-to-br from-primary to-accent p-6 sm:p-7 flex items-start gap-4 text-primary-foreground">
           <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center shrink-0 shadow-sm border border-white/10">
             <Brain className="h-5 w-5 text-white" />
           </div>

@@ -3,25 +3,20 @@
 import * as React from "react";
 import { useRef, useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import {
-  Share2,
-  FileDown,
-  MoreHorizontal,
-  Eye,
-  Loader2,
-} from "lucide-react";
+import { Share2, FileDown, MoreHorizontal, Eye, Loader2 } from "lucide-react";
+
 import { AttemptService, LeaderboardEntry } from "@/lib/services/attempt.service";
 import { generateQuizPDF } from "@/lib/pdf-generator";
-import { QuizResultsProps, QuestionData, UserAnswerData } from "./interfaces/QuizResults.interface";
+import { QuizResultsProps, QuestionData, UserAnswerData } from "@/components/data-display/interfaces/QuizResults.interface";
 import { ShareButton } from "@/components/ui/ShareButton";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { usePanel, useDialog } from "@/components/providers/OverlayProvider";
 import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from "@/components/ui/Dropdown";
-import { QuizScoreCard } from "./QuizScoreCard";
-import { QuizLeaderboard } from "./QuizLeaderboard";
-import { DetailedQuestionAccordion } from "./DetailedQuestionAccordion";
-import { DeepDivePanel } from "./DeepDivePanel";
+import { QuizScoreCard } from "@/components/data-display/QuizScoreCard";
+import { QuizLeaderboard } from "@/components/data-display/QuizLeaderboard";
+import { DetailedQuestionAccordion } from "@/components/data-display/DetailedQuestionAccordion";
+import { DeepDivePanel } from "@/components/data-display/DeepDivePanel";
 
 /**
  * QuizResults component renders the results screen after quiz completion,

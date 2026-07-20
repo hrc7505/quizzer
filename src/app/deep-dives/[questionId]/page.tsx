@@ -1,8 +1,9 @@
+import { notFound } from "next/navigation";
+
 import { prisma } from "@/lib/prisma";
 import { INTERNAL_TOPIC_TITLE } from "@/lib/constants";
 import { DeepDiveDetail } from "@/components/data-display/DeepDiveDetail";
 import { PageLayout } from "@/components/layouts/PageLayout";
-import { notFound } from "next/navigation";
 
 export const revalidate = 60;
 

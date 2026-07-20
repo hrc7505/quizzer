@@ -3,12 +3,14 @@
 import * as React from "react";
 import Link from "next/link";
 import { BookOpen, Layers, Link as LinkIcon, Plus, Unlink2, Edit, Trash2, Loader2 } from "lucide-react";
+
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge, type BadgeProps } from "@/components/ui/Badge";
 import { NoData } from "@/components/feedback/NoData";
 import { cn } from "@/utils/cn";
-import type { Exam, Topic, QuizDetail, QuizQuestionDetail } from "./TaxonomyManager.types";
+
+import type { Exam, Topic, QuizDetail, QuizQuestionDetail } from "@/components/data-display/TaxonomyManager.types";
 
 interface ExamDrawerBodyProps {
   exam: Exam;

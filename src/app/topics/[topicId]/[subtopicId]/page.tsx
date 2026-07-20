@@ -1,11 +1,13 @@
+import { BookOpen } from "lucide-react";
+import { notFound } from "next/navigation";
+
 import { PageLayout } from "@/components/layouts/PageLayout";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Breadcrumbs } from "@/components/navigation/Breadcrumbs";
 import { ContentHeader } from "@/components/layouts/ContentHeader";
 import { QuizCardGrid } from "@/components/data-display/QuizCardGrid";
-import { BookOpen } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { notFound } from "next/navigation";
+
 
 export const revalidate = 60;
 

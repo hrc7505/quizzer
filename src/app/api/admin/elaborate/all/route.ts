@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
+import { revalidatePath } from "next/cache";
+
 import { authOptions, SessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { INTERNAL_TOPIC_TITLE } from "@/lib/constants";
-import { revalidatePath } from "next/cache";
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions);

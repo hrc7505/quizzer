@@ -1,9 +1,11 @@
-import type { Metadata, Viewport } from "next";
 import { Winky_Sans } from "next/font/google";
 import Script from "next/script";
 import NextTopLoader from "nextjs-toploader";
+
 import "@/styles/globals.css";
 import { Providers } from "@/components/providers/Providers";
+
+import type { Metadata, Viewport } from "next";
 
 const winkySans = Winky_Sans({
   subsets: ["latin"],

@@ -2,10 +2,12 @@
 
 import { memo } from "react";
 import { Trophy, Loader2 } from "lucide-react";
+
 import { Card } from "@/components/ui/Card";
 import { NoData } from "@/components/feedback/NoData";
 import { cn } from "@/utils/cn";
 import { formatTime } from "@/lib/text";
+
 import type { LeaderboardEntry } from "@/lib/services/attempt.service";
 
 interface QuizLeaderboardProps {

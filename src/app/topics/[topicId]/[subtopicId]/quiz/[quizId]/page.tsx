@@ -1,6 +1,7 @@
+import { notFound } from "next/navigation";
+
 import { QuizClient } from "@/components/data-display/QuizClient";
 import { prisma } from "@/lib/prisma";
-import { notFound } from "next/navigation";
 
 export const revalidate = 60;
 

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Search, ArrowRight, Share2 } from "lucide-react";
+
 import { ShareButton } from "@/components/ui/ShareButton";
 import NoData from "@/components/feedback/NoData";
 import { Card } from "@/components/ui/Card";

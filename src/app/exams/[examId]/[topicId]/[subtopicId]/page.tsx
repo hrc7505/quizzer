@@ -1,6 +1,7 @@
-import { QuizzesPageClient } from "./QuizzesPageClient";
-import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
+
+import { QuizzesPageClient } from "@/app/exams/[examId]/[topicId]/[subtopicId]/QuizzesPageClient";
+import { prisma } from "@/lib/prisma";
 
 export const revalidate = 60;
 

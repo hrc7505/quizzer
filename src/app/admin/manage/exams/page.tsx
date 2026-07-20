@@ -1,7 +1,9 @@
-import { TaxonomyManager } from "@/components/data-display/TaxonomyManager";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
+
+import { TaxonomyManager } from "@/components/data-display/TaxonomyManager";
+import { authOptions } from "@/lib/auth";
+
 
 export default async function ManageExamsPage() {
   const session = await getServerSession(authOptions);

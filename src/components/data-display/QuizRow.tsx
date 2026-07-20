@@ -1,10 +1,11 @@
 "use client";
 
 import * as React from "react";
+import { Link as LinkIcon, MoreHorizontal } from "lucide-react";
+
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from "@/components/ui/Dropdown";
-import { Link as LinkIcon, MoreHorizontal } from "lucide-react";
 import { difficultyColor } from "@/lib/format";
 
 interface TopicRef {

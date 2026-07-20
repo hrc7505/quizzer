@@ -2,10 +2,12 @@
 
 import * as React from "react";
 import { createPortal } from "react-dom";
-import type { DialogConfig } from "./DialogHost";
-import type { PanelConfig } from "./PanelHost";
-import { DialogHost } from "./DialogHost";
-import { PanelHost } from "./PanelHost";
+
+import { DialogHost } from "@/components/providers/DialogHost";
+import { PanelHost } from "@/components/providers/PanelHost";
+
+import type { DialogConfig } from "@/components/providers/DialogHost";
+import type { PanelConfig } from "@/components/providers/PanelHost";
 
 interface OverlayContextValue {
   dialog: {

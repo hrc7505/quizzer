@@ -1,4 +1,5 @@
 import { type ElementType, type ReactNode } from "react";
+
 import { cn } from "@/utils/cn";
 
 export const CONTAINER_MAX_WIDTH = "1100px";

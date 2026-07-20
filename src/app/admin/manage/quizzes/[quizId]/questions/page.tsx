@@ -1,6 +1,7 @@
+import { notFound } from "next/navigation";
+
 import { prisma } from "@/lib/prisma";
 import { AdminQuizQuestionsManager } from "@/components/data-display/AdminQuizQuestionsManager";
-import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 

@@ -1,11 +1,12 @@
 "use client";
 
+import { BookOpen } from "lucide-react";
+
 import { PageLayout } from "@/components/layouts/PageLayout";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Breadcrumbs } from "@/components/navigation/Breadcrumbs";
 import { ContentHeader } from "@/components/layouts/ContentHeader";
 import { QuizCardGrid } from "@/components/data-display/QuizCardGrid";
-import { BookOpen } from "lucide-react";
 
 interface QuizzesPageClientProps {
   examId: string;

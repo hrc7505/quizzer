@@ -1,7 +1,8 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { cn } from "@/utils/cn";
+
+import type { ReactNode } from "react";
 
 export type ContentHeaderVariant = "exam" | "topic" | "subtopic" | "quiz";
 
@@ -33,7 +34,7 @@ export function ContentHeader({
       {/* Icon badge with gradient backdrop */}
       <div 
         className={cn(
-          "w-11 h-11 shrink-0 rounded-xl flex items-center justify-center text-white bg-gradient-to-br shadow-sm border border-white/10",
+          "w-11 h-11 shrink-0 rounded-xl flex items-center justify-center text-white bg-linear-to-br shadow-sm border border-white/10",
           gradientClass
         )}
       >

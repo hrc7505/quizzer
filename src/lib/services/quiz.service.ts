@@ -1,4 +1,5 @@
 import { api } from "@/lib/api";
+
 import type { GenerateQuizResponse } from "@/components/forms/interfaces/GenerateQuizForm.interface";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

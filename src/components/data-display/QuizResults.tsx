@@ -197,7 +197,7 @@ export function QuizResults({ attempt }: QuizResultsProps) {
                 onClick={() =>
                   dialog.open({
                     title: "Detailed Review",
-                    className: "max-w-720px p-6",
+                    className: "max-w-[720px] p-6",
                     body: (
                       <DetailedReviewBody
                         questions={attempt.quiz.questions}

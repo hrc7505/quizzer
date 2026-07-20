@@ -99,13 +99,13 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
     const item = items[index];
     if (!item) return null;
     const content = isLast ? (
-      <span className="text-foreground font-semibold truncate max-w-200px">{item.label}</span>
+      <span className="text-foreground font-semibold truncate max-w-[200px]">{item.label}</span>
     ) : item.href ? (
-      <Link href={item.href} className="text-muted-foreground hover:text-foreground font-medium hover:underline transition-colors duration-150 truncate max-w-150px">
+      <Link href={item.href} className="text-muted-foreground hover:text-foreground font-medium hover:underline transition-colors duration-150 truncate max-w-[150px]">
         {item.label}
       </Link>
     ) : (
-      <span className="text-muted-foreground font-medium truncate max-w-150px">{item.label}</span>
+      <span className="text-muted-foreground font-medium truncate max-w-[150px]">{item.label}</span>
     );
 
     return (

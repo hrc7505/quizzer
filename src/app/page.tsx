@@ -1,4 +1,5 @@
-import { NavBar } from "@/components/navigation/NavBar";
+import { Container } from "@/components/layouts/Container";
+import { PageLayout } from "@/components/layouts/PageLayout";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { getServerSession } from "next-auth/next";
@@ -110,14 +111,12 @@ export default async function HomePage() {
   const lastCompletedRoute = lastCompletedAttempt ? await resolveQuizRoute(lastCompletedAttempt.quizId) : null;
 
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground transition-colors duration-200">
-      <NavBar maxWidth="1100px" />
-
+    <PageLayout contained={false}>
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-primary/5 via-background to-accent/30 text-foreground py-16 md:py-24 px-4 md:px-6 text-center relative overflow-hidden border-b border-border/10">
+      <section className="bg-gradient-to-br from-primary/5 via-background to-accent/30 text-foreground py-16 md:py-24 px-4 sm:px-6 lg:px-8 text-center relative overflow-hidden border-b border-border/10">
         {/* Decorative background gradients */}
-        <div className="absolute -top-1/2 left-1/4 w-600px h-600px rounded-full bg-[radial-gradient(circle,rgba(99,102,241,0.10)_0%,transparent_75%)] pointer-events-none dark:bg-[radial-gradient(circle,rgba(129,140,248,0.12)_0%,transparent_75%)]" />
-        <div className="absolute -bottom-1/2 right-1/4 w-600px h-600px rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.06)_0%,transparent_75%)] pointer-events-none" />
+        <div className="absolute -top-1/2 left-1/4 w-[600px] h-[600px] rounded-full bg-[radial-gradient(circle,rgba(99,102,241,0.10)_0%,transparent_75%)] pointer-events-none dark:bg-[radial-gradient(circle,rgba(129,140,248,0.12)_0%,transparent_75%)]" />
+        <div className="absolute -bottom-1/2 right-1/4 w-[600px] h-[600px] rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.06)_0%,transparent_75%)] pointer-events-none" />
 
         <div className="max-w-3xl mx-auto relative z-10">
           <div className="inline-flex items-center gap-2 bg-primary/10 px-3.5 py-1.5 rounded-full border border-primary/20 mb-6 backdrop-blur-xs select-none">
@@ -152,7 +151,7 @@ export default async function HomePage() {
       </section>
 
       {studentView && (
-        <section className="max-w-1100px mx-auto mt-10 mb-6 w-full px-4 relative z-10">
+        <Container className="mt-10 mb-6 relative z-10">
           <div className="flex flex-col gap-6">
 
             {/* Dashboard Header */}
@@ -275,11 +274,11 @@ export default async function HomePage() {
             </div>
 
           </div>
-        </section>
+        </Container>
       )}
 
       {/* Live Statistics */}
-      <section className={cn("max-w-1100px mx-auto mb-16 w-full px-4 relative z-10", studentView ? "mt-6" : "mt-10")}>
+      <Container className={cn("mb-16 relative z-10", studentView ? "mt-6" : "mt-10")}>
         <div className="bg-card rounded-2xl shadow-xs border border-border/80 grid grid-cols-2 md:grid-cols-4 py-6 px-4 text-center gap-6">
           <div className="flex flex-col">
             <span className="block text-3xl font-bold text-primary">{examsCount}</span>
@@ -298,10 +297,10 @@ export default async function HomePage() {
             <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mt-1.5">AI Explanations</span>
           </div>
         </div>
-      </section>
+      </Container>
 
       {/* Features Grid */}
-      <section className="max-w-1100px mx-auto mb-20 w-full px-4">
+      <Container className="mb-20">
         <div className="text-center mb-12">
           <h2 className="text-2xl font-bold text-foreground mb-2">Key Features & Highlights</h2>
           <p className="text-muted-foreground text-sm max-w-lg mx-auto">Everything you need to master topics and pass your exams.</p>
@@ -347,10 +346,10 @@ export default async function HomePage() {
             </div>
           </div>
         </div>
-      </section>
+      </Container>
 
       {/* CTA Section */}
-      <section className="bg-secondary/40 border-t border-border/80 py-16 px-6 text-center transition-colors">
+      <section className="bg-secondary/40 border-t border-border/80 py-16 px-4 sm:px-6 lg:px-8 text-center transition-colors">
         <div className="max-w-2xl mx-auto">
           <h2 className="text-2xl font-bold text-foreground mb-3">Ready to boost your study session?</h2>
           <p className="text-muted-foreground text-sm mb-6 max-w-md mx-auto">
@@ -373,6 +372,6 @@ export default async function HomePage() {
           © {new Date().getFullYear()} Quizzer · AI-powered interactive learning platform.
         </span>
       </footer>
-    </div>
+    </PageLayout>
   );
 }

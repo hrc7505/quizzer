@@ -2,6 +2,7 @@
 
 import { type ReactNode } from "react";
 import NavBar from "@/components/navigation/NavBar";
+import { Container, CONTAINER_MAX_WIDTH } from "./Container";
 import { cn } from "@/utils/cn";
 
 type PageLayoutVariant = "public" | "admin" | "deep-dives" | "deep-dives-detail";
@@ -11,14 +12,18 @@ interface PageLayoutProps {
   variant?: PageLayoutVariant;
   navMaxWidth?: string;
   mainMaxWidth?: string;
+  /** Wrap children in the standard Container. Set false for pages that
+   *  manage their own full-bleed + Container layout (e.g. the home page). */
+  contained?: boolean;
   className?: string;
 }
 
 export function PageLayout({ 
   children, 
   variant = "public", 
-  navMaxWidth, 
-  mainMaxWidth, 
+  navMaxWidth = CONTAINER_MAX_WIDTH,
+  mainMaxWidth = CONTAINER_MAX_WIDTH,
+  contained = true,
   className 
 }: PageLayoutProps) {
   
@@ -33,16 +38,22 @@ export function PageLayout({
       )}
     >
       <NavBar maxWidth={navMaxWidth} />
-      <main 
-        className={cn(
-          "w-full px-4 py-6 sm:px-6 lg:px-8 mx-auto flex-1",
-          isScrollContainer && "overflow-y-auto",
-          variant === "deep-dives-detail" && !mainMaxWidth ? "max-w-4xl" : "max-w-7xl"
-        )}
-        style={mainMaxWidth ? { maxWidth: mainMaxWidth } : undefined}
-      >
-        {children}
-      </main>
+      {contained ? (
+        <Container
+          as="main"
+          maxWidth={mainMaxWidth}
+          className={cn(
+            "flex-1 py-6 sm:py-8",
+            isScrollContainer && "overflow-y-auto"
+          )}
+        >
+          {children}
+        </Container>
+      ) : (
+        <main className={cn("flex-1", isScrollContainer && "overflow-y-auto")}>
+          {children}
+        </main>
+      )}
     </div>
   );
 }

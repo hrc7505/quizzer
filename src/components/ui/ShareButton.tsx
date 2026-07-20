@@ -127,7 +127,7 @@ export function ShareButton({
         </Button>
       </DropdownTrigger>
       
-      <DropdownContent align="right" className="w-240px p-4 flex flex-col gap-3.5">
+      <DropdownContent align="right" className="w-[240px] p-4 flex flex-col gap-3.5">
         <div className="flex items-center justify-between pb-1">
           <span className="text-xs font-bold text-foreground select-none">
             Share this quiz

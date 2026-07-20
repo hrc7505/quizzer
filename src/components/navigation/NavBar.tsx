@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { CONTAINER_MAX_WIDTH } from "@/components/layouts/Container";
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -29,7 +30,7 @@ import { Button } from "@/components/ui/Button";
 import { useDialog, usePanel } from "@/components/providers/OverlayProvider";
 import { cn } from "@/utils/cn";
 
-export function NavBar({ maxWidth = "1200px" }: { maxWidth?: string }) {
+export function NavBar({ maxWidth = CONTAINER_MAX_WIDTH }: { maxWidth?: string }) {
   const { data: session } = useSession();
   const pathname = usePathname();
   const router = useRouter();
@@ -331,7 +332,7 @@ export function NavBar({ maxWidth = "1200px" }: { maxWidth?: string }) {
                     <div className="h-7 w-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20">
                       {session!.user!.name?.slice(0, 2).toUpperCase() || "U"}
                     </div>
-                    <span className="hidden sm:inline text-xs font-semibold text-foreground/90 max-w-120px truncate">
+                    <span className="hidden sm:inline text-xs font-semibold text-foreground/90 max-w-[120px] truncate">
                       {session!.user!.name || session!.user!.email?.split("@")[0]}
                     </span>
                     <Button

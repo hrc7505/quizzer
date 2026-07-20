@@ -1,4 +1,5 @@
 import { ExamsPageClient } from "./ExamsPageClient";
+import { PageLayout } from "@/components/layouts/PageLayout";
 import { INTERNAL_TOPIC_TITLE } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
@@ -44,5 +45,9 @@ export default async function ExamsPage() {
     meta: `${t._count.quizzes} Quizzes`
   }));
 
-  return <ExamsPageClient examItems={examItems} standaloneItems={standaloneItems} />;
+  return (
+    <PageLayout>
+      <ExamsPageClient examItems={examItems} standaloneItems={standaloneItems} />
+    </PageLayout>
+  );
 }

@@ -1,6 +1,5 @@
 "use client";
 
-import { PageLayout } from "@/components/layouts/PageLayout";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { ContentHeader } from "@/components/layouts/ContentHeader";
 import { DirectoryCardList } from "@/components/data-display/DirectoryCardList";
@@ -25,7 +24,7 @@ interface ExamsPageClientProps {
 
 function ExamsPageClient({ examItems, standaloneItems }: ExamsPageClientProps) {
   return (
-    <PageLayout>
+    <>
       <ContentHeader
         icon={<BookOpen className="h-5 w-5" />}
         variant="exam"
@@ -45,7 +44,7 @@ function ExamsPageClient({ examItems, standaloneItems }: ExamsPageClientProps) {
           </div>
         )}
       </div>
-    </PageLayout>
+    </>
   );
 }
 

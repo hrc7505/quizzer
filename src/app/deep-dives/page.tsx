@@ -31,7 +31,7 @@ export default async function DeepDivesPage() {
   });
 
   return (
-    <PageLayout variant="deep-dives" navMaxWidth="1100px" mainMaxWidth="1100px">
+    <PageLayout variant="deep-dives">
       <DeepDivesLibrary questions={questions} />
     </PageLayout>
   );

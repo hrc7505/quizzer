@@ -48,6 +48,10 @@ Your response should include:
 
     const safePrompt = sanitizeImageText(prompt);
 
+    if (!ai) {
+      return NextResponse.json({ error: "AI service is not configured." }, { status: 500 });
+    }
+
     const response = await ai.models.generateContent({
       model: GEMINI_MODEL,
       contents: safePrompt,

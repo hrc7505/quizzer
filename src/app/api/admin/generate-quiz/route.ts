@@ -118,6 +118,10 @@ async function generateQuestionsBatch(prompt: string): Promise<GeneratedQuestion
 
   const safePrompt = sanitizeImageText(prompt);
 
+  if (!ai) {
+    throw new Error("AI service is not configured.");
+  }
+
   try {
     const response = await ai.models.generateContent({
       model: GEMINI_MODEL,

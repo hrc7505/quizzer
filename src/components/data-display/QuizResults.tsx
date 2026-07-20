@@ -7,9 +7,11 @@ import { Share2, FileDown, MoreHorizontal, Eye, Loader2 } from "lucide-react";
 
 import { AttemptService, LeaderboardEntry } from "@/lib/services/attempt.service";
 import { generateQuizPDF } from "@/lib/pdf-generator";
+import { getAiErrorMeta } from "@/lib/gemini";
 import { QuizResultsProps, QuestionData, UserAnswerData } from "@/components/data-display/interfaces/QuizResults.interface";
 import { ShareButton } from "@/components/ui/ShareButton";
 import { Alert } from "@/components/ui/Alert";
+import { ModelCapabilityError } from "@/components/ui/ModelCapabilityError";
 import { Button } from "@/components/ui/Button";
 import { usePanel, useDialog } from "@/components/providers/OverlayProvider";
 import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from "@/components/ui/Dropdown";
@@ -155,11 +157,17 @@ export function QuizResults({ attempt }: QuizResultsProps) {
 
   return (
     <div className="flex flex-col gap-6 w-full py-2">
-      {error && (
-        <Alert variant="danger" title="Error">
-          {error}
-        </Alert>
-      )}
+      {error && (() => {
+        const meta = getAiErrorMeta(error);
+        if (meta.icon === "image-off") {
+          return <ModelCapabilityError message={error} />;
+        }
+        return (
+          <Alert variant={meta.variant} title="Error">
+            {error}
+          </Alert>
+        );
+      })()}
 
       {/* Header section */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border/80 pb-5">

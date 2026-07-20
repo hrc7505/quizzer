@@ -1,13 +1,16 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { FileText, Type, Sparkles, Info } from "lucide-react";
 
 import { GenerateQuizResponse, GenerateQuizPayload } from "@/components/forms/interfaces/GenerateQuizForm.interface";
 import { QuizService } from "@/lib/services/quiz.service";
+import { getAiErrorMeta } from "@/lib/gemini";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Alert } from "@/components/ui/Alert";
+import { ModelCapabilityError } from "@/components/ui/ModelCapabilityError";
 import { Select } from "@/components/ui/Select";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/utils/cn";
@@ -52,6 +55,7 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
       tabRefs.current[newIndex]?.focus();
     }
   };
+
   const [quizTitle, setQuizTitle] = useState("");
   const [topicText, setTopicText] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -115,6 +119,10 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
       };
 
       const data = await QuizService.generateQuiz(payload);
+      if (data.error) {
+        setError(data.error);
+        return;
+      }
       setResult(data);
       setQuizTitle("");
       setTopicText("");
@@ -130,13 +138,28 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
     }
   };
 
+  const renderErrorAlert = () => {
+    if (!error) return null;
+    const meta = getAiErrorMeta(error);
+    if (meta.icon === "image-off") {
+      return <ModelCapabilityError message={error} />;
+    }
+    return (
+      <Alert variant={meta.variant} title="Error">
+        {error}
+      </Alert>
+    );
+  };
+
+  const tabs = [
+    { id: "title", label: "From Title Only", icon: Sparkles },
+    { id: "text", label: "From Text", icon: Type },
+    { id: "pdf", label: "From PDF", icon: FileText },
+  ] as const;
+
   return (
     <form onSubmit={handleGenerate} className="flex flex-col gap-5 w-full">
-      {error && (
-        <Alert variant="danger" title="Error">
-          {error}
-        </Alert>
-      )}
+      {renderErrorAlert()}
 
       {result && (
         <Alert variant="success" title="Success">
@@ -144,14 +167,30 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
         </Alert>
       )}
 
+      {/* Model capability banner */}
+      <div className="flex items-start gap-3 rounded-xl border border-border bg-surface p-4 text-sm">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-info/10 text-info">
+          <Info className="h-4 w-4" />
+        </div>
+        <div className="flex flex-col gap-0.5">
+          <span className="font-semibold text-foreground">Text-only model</span>
+          <span className="text-xs text-muted-foreground leading-relaxed">
+            This AI model processes text only. It cannot read images, diagrams, or scanned pages. Use text or PDF inputs for best results.
+          </span>
+        </div>
+      </div>
+
       {/* Mode tabs */}
-      <div ref={tablistRef} role="tablist" aria-label="Generation mode" className="flex border-b border-border/80 gap-6" onKeyDown={handleTabKeyDown}>
-        {([
-          { id: "title", label: "From Title Only" },
-          { id: "text", label: "From Text" },
-          { id: "pdf", label: "From PDF" },
-        ] as const).map((tab) => {
+      <div 
+        ref={tablistRef} 
+        role="tablist" 
+        aria-label="Generation mode" 
+        className="flex gap-1.5 rounded-xl bg-secondary/60 p-1"
+        onKeyDown={handleTabKeyDown}
+      >
+        {tabs.map((tab) => {
           const isActive = mode === tab.id;
+          const Icon = tab.icon;
           return (
             <button
               key={tab.id}
@@ -167,13 +206,14 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
                 setResult(null);
               }}
               className={cn(
-                "pb-2.5 text-sm font-semibold border-b-2 -mb-[2px] transition-all cursor-pointer",
+                "flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-150 cursor-pointer select-none",
                 isActive 
-                  ? "border-primary text-primary" 
-                  : "border-transparent text-muted-foreground hover:text-foreground"
+                  ? "bg-surface text-foreground shadow-sm" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-surface/60"
               )}
             >
-              {tab.label}
+              <Icon className="h-4 w-4" />
+              <span>{tab.label}</span>
             </button>
           );
         })}
@@ -236,8 +276,8 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
               }
             }}
             className={cn(
-              "flex flex-col items-center justify-center p-8 border-2 border-dashed border-border rounded-xl cursor-pointer hover:bg-surface-hover hover:border-primary/50 transition-colors duration-150 text-center gap-1.5 select-none",
-              isDragging && "border-primary bg-primary/5",
+              "flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border p-8 text-center transition-all duration-150 cursor-pointer select-none",
+              isDragging ? "border-primary bg-primary/[0.04]" : "hover:border-primary/40 hover:bg-surface-hover/50",
               file && "border-solid border-success/30 bg-success/5"
             )}
             onDragOver={onDragOver}
@@ -246,17 +286,30 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
             onClick={() => fileInputRef.current?.click()}
           >
             <input type="file" accept=".pdf" onChange={handleFileUpload} disabled={loading} ref={fileInputRef} className="hidden" />
+            <div className={cn(
+              "flex h-12 w-12 items-center justify-center rounded-xl transition-colors duration-150",
+              file ? "bg-success/10 text-success" : isDragging ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"
+            )}>
+              {file ? (
+                <FileText className="h-6 w-6" />
+              ) : (
+                <FileText className="h-6 w-6" />
+              )}
+            </div>
             <span className="text-sm font-semibold text-foreground">
-              {file ? `📄 ${file.name}` : isDragging ? "Drop PDF here" : "Drag & drop a PDF, or click to browse"}
+              {file ? file.name : isDragging ? "Drop PDF here" : "Drag & drop a PDF, or click to browse"}
             </span>
             {!file && !isDragging && (
               <span className="text-xs text-muted-foreground/70">Supports .pdf files only</span>
+            )}
+            {file && (
+              <span className="text-xs text-success font-medium">PDF ready to upload</span>
             )}
           </div>
         </div>
       )}
 
-      <Button variant="primary" type="submit" disabled={loading || !isFormValid()} className="h-10 mt-2 font-semibold gap-2">
+      <Button variant="primary" type="submit" disabled={loading || !isFormValid()} className="h-10 mt-1 font-semibold gap-2">
         {loading ? <><Spinner size="sm" className="text-primary-foreground" /> Generating…</> : "Generate Quiz"}
       </Button>
     </form>

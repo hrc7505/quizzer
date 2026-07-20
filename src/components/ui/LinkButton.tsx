@@ -15,16 +15,10 @@ export type LinkButtonProps = ButtonProps & {
 /**
  * A Next.js Link that renders styled like our design system Button.
  */
-export const LinkButton = forwardRef<HTMLAnchorElement, LinkButtonProps>(
-  function LinkButton({ href, prefetch = true, ...props }, ref) {
-    return (
-      <Link href={href} prefetch={prefetch} passHref legacyBehavior>
-        <Button {...(props as Omit<ButtonProps, "asChild">)} asChild>
-          <a ref={ref} className="no-underline inline-flex">
-            {props.children}
-          </a>
-        </Button>
-      </Link>
-    );
-  }
-);
+export const LinkButton = forwardRef<HTMLAnchorElement, LinkButtonProps>(({ href, prefetch = true, ...props }, ref) => (
+  <Link href={href} prefetch={prefetch} ref={ref}>
+    <Button {...(props as Omit<ButtonProps, "asChild">)} className="no-underline inline-flex">
+      {props.children}
+    </Button>
+  </Link>
+));

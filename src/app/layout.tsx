@@ -83,34 +83,34 @@ export default function RootLayout({
             initialPosition={0}
           />
           {children}
-        </Providers>
-        {/* Service Worker Registration */}
-        <Script id="service-worker-register" strategy="afterInteractive">
-          {`
-            if ('serviceWorker' in navigator) {
-              window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js').catch(function(err) {
-                  console.error('SW registration failed:', err);
+          {/* Service Worker Registration */}
+          <Script id="service-worker-register" strategy="afterInteractive">
+            {`
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').catch(function(err) {
+                    console.error('SW registration failed:', err);
+                  });
                 });
-              });
-            }
-          `}
-        </Script>
-        <Script id="ssr-loader-hide" strategy="afterInteractive">
-          {`
-            (function() {
-              var body = document.body;
-              function hide() {
-                body.classList.add('ssr-loader-done');
               }
-              if (document.readyState === 'complete') {
-                hide();
-              } else {
-                window.addEventListener('load', hide);
-              }
-            })();
-          `}
-        </Script>
+            `}
+          </Script>
+          <Script id="ssr-loader-hide" strategy="afterInteractive">
+            {`
+              (function() {
+                var body = document.body;
+                function hide() {
+                  body.classList.add('ssr-loader-done');
+                }
+                if (document.readyState === 'complete') {
+                  hide();
+                } else {
+                  window.addEventListener('load', hide);
+                }
+              })();
+            `}
+          </Script>
+        </Providers>
       </body>
     </html>
   );

@@ -5,7 +5,9 @@ import { Loader2, Timer, Share2 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Progress } from "@/components/ui/Progress";
 import { Alert } from "@/components/ui/Alert";
+import { ModelCapabilityError } from "@/components/ui/ModelCapabilityError";
 import { ShareButton } from "@/components/ui/ShareButton";
+import { getAiErrorMeta } from "@/lib/gemini";
 import { formatTime } from "@/lib/text";
 import { useQuizWizard } from "@/hooks/useQuizWizard";
 import { QuizLobby } from "@/components/data-display/QuizLobby";
@@ -89,11 +91,17 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
         <Progress value={state.progress * 100} indicatorClassName="bg-primary" />
       </div>
 
-      {state.error && (
-        <Alert variant="danger" title="Error">
-          {state.error}
-        </Alert>
-      )}
+      {state.error && (() => {
+        const meta = getAiErrorMeta(state.error);
+        if (meta.icon === "image-off") {
+          return <ModelCapabilityError message={state.error} />;
+        }
+        return (
+          <Alert variant={meta.variant} title="Error">
+            {state.error}
+          </Alert>
+        );
+      })()}
 
       {/* Question playing Card */}
       {state.currentQuestion && (

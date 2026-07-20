@@ -10,6 +10,7 @@ import { difficultyColor } from "@/lib/format";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { Alert } from "@/components/ui/Alert";
 import { useDialog } from "@/components/providers/OverlayProvider";
 import { useToast } from "@/components/providers/ToastProvider";
 import { Pagination } from "@/components/data-display/Pagination";
@@ -43,6 +44,7 @@ export function AdminDeepDivesManager({ questions: initialQuestions }: AdminDeep
   const [topicFilter, setTopicFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [error, setError] = useState<string | null>(null);
   const dialog = useDialog();
   const toast = useToast();
 
@@ -77,6 +79,7 @@ export function AdminDeepDivesManager({ questions: initialQuestions }: AdminDeep
 
   const handleRegenerate = async (q: QuestionRecord) => {
     setLoadingId(q.id);
+    setError(null);
     try {
       const res = await fetch("/api/admin/elaborate", {
         method: "POST",
@@ -90,6 +93,8 @@ export function AdminDeepDivesManager({ questions: initialQuestions }: AdminDeep
         ));
         router.refresh();
         toast.addToast({ type: "success", message: "Elaboration regenerated" });
+      } else {
+        setError(json.error || "Failed to regenerate elaboration");
       }
     } finally {
       setLoadingId(null);
@@ -128,6 +133,12 @@ export function AdminDeepDivesManager({ questions: initialQuestions }: AdminDeep
 
   return (
     <div className="flex flex-col gap-6 py-4 w-full">
+      {error && (
+        <Alert variant="danger" title="Error">
+          {error}
+        </Alert>
+      )}
+
       {/* Page header */}
       <PageHeader
         title="Deep Dives"

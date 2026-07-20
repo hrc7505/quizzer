@@ -1,10 +1,12 @@
 "use client";
 
-import * as React from "react";
+import React from "react";
 import { Loader2 } from "lucide-react";
 
 import { Alert } from "@/components/ui/Alert";
 import { DeepDiveBody } from "@/components/data-display/DeepDiveBody";
+import { ModelCapabilityError } from "@/components/ui/ModelCapabilityError";
+import { getAiErrorMeta } from "@/lib/gemini";
 
 import type { QuestionData } from "@/components/data-display/interfaces/QuizResults.interface";
 
@@ -59,7 +61,17 @@ export function DeepDivePanel({
           <span>AI is formulating detailed concept breakdown…</span>
         </div>
       )}
-      {error && <Alert variant="danger" title="Error">{error}</Alert>}
+      {error && (() => {
+        const meta = getAiErrorMeta(error);
+        if (meta.icon === "image-off") {
+          return <ModelCapabilityError message={error} />;
+        }
+        return (
+          <Alert variant={meta.variant} title="Error">
+            {error}
+          </Alert>
+        );
+      })()}
       {data && question && (
         <DeepDiveBody
           question={{

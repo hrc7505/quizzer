@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 import { api } from "@/lib/api";
 
@@ -28,25 +28,16 @@ export function useTaxonomyData(): [TaxonomyData, TaxonomyActions] {
   const [allQuizzes, setAllQuizzes] = useState<QuizSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const mountedRef = useRef(true);
-  const initialisedRef = useRef(false);
 
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const [examsRes, topicsRes, quizzesRes] = await Promise.all([
         api.get<Exam[]>("/api/admin/exams"),
         api.get<Topic[]>("/api/admin/topics?all=true"),
         api.get<QuizSummary[]>("/api/admin/quizzes"),
       ]);
-
-      if (!mountedRef.current) return;
 
       if (examsRes.success && examsRes.data) setExams(examsRes.data);
       if (topicsRes.success && topicsRes.data) {
@@ -59,20 +50,16 @@ export function useTaxonomyData(): [TaxonomyData, TaxonomyActions] {
       }
       if (quizzesRes.success && quizzesRes.data) setAllQuizzes(quizzesRes.data);
     } catch (err) {
-      if (!mountedRef.current) return;
       console.error(err);
       setError("Failed to load taxonomy metadata.");
     } finally {
-      if (mountedRef.current) setLoading(false);
+      setLoading(false);
     }
-  };
-
-  // Initial fetch on mount only
-  useEffect(() => {
-    if (initialisedRef.current) return;
-    initialisedRef.current = true;
-    fetchData();
   }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   return [
     { exams, topics, flatTopics, allQuizzes, loading, error },

@@ -33,23 +33,26 @@ function DetailedQuestionAccordionInner({
   const isCorrect = answer?.isCorrect;
 
   return (
-    <div className="border border-border/60 rounded-xl overflow-hidden mb-3 bg-card transition-colors">
+    <div className={cn(
+      "border rounded-xl overflow-hidden bg-card transition-all duration-200",
+      isCorrect ? "border-success/30" : "border-danger/30"
+    )}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-4 text-left gap-3.5 hover:bg-surface-hover transition-colors duration-150 cursor-pointer"
+        className="w-full flex items-center justify-between gap-4 p-4 text-left hover:bg-surface-hover transition-colors duration-150 cursor-pointer"
       >
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           <Badge
             variant={isCorrect ? "success" : "danger"}
-            className="h-6 w-6 rounded-md flex items-center justify-center font-bold text-xs shrink-0 px-0"
+            className="h-7 w-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 px-0"
           >
             {index + 1}
           </Badge>
           <span
             className={cn(
-              "text-sm font-semibold text-foreground leading-snug truncate pr-4",
-              !isCorrect && "text-danger/90 font-bold"
+              "text-sm font-semibold text-foreground leading-relaxed break-words",
+              !isCorrect && "text-danger/90"
             )}
           >
             {question.text}
@@ -61,31 +64,33 @@ function DetailedQuestionAccordionInner({
       </button>
 
       {isOpen && (
-        <div className="p-4 sm:p-5 bg-secondary/15 border-t border-border/50 flex flex-col gap-4 text-xs">
-          <div className="flex flex-col gap-1 bg-success/10 text-success border border-success/10 p-3 rounded-lg font-medium">
-            <span className="font-bold text-[10px] uppercase tracking-wider opacity-95">
+        <div className="p-4 sm:p-5 bg-secondary/10 border-t border-border/50 flex flex-col gap-4 text-xs">
+          <div className="flex flex-col gap-2 bg-success/10 border border-success/20 p-4 rounded-xl">
+            <span className="font-bold text-[10px] uppercase tracking-wider text-success">
               ✓ Correct Answer
             </span>
-            <span className="text-foreground font-semibold">{question.correctAnswer}</span>
+            <span className="text-foreground font-semibold text-sm leading-relaxed">{question.correctAnswer}</span>
           </div>
 
           {!isCorrect && answer && (
-            <div className="flex flex-col gap-1 bg-danger/10 text-danger border border-danger/10 p-3 rounded-lg font-medium">
-              <span className="font-bold text-[10px] uppercase tracking-wider opacity-95">
+            <div className="flex flex-col gap-2 bg-danger/10 border border-danger/20 p-4 rounded-xl">
+              <span className="font-bold text-[10px] uppercase tracking-wider text-danger">
                 ✗ Your Answer
               </span>
-              <span className="text-foreground font-semibold">{answer.selectedAnswer}</span>
+              <span className="text-foreground font-semibold text-sm leading-relaxed">{answer.selectedAnswer}</span>
             </div>
           )}
 
-          <div className="flex flex-col gap-1 bg-card border border-border/60 p-3.5 rounded-lg">
-            <span className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground">
-              Explanation
-            </span>
-            <p className="text-foreground/90 leading-relaxed mt-0.5 whitespace-pre-wrap">
-              {question.description}
-            </p>
-          </div>
+          {question.description && (
+            <div className="flex flex-col gap-2 bg-card border border-border/60 p-4 rounded-xl">
+              <span className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground">
+                Explanation
+              </span>
+              <p className="text-foreground/90 leading-relaxed text-sm whitespace-pre-wrap">
+                {question.description}
+              </p>
+            </div>
+          )}
 
           <div className="flex items-center gap-2 mt-1">
             <Button
@@ -95,7 +100,7 @@ function DetailedQuestionAccordionInner({
               disabled={
                 elaborations[question.id]?.loading && activeElaborationId === question.id
               }
-              className="gap-1.5 h-8 font-semibold text-xs text-primary border-primary/20 hover:bg-primary/5 hover:border-primary/40"
+              className="gap-1.5 h-9 font-semibold text-xs text-primary border-primary/20 hover:bg-primary/5 hover:border-primary/40"
             >
               {elaborations[question.id]?.loading && activeElaborationId === question.id ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -112,7 +117,7 @@ function DetailedQuestionAccordionInner({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="gap-1.5 h-8 font-semibold text-xs text-muted-foreground/80 hover:text-foreground"
+                  className="gap-1.5 h-9 font-semibold text-xs text-muted-foreground/80 hover:text-foreground"
                 >
                   <span>Open Full Page</span>
                   <ArrowRight className="h-3.5 w-3.5" />

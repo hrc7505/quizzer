@@ -15,6 +15,7 @@ interface DeepDivePanelProps {
   quiz: { id: string; title: string; difficulty?: string };
   initialElaboration?: string;
   initialError?: string;
+  onSave?: (result: { loading: boolean; data?: string; error?: string }) => void;
 }
 
 export function DeepDivePanel({
@@ -22,15 +23,24 @@ export function DeepDivePanel({
   quiz,
   initialElaboration,
   initialError,
+  onSave,
 }: DeepDivePanelProps) {
   const [loading, setLoading] = React.useState(!initialElaboration && !initialError);
   const [data, setData] = React.useState<string | undefined>(initialElaboration);
   const [error, setError] = React.useState<string | undefined>(initialError);
 
+  const onSaveRef = React.useRef(onSave);
+
   React.useEffect(() => {
-    if (initialElaboration || initialError) return;
-    if (!question) return;
+    onSaveRef.current = onSave;
+  }, [onSave]);
+
+  React.useEffect(() => {
+    if (initialElaboration || initialError || !question) return;
+
     const controller = new AbortController();
+    let cancelled = false;
+
     (async () => {
       try {
         const res = await fetch("/api/admin/elaborate", {
@@ -40,15 +50,27 @@ export function DeepDivePanel({
           signal: controller.signal,
         });
         const json = await res.json();
-        if (json.success) setData(json.markdown);
-        else setError(json.error);
+        if (cancelled) return;
+        if (json.success) {
+          setData(json.markdown);
+          onSaveRef.current?.({ loading: false, data: json.markdown });
+        } else {
+          setError(json.error);
+          onSaveRef.current?.({ loading: false, error: json.error });
+        }
       } catch {
+        if (cancelled) return;
         setError("Failed to load deep dive.");
+        onSaveRef.current?.({ loading: false, error: "Failed to load deep dive." });
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
-    return () => controller.abort();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [question, initialElaboration, initialError]);
 
   if (!question) return null;

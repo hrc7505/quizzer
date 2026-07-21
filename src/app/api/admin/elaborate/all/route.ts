@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { revalidatePath } from "next/cache";
+import { revalidateTag } from "next/cache";
 
 import { authOptions, SessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -51,7 +51,7 @@ export async function DELETE() {
       data: { elaboration: null }
     });
 
-    revalidatePath("/deep-dives", "page");
+    revalidateTag("deep-dives", { expire: 0 });
 
     return NextResponse.json({ success: true, count: result.count });
   } catch (error) {

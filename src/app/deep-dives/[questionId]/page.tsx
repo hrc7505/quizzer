@@ -5,7 +5,9 @@ import { INTERNAL_TOPIC_TITLE } from "@/lib/constants";
 import { DeepDiveDetail } from "@/components/data-display/DeepDiveDetail";
 import { PageLayout } from "@/components/layouts/PageLayout";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
+export const tags = ["deep-dives"];
+
 /**
  * Individual Deep Dive detail page.
  * Renders the saved elaboration markdown from the DB.

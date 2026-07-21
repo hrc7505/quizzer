@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
 import { revalidateQuizAndRelated } from "@/lib/quiz-routing";
@@ -38,7 +38,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       await revalidateQuizAndRelated(existing.quizId);
     }
     revalidatePath("/exams", "page");
-    revalidatePath("/deep-dives", "page");
+    revalidateTag("deep-dives", { expire: 0 });
 
     return NextResponse.json(question);
   } catch (e) {
@@ -72,7 +72,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       await revalidateQuizAndRelated(existing.quizId);
     }
     revalidatePath("/exams", "page");
-    revalidatePath("/deep-dives", "page");
+    revalidateTag("deep-dives", { expire: 0 });
 
     return NextResponse.json({ success: true });
   } catch (e) {

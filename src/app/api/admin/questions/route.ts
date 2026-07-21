@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
 import { revalidateQuizAndRelated } from "@/lib/quiz-routing";
@@ -82,7 +82,7 @@ export async function POST(req: Request) {
     }
     await revalidateQuizAndRelated(quizId);
     revalidatePath("/exams");
-    revalidatePath("/deep-dives", "page");
+    revalidateTag("deep-dives", { expire: 0 });
 
     return NextResponse.json(question);
   } catch (e) {

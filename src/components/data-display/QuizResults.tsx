@@ -90,7 +90,7 @@ export function QuizResults({ attempt }: QuizResultsProps) {
   }, [attempt.quiz.title, attempt.quiz.questions]);
 
   const handleElaborate = useCallback(
-    async (questionId: string) => {
+    (questionId: string) => {
       setActiveElaborationId(questionId);
       const question =
         attempt.quiz.questions.find((qi: QuestionData) => qi.id === questionId) ?? null;
@@ -104,38 +104,14 @@ export function QuizResults({ attempt }: QuizResultsProps) {
             quiz={attempt.quiz}
             initialElaboration={cached?.data}
             initialError={cached?.error}
+            onSave={(result) => {
+              setElaborations((prev) => ({ ...prev, [questionId]: result }));
+            }}
           />
         ),
       });
-      if (cached?.data || cached?.loading) return;
-
-      setElaborations((prev) => ({ ...prev, [questionId]: { loading: true } }));
-      try {
-        const res = await fetch("/api/admin/elaborate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ questionId }),
-        });
-        const json = await res.json();
-        if (json.success) {
-          setElaborations((prev) => ({
-            ...prev,
-            [questionId]: { loading: false, data: json.markdown },
-          }));
-        } else {
-          setElaborations((prev) => ({
-            ...prev,
-            [questionId]: { loading: false, error: json.error },
-          }));
-        }
-      } catch {
-        setElaborations((prev) => ({
-          ...prev,
-          [questionId]: { loading: false, error: "Failed to load" },
-        }));
-      }
     },
-    [attempt.quiz, elaborations, panel]
+    [attempt.quiz, elaborations, panel, setElaborations]
   );
 
   const handleShareUrl = useCallback(async () => {
@@ -200,7 +176,7 @@ export function QuizResults({ attempt }: QuizResultsProps) {
                 onClick={() =>
                   dialog.open({
                     title: "Detailed Review",
-                    className: "max-w-[720px] p-6",
+                    className: "max-w-3xl",
                     body: (
                       <DetailedReviewBody
                         questions={attempt.quiz.questions}
@@ -270,22 +246,24 @@ function DetailedReviewBody({
   handleElaborate,
 }: DetailedReviewBodyProps) {
   return (
-    <div className="flex flex-col max-h-[60vh] overflow-y-auto pr-1">
-      {questions.map((question: QuestionData, index: number) => {
-        const answer = answers.find((a: UserAnswerData) => a.questionId === question.id);
-        return (
-          <DetailedQuestionAccordion
-            key={question.id}
-            question={question}
-            index={index}
-            answer={answer}
-            elaborations={elaborations}
-            activeElaborationId={activeElaborationId}
-            handleElaborate={handleElaborate}
-            onOpenFullPage={`/deep-dives/${question.id}`}
-          />
-        );
-      })}
+    <div className="flex flex-col max-h-[70vh] overflow-y-auto">
+      <div className="flex flex-col gap-3">
+        {questions.map((question: QuestionData, index: number) => {
+          const answer = answers.find((a: UserAnswerData) => a.questionId === question.id);
+          return (
+            <DetailedQuestionAccordion
+              key={question.id}
+              question={question}
+              index={index}
+              answer={answer}
+              elaborations={elaborations}
+              activeElaborationId={activeElaborationId}
+              handleElaborate={handleElaborate}
+              onOpenFullPage={`/deep-dives/${question.id}`}
+            />
+          );
+        })}
+      </div>
     </div>
   );
 }

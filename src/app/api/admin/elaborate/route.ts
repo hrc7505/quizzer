@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidateTag } from "next/cache";
 
 import { ai, GEMINI_MODEL, describeAiError } from "@/lib/gemini";
 import { prisma } from "@/lib/prisma";
@@ -13,7 +13,13 @@ import { sanitizeImageText } from "@/lib/format";
  */
 export async function POST(req: Request) {
   try {
-    const { questionId, force } = await req.json();
+    let body: { questionId?: string; force?: boolean };
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
+    const { questionId, force } = body;
 
     if (!questionId) {
       return NextResponse.json({ error: "Missing questionId" }, { status: 400 });
@@ -65,8 +71,7 @@ Your response should include:
       data: { elaboration: markdown }
     });
 
-    revalidatePath("/deep-dives", "page");
-    revalidatePath(`/deep-dives/${questionId}`, "page");
+    revalidateTag("deep-dives", { expire: 0 });
 
     return NextResponse.json({ success: true, markdown, cached: false });
   } catch (error) {
@@ -83,7 +88,13 @@ Your response should include:
  */
 export async function DELETE(req: Request) {
   try {
-    const { questionId } = await req.json();
+    let body: { questionId?: string };
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
+    const { questionId } = body;
     if (!questionId) {
       return NextResponse.json({ error: "Missing questionId" }, { status: 400 });
     }
@@ -92,8 +103,7 @@ export async function DELETE(req: Request) {
       data: { elaboration: null }
     });
 
-    revalidatePath("/deep-dives", "page");
-    revalidatePath(`/deep-dives/${questionId}`, "page");
+    revalidateTag("deep-dives", { expire: 0 });
 
     return NextResponse.json({ success: true });
   } catch (error) {

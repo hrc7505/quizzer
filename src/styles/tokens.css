@@ -1,0 +1,186 @@
+:root {
+  /* Layout Dimensions */
+  --content-max: 1200px;
+
+  /* Font Family override variables */
+  --font-winky: "Winky Sans", sans-serif;
+
+  /* Base Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Design Tokens — non-theme primitives */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+  --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.10), 0 2px 6px -2px rgb(0 0 0 / 0.06);
+  --shadow-lg: 0 12px 32px -4px rgb(0 0 0 / 0.14), 0 4px 12px -4px rgb(0 0 0 / 0.08);
+  --shadow-xl: 0 20px 48px -8px rgb(0 0 0 / 0.18), 0 8px 20px -8px rgb(0 0 0 / 0.10);
+
+  --z-base: 0;
+  --z-sticky: 100;
+  --z-header: 200;
+  --z-dropdown: 1000;
+  --z-overlay: 1100;
+  --z-dialog: 1200;
+  --z-tooltip: 1300;
+  --z-toast: 1400;
+
+  --blur-sm: 4px;
+  --blur-md: 8px;
+  --blur-lg: 16px;
+
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+
+  /* Theme tokens - Light mode default */
+  --background: #fafafa;
+  --foreground: #09090b;
+
+  --surface: #ffffff;
+  --surface-hover: #f4f4f5;
+  --surface-active: #e4e4e7;
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: #18181b;
+  --navigation: #ffffff;
+  --header: #ffffff;
+  --footer: #f4f4f5;
+
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --primary-foreground: #ffffff;
+
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
+
+  --accent: #eff6ff;
+  --accent-hover: #dbeafe;
+  --accent-foreground: #1d4ed8;
+
+  --success: #10b981;
+  --success-foreground: #ffffff;
+
+  --warning: #f59e0b;
+  --warning-foreground: #ffffff;
+
+  --danger: #ef4444;
+  --danger-foreground: #ffffff;
+
+  --info: #3b82f6;
+  --info-foreground: #ffffff;
+
+  --muted: #71717a;
+  --muted-foreground: #a1a1aa;
+
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --ring: rgba(79, 70, 229, 0.4);
+
+  --card: #ffffff;
+  --popover: #ffffff;
+  --dialog: #ffffff;
+  --overlay: rgba(0, 0, 0, 0.4);
+
+  --tooltip: #18181b;
+  --tooltip-foreground: #ffffff;
+
+  --selection: rgba(79, 70, 229, 0.18);
+  --scrollbar-thumb: #d4d4d8;
+  --scrollbar-thumb-hover: #a1a1aa;
+  --charts: #4f46e5;
+  --charts-secondary: #10b981;
+
+  --skeleton: #e4e4e7;
+  --disabled: #e4e4e7;
+  --disabled-foreground: #a1a1aa;
+
+  /* Brand colors for third-party social share targets (fixed identities) */
+  --brand-whatsapp: #25d366;
+  --brand-whatsapp-shadow: rgba(37, 211, 102, 0.35);
+  --brand-facebook: #1877f2;
+  --brand-facebook-shadow: rgba(24, 119, 242, 0.35);
+  --brand-telegram: #229ed9;
+  --brand-telegram-shadow: rgba(34, 158, 217, 0.35);
+
+  --markdown-code-bg: rgba(175, 184, 193, 0.2);
+  --markdown-pre-bg: #f6f8fa;
+  --markdown-pre-fg: #24292f;
+  --markdown-quote-fg: #656d76;
+  --markdown-quote-border: #d0d7de;
+}
+
+/* Dark mode theme token values */
+.dark {
+  --background: #09090b;
+  --foreground: #f4f4f5;
+
+  --surface: #18181b;
+  --surface-hover: #27272a;
+  --surface-active: #3f3f46;
+
+  --sidebar: #0c0c0e;
+  --sidebar-foreground: #f4f4f5;
+  --navigation: #18181b;
+  --header: #0c0c0e;
+  --footer: #18181b;
+
+  --primary: #6366f1;
+  --primary-hover: #4f46e5;
+  --primary-foreground: #ffffff;
+
+  --secondary: #27272a;
+  --secondary-foreground: #fafafa;
+
+  --accent: #1e3a8a;
+  --accent-hover: #1e40af;
+  --accent-foreground: #bfdbfe;
+
+  --success: #10b981;
+  --success-foreground: #ffffff;
+
+  --warning: #f59e0b;
+  --warning-foreground: #ffffff;
+
+  --danger: #ef4444;
+  --danger-foreground: #ffffff;
+
+  --info: #3b82f6;
+  --info-foreground: #ffffff;
+
+  --muted: #a1a1aa;
+  --muted-foreground: #71717a;
+
+  --border: #27272a;
+  --input: #27272a;
+  --ring: rgba(99, 102, 241, 0.4);
+
+  --card: #18181b;
+  --popover: #18181b;
+  --dialog: #18181b;
+  --overlay: rgba(0, 0, 0, 0.7);
+
+  --tooltip: #fafafa;
+  --tooltip-foreground: #18181b;
+
+  --selection: rgba(99, 102, 241, 0.25);
+  --scrollbar-thumb: #3f3f46;
+  --scrollbar-thumb-hover: #52525b;
+  --charts: #818cf8;
+  --charts-secondary: #34d399;
+
+  --skeleton: #27272a;
+  --disabled: #27272a;
+  --disabled-foreground: #52525b;
+
+  /* Markdown (prose) theme — dark */
+  --markdown-code-bg: rgba(255, 255, 255, 0.08);
+  --markdown-pre-bg: #0c0c0e;
+  --markdown-pre-fg: #e4e4e7;
+  --markdown-quote-fg: #a1a1aa;
+  --markdown-quote-border: #3f3f46;
+}

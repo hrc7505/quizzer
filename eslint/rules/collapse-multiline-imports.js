@@ -80,10 +80,6 @@ module.exports = {
         if (importText.length > maxLen) return;
 
         // Skip if there are inline comments inside the import braces
-        const openBrace = node.specifiers[0].loc.start.line === node.loc.start.line
-          ? null
-          : sourceCode.text.indexOf("{", node.loc.start.column);
-        // Simpler: just check tokens between first and last specifier for comments
         const comments = sourceCode.getCommentsInside(node);
         const hasInlineComment = comments.some(
           (c) =>

@@ -30,7 +30,12 @@ export async function POST(req: Request) {
     
     let order = quizOrder;
     if (order === undefined || order === null || isNaN(parseInt(order))) {
-      order = 1;
+      const maxOrder = await prisma.quiz.findFirst({
+        where: topicId ? { topics: { some: { id: topicId } } } : undefined,
+        orderBy: { quizOrder: "desc" },
+        select: { quizOrder: true }
+      });
+      order = (maxOrder?.quizOrder || 0) + 1;
     } else {
       order = parseInt(order);
     }

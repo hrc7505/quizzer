@@ -1,12 +1,11 @@
 "use client";
 
 import { memo } from "react";
-import { Play, RotateCcw, BookOpen, Share2 } from "lucide-react";
+import { Play, RotateCcw, BookOpen } from "lucide-react";
 
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { ShareButton } from "@/components/ui/ShareButton";
 import { QuizLeaderboard } from "@/components/data-display/QuizLeaderboard";
 
 import type { LeaderboardEntry } from "@/lib/services/attempt.service";
@@ -26,7 +25,6 @@ interface QuizLobbyProps {
   leaderboard: LeaderboardEntry[];
   loadingLeaderboard?: boolean;
   onStart: (forceNew: boolean, resumeAttemptId?: string) => void;
-  resolveShareUrl: () => Promise<string>;
 }
 
 const difficultyBadgeVariant = (difficulty: string) => {
@@ -44,7 +42,6 @@ function QuizLobbyInner({
   leaderboard,
   loadingLeaderboard,
   onStart,
-  resolveShareUrl,
 }: QuizLobbyProps) {
   return (
     <div className="flex flex-col gap-6 max-w-2xl mx-auto py-4">
@@ -107,16 +104,6 @@ function QuizLobbyInner({
                 <Play className="h-3.5 w-3.5" />
                 <span>Start Quiz</span>
               </Button>
-
-              <ShareButton
-                icon={<Share2 className="h-4 w-4" />}
-                buttonAppearance="outline"
-                buttonSize="icon"
-                buttonClassName="h-10 w-10 shrink-0 border border-border/80 bg-surface rounded-lg"
-                shareText={`Check out this quiz: ${quiz.title} on Quizzer!`}
-                defaultUrl={`${typeof window !== "undefined" ? window.location.origin : ""}/quiz/${quiz.id}`}
-                resolveUrl={resolveShareUrl}
-              />
             </div>
           )}
         </div>

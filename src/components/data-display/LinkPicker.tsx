@@ -48,8 +48,15 @@ export function LinkPicker({
   );
 
   // Keep local checked state aligned if parent passes fresh array/getter
+  const selectedIdsRef = React.useRef<string[] | (() => string[])>(selectedIds);
+
   React.useEffect(() => {
-    setInternalSelected(typeof selectedIds === "function" ? selectedIds() : selectedIds);
+    const prev = typeof selectedIdsRef.current === "function" ? selectedIdsRef.current() : selectedIdsRef.current;
+    const next = typeof selectedIds === "function" ? selectedIds() : selectedIds;
+    if (JSON.stringify(prev) !== JSON.stringify(next)) {
+      setInternalSelected(next);
+    }
+    selectedIdsRef.current = selectedIds;
   }, [selectedIds]);
 
   const toggle = (id: string) => {

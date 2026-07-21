@@ -153,7 +153,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
         await actions.handleSaveExamLinks(current, idsToSave);
       },
     });
-  }, [dialog, availableMainTopics, actions, setSelectedTopicIds]);
+  }, [dialog, availableMainTopics, actions, setSelectedTopicIds, selectedTopicIds]);
 
   const openTopicLinkDialog = useCallback(() => {
     dialog.open({
@@ -177,7 +177,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
         await actions.handleSaveTopicLinks(current, selectedSubtopicIdsRef.current);
       },
     });
-  }, [dialog, availableSubtopics, actions, setSelectedSubtopicIds]);
+  }, [dialog, availableSubtopics, actions, setSelectedSubtopicIds, selectedSubtopicIds]);
 
   const openQuizLinkDialog = useCallback(() => {
     dialog.open({
@@ -201,7 +201,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
         await actions.handleSaveQuizLinks(current, selectedQuizIdsRef.current);
       },
     });
-  }, [dialog, availableQuizzes, actions, setSelectedQuizIds]);
+  }, [dialog, availableQuizzes, actions, setSelectedQuizIds, selectedQuizIds]);
 
   const openNewTopicDialog = useCallback(
     (examId: string, parentId: string) => {

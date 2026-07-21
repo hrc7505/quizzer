@@ -41,7 +41,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       where: { id },
       data: {
         title,
-        quizOrder: quizOrder !== undefined ? parseInt(quizOrder) : undefined,
+        quizOrder: quizOrder !== undefined && quizOrder !== null && quizOrder !== "" ? parseInt(quizOrder) : undefined,
         difficulty,
         topics: topicId !== undefined ? (topicId ? { set: [{ id: topicId }] } : { set: [] }) : undefined
       }

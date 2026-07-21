@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Search, ArrowRight, Share2 } from "lucide-react";
+import { Search, ArrowRight, History, Share2 } from "lucide-react";
 
 import { ShareButton } from "@/components/ui/ShareButton";
 import NoData from "@/components/feedback/NoData";
@@ -20,6 +20,11 @@ interface QuizItem {
   _count?: { questions: number };
 }
 
+interface QuizAttemptMeta {
+  lastAttemptId: string | null;
+  completedCount: number;
+}
+
 interface QuizCardGridProps {
   /** Array of quizzes to render. */
   quizzes: QuizItem[];
@@ -27,17 +32,20 @@ interface QuizCardGridProps {
   subtopicTitle: string;
   /** Base URL path for the current subtopic (e.g. /exams/examId/topicId/subtopicId). */
   basePath: string;
+  /** Optional pre-fetched attempts metadata per quiz (from server). */
+  attemptsData?: Record<string, QuizAttemptMeta>;
 }
 
 /**
  * Reusable Card Grid component for Quizzes.
  * Features search filtering, difficulty filtering, and infinite scroll paging.
  */
-export function QuizCardGrid({ quizzes, subtopicTitle, basePath }: QuizCardGridProps) {
+export function QuizCardGrid({ quizzes, subtopicTitle, basePath, attemptsData: initialAttemptsData }: QuizCardGridProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [difficultyFilter, setDifficultyFilter] = useState("");
   const [visibleCount, setVisibleCount] = useState(12);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const [attemptsMap, setAttemptsMap] = useState<Record<string, QuizAttemptMeta>>(initialAttemptsData ?? {});
 
   const [prevSearchQuery, setPrevSearchQuery] = useState(searchQuery);
   const [prevDifficultyFilter, setPrevDifficultyFilter] = useState(difficultyFilter);
@@ -57,6 +65,42 @@ export function QuizCardGrid({ quizzes, subtopicTitle, basePath }: QuizCardGridP
 
   const paginated = filtered.slice(0, visibleCount);
   const hasMore = filtered.length > visibleCount;
+
+  // Fetch last-attempt data for all visible quizzes in one batch.
+  // This runs on mount and whenever the set of visible quiz IDs changes.
+  useEffect(() => {
+    // Need to derive here again since paginated is not available in closure reliably
+    const filtered_ = quizzes.filter(quiz => {
+      const matchesSearch = quiz.title.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesDifficulty = !difficultyFilter || quiz.difficulty === difficultyFilter;
+      return matchesSearch && matchesDifficulty;
+    });
+    const paginated_ = filtered_.slice(0, visibleCount);
+    const ids = paginated_.map(q => q.id);
+    if (ids.length === 0) return;
+    let cancelled = false;
+
+    Promise.all(
+      ids.map(async (id) => {
+        try {
+          const res = await fetch(`/api/quiz/${id}/last-attempt`);
+          if (!res.ok) return { id, data: { lastAttemptId: null, completedCount: 0 } };
+          return { id, data: await res.json() };
+        } catch {
+          return { id, data: { lastAttemptId: null, completedCount: 0 } };
+        }
+      })
+    ).then(results => {
+      if (cancelled) return;
+      setAttemptsMap(prev => {
+        const next = { ...prev };
+        for (const r of results) next[r.id] = r.data;
+        return next;
+      });
+    });
+
+    return () => { cancelled = true; };
+  }, [quizzes, visibleCount, searchQuery, difficultyFilter]);
 
   // Infinite scroll intersection observer
   useEffect(() => {
@@ -135,6 +179,11 @@ export function QuizCardGrid({ quizzes, subtopicTitle, basePath }: QuizCardGridP
                 <Badge variant="default" className="bg-primary/5 text-primary border-primary/20 text-[10px] px-2 py-0.5">
                   {quiz._count?.questions || 0} questions
                 </Badge>
+                {attemptsMap[quiz.id]?.completedCount > 0 && (
+                  <Badge variant="success" className="font-bold text-[10px] px-2 py-0.5">
+                    {attemptsMap[quiz.id].completedCount} attempt{attemptsMap[quiz.id].completedCount > 1 ? "s" : ""}
+                  </Badge>
+                )}
               </div>
 
               <div className="flex items-center gap-2.5 mt-5 pt-3.5 border-t border-border/30">
@@ -146,11 +195,21 @@ export function QuizCardGrid({ quizzes, subtopicTitle, basePath }: QuizCardGridP
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
 
+                {attemptsMap[quiz.id]?.lastAttemptId && (
+                  <Link
+                    href={`/quiz/results/${attemptsMap[quiz.id].lastAttemptId}`}
+                    className="inline-flex items-center justify-center gap-1.5 h-10 px-3 rounded-lg bg-surface border border-border/80 text-xs font-semibold text-foreground hover:bg-surface-hover active:scale-[0.98] transition-all no-underline duration-150 cursor-pointer"
+                    title="View last result"
+                  >
+                    <History className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Results</span>
+                  </Link>
+                )}
+
                 <ShareButton
                   icon={<Share2 className="h-4 w-4" />}
                   buttonAppearance="outline"
                   buttonSize="icon"
-                  buttonClassName="h-10 w-10 shrink-0 border border-border/80 bg-surface rounded-lg"
                   shareText={`${quiz.title} — Take this quiz on Quizzer!`}
                   defaultUrl={`${typeof window !== "undefined" ? window.location.origin : ""}${basePath}/quiz/${quiz.id}`}
                   resolveUrl={async () => {
@@ -161,9 +220,8 @@ export function QuizCardGrid({ quizzes, subtopicTitle, basePath }: QuizCardGridP
                         return json?.url ? `${window.location.origin}${json.url}` : undefined;
                       }
                     } catch {
-                      return undefined;
+                      // ignore
                     }
-                    return undefined;
                   }}
                 />
               </div>

@@ -61,7 +61,6 @@ export interface QuizWizardActions {
   handleOptionClick: (option: string) => void;
   handleNext: () => Promise<void>;
   setShowHint: (show: boolean) => void;
-  resolveShareUrl: () => Promise<string>;
 }
 
 export function useQuizWizard(quiz: QuizWizardQuiz): [QuizWizardState, QuizWizardActions] {
@@ -304,23 +303,6 @@ export function useQuizWizard(quiz: QuizWizardQuiz): [QuizWizardState, QuizWizar
     router,
   ]);
 
-  const resolveShareUrl = useCallback(async () => {
-    const origin = window.location.origin;
-    let shareUrl = `${origin}/quiz/${quiz.id}`;
-
-    try {
-      const res = await fetch(`/api/quiz/${quiz.id}/share-url`);
-      if (res.ok) {
-        const json = await res.json();
-        if (json?.url) shareUrl = `${origin}${json.url}`;
-      }
-    } catch {
-      // keep fallback
-    }
-
-    return shareUrl;
-  }, [quiz.id]);
-
   const state: QuizWizardState = {
     loading,
     isPlaying,
@@ -345,7 +327,6 @@ export function useQuizWizard(quiz: QuizWizardQuiz): [QuizWizardState, QuizWizar
     handleOptionClick,
     handleNext,
     setShowHint,
-    resolveShareUrl,
   };
 
   return [state, actions];

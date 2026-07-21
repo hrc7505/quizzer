@@ -147,7 +147,10 @@ function QuizQuestionCardInner({
           className="h-10 px-5 font-bold gap-2 text-xs shadow-xs min-w-[120px]"
         >
           {isSubmitting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Finishing...</span>
+            </>
           ) : (
             <span>{isLastQuestion ? "Finish Quiz" : "Next Question"}</span>
           )}

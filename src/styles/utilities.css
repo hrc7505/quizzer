@@ -63,6 +63,13 @@ img, video, canvas, svg {
   -webkit-overflow-scrolling: touch;
 }
 
+:fullscreen nav,
+:fullscreen header,
+::-webkit-full-screen nav,
+::-webkit-full-screen header {
+  display: none !important;
+}
+
  /* Markdown Formatting */
 .markdown-body {
   line-height: 1.6;

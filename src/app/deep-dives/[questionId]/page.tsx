@@ -5,16 +5,7 @@ import { INTERNAL_TOPIC_TITLE } from "@/lib/constants";
 import { DeepDiveDetail } from "@/components/data-display/DeepDiveDetail";
 import { PageLayout } from "@/components/layouts/PageLayout";
 
-export const revalidate = 60;
-
-export async function generateStaticParams() {
-  const questions = await prisma.question.findMany({
-    where: { elaboration: { not: null } },
-    select: { id: true }
-  });
-  return questions.map(q => ({ questionId: q.id }));
-}
-
+export const dynamic = "force-dynamic";
 /**
  * Individual Deep Dive detail page.
  * Renders the saved elaboration markdown from the DB.

@@ -1,13 +1,11 @@
 "use client";
 
-import { Loader2, Timer, Share2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Loader2, Timer, Maximize, Minimize } from "lucide-react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Progress } from "@/components/ui/Progress";
-import { Alert } from "@/components/ui/Alert";
-import { ModelCapabilityError } from "@/components/ui/ModelCapabilityError";
-import { ShareButton } from "@/components/ui/ShareButton";
-import { getAiErrorMeta } from "@/lib/gemini";
+import { Button } from "@/components/ui/Button";
 import { formatTime } from "@/lib/text";
 import { useQuizWizard } from "@/hooks/useQuizWizard";
 import { QuizLobby } from "@/components/data-display/QuizLobby";
@@ -31,6 +29,29 @@ interface QuizWizardQuiz {
 
 export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
   const [state, actions] = useQuizWizard(quiz);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+        setIsFullscreen(true);
+      } else {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+      }
+    } catch {
+      // Fullscreen not supported
+    }
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
 
   if (state.loading) {
     return (
@@ -50,7 +71,6 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
         activeAttempt={state.activeAttempt}
         leaderboard={state.leaderboard}
         onStart={actions.handleStart}
-        resolveShareUrl={actions.resolveShareUrl}
       />
     );
   }
@@ -68,15 +88,19 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
             <Timer className="h-3.5 w-3.5" />
             <span>{formatTime(state.timeTaken)}</span>
           </Badge>
-          <ShareButton
-            icon={<Share2 className="h-4 w-4" />}
-            buttonAppearance="outline"
-            buttonSize="icon"
-            buttonClassName="h-9 w-9 shrink-0 border border-border/80 bg-surface rounded-lg"
-            shareText={`Check out this quiz: ${quiz.title} on Quizzer!`}
-            defaultUrl={`${typeof window !== "undefined" ? window.location.origin : ""}/quiz/${quiz.id}`}
-            resolveUrl={actions.resolveShareUrl}
-          />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 shrink-0 border border-border/80 bg-surface rounded-lg text-muted-foreground hover:text-foreground"
+            onClick={toggleFullscreen}
+            aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+          >
+            {isFullscreen ? (
+              <Minimize className="h-4 w-4" />
+            ) : (
+              <Maximize className="h-4 w-4" />
+            )}
+          </Button>
         </div>
       </div>
 
@@ -90,18 +114,6 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
         </div>
         <Progress value={state.progress * 100} indicatorClassName="bg-primary" />
       </div>
-
-      {state.error && (() => {
-        const meta = getAiErrorMeta(state.error);
-        if (meta.icon === "image-off") {
-          return <ModelCapabilityError message={state.error} />;
-        }
-        return (
-          <Alert variant={meta.variant} title="Error">
-            {state.error}
-          </Alert>
-        );
-      })()}
 
       {/* Question playing Card */}
       {state.currentQuestion && (

@@ -36,22 +36,39 @@ export function getAiErrorMeta(message: string): AiErrorMeta {
   return { icon: DEFAULT_ERROR_ICON, variant: "danger" };
 }
 
+export interface AiErrorResult {
+  message: string;
+  meta: AiErrorMeta;
+}
+
 /**
- * Translate raw Gemini/SDK errors into a clear, user-facing message.
+ * Translate raw Gemini/SDK errors into a clear, user-facing message + metadata.
  * Keeps model/transport details out of what's shown to end users.
  */
-export function describeAiError(error: unknown): string {
+export function describeAiError(error: unknown): AiErrorResult {
   const raw = error instanceof Error ? error.message : String(error);
   const message = typeof raw === "string" ? raw : "";
 
   if (/cannot read|does not support image|image input|unsupported.*(image|file)/i.test(message)) {
-    return "This model can only process text. Upload a text-based PDF or use the text/topic input instead.";
+    return {
+      message: "This model cannot read images. Upload a text-based PDF or use the text/topic input instead.",
+      meta: { icon: IMAGE_ERROR_ICON, variant: "warning" },
+    };
   }
   if (/timeout|aborted|deadline/i.test(message)) {
-    return "The AI request timed out. Try again with smaller input.";
+    return {
+      message: "The AI request timed out. Try again with smaller input.",
+      meta: { icon: DEFAULT_ERROR_ICON, variant: "warning" },
+    };
   }
   if (/api key|authentication|unauthorized|permission/i.test(message)) {
-    return "The AI service could not be reached. Please try again later.";
+    return {
+      message: "The AI service could not be reached. Please try again later.",
+      meta: { icon: DEFAULT_ERROR_ICON, variant: "danger" },
+    };
   }
-  return message || "Failed to generate content";
+  return {
+    message: message || "Failed to generate content",
+    meta: { icon: DEFAULT_ERROR_ICON, variant: "danger" },
+  };
 }

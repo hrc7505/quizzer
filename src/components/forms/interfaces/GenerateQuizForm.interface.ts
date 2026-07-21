@@ -8,6 +8,11 @@ export interface GenerateQuizResponse {
   quizzesCreated: number;
   /** Any error message returned by the server, if applicable. */
   error?: string;
+  /** Structured error metadata returned by the server for UI rendering. */
+  errorMeta?: {
+    icon: "image-off" | "alert-circle" | "alert-triangle" | "info";
+    variant: "danger" | "warning" | "info";
+  };
 }
 
 /**

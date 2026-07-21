@@ -35,9 +35,20 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
   // Selection states for linking existing items
   const [linkExamId, setLinkExamId] = useState<string | null>(null);
   const [linkTopicId, setLinkTopicId] = useState<string | null>(null);
+  const linkExamIdRef = useRef<string | null>(null);
+  const linkTopicIdRef = useRef<string | null>(null);
   const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
+  const selectedTopicIdsRef = useRef<string[]>([]);
   const [selectedSubtopicIds, setSelectedSubtopicIds] = useState<string[]>([]);
+  const selectedSubtopicIdsRef = useRef<string[]>([]);
   const [selectedQuizIds, setSelectedQuizIds] = useState<string[]>([]);
+  const selectedQuizIdsRef = useRef<string[]>([]);
+
+  useEffect(() => { selectedTopicIdsRef.current = selectedTopicIds; }, [selectedTopicIds]);
+  useEffect(() => { selectedSubtopicIdsRef.current = selectedSubtopicIds; }, [selectedSubtopicIds]);
+  useEffect(() => { selectedQuizIdsRef.current = selectedQuizIds; }, [selectedQuizIds]);
+  useEffect(() => { linkExamIdRef.current = linkExamId; }, [linkExamId]);
+  useEffect(() => { linkTopicIdRef.current = linkTopicId; }, [linkTopicId]);
 
   // Detail Drawer States
   const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
@@ -131,13 +142,18 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
           items={availableMainTopics}
           selectedIds={selectedTopicIds}
           onSelectionChange={setSelectedTopicIds}
+          selectionRef={selectedTopicIdsRef}
           emptyHint="Try adjusting your search or add a new topic first."
         />
       ),
       okText: "Save Links",
-      onOk: () => actions.handleSaveExamLinks(linkExamId, selectedTopicIds),
+      onOk: async () => {
+        const current = linkExamIdRef.current;
+        const idsToSave = selectedTopicIdsRef.current;
+        await actions.handleSaveExamLinks(current, idsToSave);
+      },
     });
-  }, [dialog, availableMainTopics, selectedTopicIds, linkExamId, actions]);
+  }, [dialog, availableMainTopics, actions, setSelectedTopicIds]);
 
   const openTopicLinkDialog = useCallback(() => {
     dialog.open({
@@ -151,13 +167,17 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
           items={availableSubtopics}
           selectedIds={selectedSubtopicIds}
           onSelectionChange={setSelectedSubtopicIds}
+          selectionRef={selectedSubtopicIdsRef}
           emptyHint="Try adjusting your search or add a new subtopic first."
         />
       ),
       okText: "Save Links",
-      onOk: () => actions.handleSaveTopicLinks(linkTopicId, selectedSubtopicIds),
+      onOk: async () => {
+        const current = linkTopicIdRef.current;
+        await actions.handleSaveTopicLinks(current, selectedSubtopicIdsRef.current);
+      },
     });
-  }, [dialog, availableSubtopics, selectedSubtopicIds, linkTopicId, actions]);
+  }, [dialog, availableSubtopics, actions, setSelectedSubtopicIds]);
 
   const openQuizLinkDialog = useCallback(() => {
     dialog.open({
@@ -171,13 +191,17 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
           items={availableQuizzes}
           selectedIds={selectedQuizIds}
           onSelectionChange={setSelectedQuizIds}
+          selectionRef={selectedQuizIdsRef}
           emptyHint="Try adjusting your search or generate a new quiz first."
         />
       ),
       okText: "Save Links",
-      onOk: () => actions.handleSaveQuizLinks(linkTopicId, selectedQuizIds),
+      onOk: async () => {
+        const current = linkTopicIdRef.current;
+        await actions.handleSaveQuizLinks(current, selectedQuizIdsRef.current);
+      },
     });
-  }, [dialog, availableQuizzes, selectedQuizIds, linkTopicId, actions]);
+  }, [dialog, availableQuizzes, actions, setSelectedQuizIds]);
 
   const openNewTopicDialog = useCallback(
     (examId: string, parentId: string) => {
@@ -325,22 +349,23 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
   }
 
   const callbacksRef = useRef<TaxonomyCallbacks | null>(null);
-  useEffect(() => {
-    callbacksRef.current = {
-      handleUnlinkTopicFromExam: actions.handleUnlinkTopicFromExam,
-      openExamLinkDialog,
-      openTopicLinkDialog,
-      openQuizLinkDialog,
-      handleUnlinkSubtopicFromParent: actions.handleUnlinkSubtopicFromParent,
-      handleUnlinkQuizFromSubtopic: (quizId: string, quizTitle: string, topicTitle: string) =>
-        actions.handleUnlinkQuizFromSubtopic(quizId, quizTitle, topicTitle, flatTopics),
-      handleDeleteQuiz: actions.handleDeleteQuiz,
-      openNewQuizDialog,
-      handleOpenAddQuestion,
-      handleOpenEditQuestion,
-      handleDeleteQuestion: actions.handleDeleteQuestion,
-    };
-  });
+  // Keep ref in sync with latest callbacks so PanelHost body can always call the current versions.
+  // This must happen during render so child components read fresh callbacks on first interaction.
+  // eslint-disable-next-line react-hooks/refs
+  callbacksRef.current = {
+    handleUnlinkTopicFromExam: actions.handleUnlinkTopicFromExam,
+    openExamLinkDialog,
+    openTopicLinkDialog,
+    openQuizLinkDialog,
+    handleUnlinkSubtopicFromParent: actions.handleUnlinkSubtopicFromParent,
+    handleUnlinkQuizFromSubtopic: (quizId: string, quizTitle: string, topicTitle: string) =>
+      actions.handleUnlinkQuizFromSubtopic(quizId, quizTitle, topicTitle, flatTopics),
+    handleDeleteQuiz: actions.handleDeleteQuiz,
+    openNewQuizDialog,
+    handleOpenAddQuestion,
+    handleOpenEditQuestion,
+    handleDeleteQuestion: actions.handleDeleteQuestion,
+  };
 
   // Drawers
   useEffect(() => {
@@ -365,7 +390,8 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
         />
       ),
     });
-  }, [selectedExamId, exams, panel]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedExamId, exams]);
 
   useEffect(() => {
     if (!selectedTopicId) return;
@@ -402,7 +428,8 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
         />
       ),
     });
-  }, [selectedTopicId, topics, flatTopics, panel]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTopicId, topics, flatTopics]);
 
   useEffect(() => {
     if (!selectedQuizId) return;
@@ -421,7 +448,8 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
         />
       ),
     });
-  }, [selectedQuizId, activeQuizDetail, activeQuizLoading, panel]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedQuizId, activeQuizDetail, activeQuizLoading]);
 
   if (loading && exams.length === 0) {
     return <LoadingSpinner text="Loading taxonomy registry..." className="py-20" />;

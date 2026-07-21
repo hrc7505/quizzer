@@ -71,7 +71,8 @@ Your response should include:
     return NextResponse.json({ success: true, markdown, cached: false });
   } catch (error) {
     console.error("Elaborate error:", error);
-    return NextResponse.json({ error: describeAiError(error) }, { status: 500 });
+    const errMeta = describeAiError(error);
+    return NextResponse.json({ error: errMeta.message, errorMeta: errMeta.meta }, { status: 500 });
   }
 }
 

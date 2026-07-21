@@ -15,7 +15,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const topic = await prisma.topic.update({
       where: { id },
       data: {
-        quizzes: { connect: quizIds.map((qid: string) => ({ id: qid })) },
+        quizzes: { set: quizIds.map((qid: string) => ({ id: qid })) },
       },
     });
 

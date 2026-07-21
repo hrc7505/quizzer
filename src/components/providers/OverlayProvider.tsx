@@ -13,6 +13,7 @@ interface OverlayContextValue {
   dialog: {
     open: (config: DialogConfig) => void;
     close: () => void;
+    update: (config: Partial<DialogConfig>) => void;
     confirm: (config: {
       title: React.ReactNode;
       description: React.ReactNode;
@@ -51,18 +52,20 @@ export function OverlayProvider({ children }: OverlayProviderProps) {
   }, []);
 
   const closeDialog = React.useCallback(() => {
-    setDialogConfig(prev => {
-      prev?.onCancel?.();
-      return null;
-    });
-  }, []);
+    const currentOnCancel = dialogConfig?.onCancel;
+    setDialogConfig(null);
+    if (currentOnCancel) {
+      requestAnimationFrame(() => currentOnCancel?.());
+    }
+  }, [dialogConfig]);
 
   const closePanel = React.useCallback(() => {
-    setPanelConfig(prev => {
-      prev?.onClose?.();
-      return null;
-    });
-  }, []);
+    const currentOnClose = panelConfig?.onClose;
+    setPanelConfig(null);
+    if (currentOnClose) {
+      requestAnimationFrame(() => currentOnClose?.());
+    }
+  }, [panelConfig]);
 
   React.useEffect(() => {
     const hasOverlay = !!dialogConfig || !!panelConfig;
@@ -85,6 +88,8 @@ export function OverlayProvider({ children }: OverlayProviderProps) {
     () => ({
       open: config => setDialogConfig({ okText: "OK", cancelText: "Cancel", showClose: true, ...config }),
       close: closeDialog,
+      update: config =>
+        setDialogConfig(prev => (prev ? { ...prev, ...config } : null)),
       confirm: ({ title, description, okText = "Confirm", cancelText = "Cancel", okVariant = "danger", onConfirm }) =>
         new Promise<boolean>(resolve => {
           setDialogConfig({

@@ -22,3 +22,4 @@ export const LinkButton = forwardRef<HTMLAnchorElement, LinkButtonProps>(({ href
     </Button>
   </Link>
 ));
+LinkButton.displayName = "LinkButton";

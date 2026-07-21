@@ -15,9 +15,16 @@ interface LinkPickerProps {
   label: string;
   placeholder?: string;
   items: LinkPickerItem[];
-  selectedIds: string[];
+  selectedIds: string[] | (() => string[]);
   onSelectionChange: (ids: string[]) => void;
+  selectionRef?: React.Ref<string[]>;
   emptyHint?: string;
+}
+
+function syncRef(ref: React.Ref<string[]> | undefined, value: string[]) {
+  if (!ref) return;
+  if (typeof ref === "function") ref(value);
+  else (ref as React.MutableRefObject<string[]>).current = value;
 }
 
 export function LinkPicker({
@@ -27,19 +34,29 @@ export function LinkPicker({
   items,
   selectedIds,
   onSelectionChange,
+  selectionRef,
   emptyHint = "Try adjusting your search.",
 }: LinkPickerProps) {
   const [search, setSearch] = React.useState("");
+  const [internalSelected, setInternalSelected] = React.useState<string[]>(
+    typeof selectedIds === "function" ? selectedIds() : selectedIds
+  );
 
   const filtered = React.useMemo(
     () => items.filter(i => i.title.toLowerCase().includes(search.toLowerCase())),
     [items, search]
   );
 
+  // Keep local checked state aligned if parent passes fresh array/getter
+  React.useEffect(() => {
+    setInternalSelected(typeof selectedIds === "function" ? selectedIds() : selectedIds);
+  }, [selectedIds]);
+
   const toggle = (id: string) => {
-    onSelectionChange(
-      selectedIds.includes(id) ? selectedIds.filter(x => x !== id) : [...selectedIds, id]
-    );
+    const next = internalSelected.includes(id) ? internalSelected.filter(x => x !== id) : [...internalSelected, id];
+    setInternalSelected(next);
+    syncRef(selectionRef, next);
+    onSelectionChange(next);
   };
 
   return (
@@ -58,19 +75,19 @@ export function LinkPicker({
             className="pl-9 h-9"
           />
         </div>
-        <div className="flex flex-col gap-2 max-h-56 overflow-y-auto border border-border/80 rounded-xl p-3 bg-secondary/5 mt-0.5 select-none">
+        <div className="flex flex-col gap-2 max-h-56 overflow-y-auto border border-border/80 rounded-xl p-3 bg-secondary/5 mt-0.5">
           {filtered.map(item => {
-            const isChecked = selectedIds.includes(item.id);
+            const isChecked = internalSelected.includes(item.id);
             return (
               <label
                 key={item.id}
-                className="flex items-center gap-2.5 p-1.5 hover:bg-surface-hover rounded-lg cursor-pointer text-xs font-semibold text-foreground/90 transition-colors"
+                className="flex items-center gap-2.5 p-1.5 hover:bg-surface-hover rounded-lg cursor-pointer text-xs font-semibold text-foreground/90 transition-colors select-none"
               >
                 <input
                   type="checkbox"
                   checked={isChecked}
                   onChange={() => toggle(item.id)}
-                  className="rounded border-border text-primary focus:ring-primary h-4 w-4"
+                  className="rounded border-border text-primary focus:ring-primary h-4 w-4 relative z-10"
                 />
                 <span className="truncate">{item.title}</span>
               </label>

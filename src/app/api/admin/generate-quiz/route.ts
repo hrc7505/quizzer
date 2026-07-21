@@ -355,6 +355,7 @@ ${chunk}`;
     });
   } catch (error) {
     console.error("Quiz generation error:", error);
-    return NextResponse.json({ error: describeAiError(error) }, { status: 500 });
+    const errMeta = describeAiError(error);
+    return NextResponse.json({ error: errMeta.message, errorMeta: errMeta.meta }, { status: 500 });
   }
 }

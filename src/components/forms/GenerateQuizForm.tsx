@@ -5,7 +5,7 @@ import { FileText, Type, Sparkles, Info } from "lucide-react";
 
 import { GenerateQuizResponse, GenerateQuizPayload } from "@/components/forms/interfaces/GenerateQuizForm.interface";
 import { QuizService } from "@/lib/services/quiz.service";
-import { getAiErrorMeta } from "@/lib/gemini";
+import { getAiErrorMeta, type AiErrorMeta } from "@/lib/gemini";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
@@ -65,6 +65,7 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<GenerateQuizResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [errorMeta, setErrorMeta] = useState<AiErrorMeta | null>(null);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -118,9 +119,10 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
         file: mode === "pdf" ? file : undefined,
       };
 
-      const data = await QuizService.generateQuiz(payload);
+      const data = await QuizService.generateQuiz(payload as unknown as Record<string, unknown>);
       if (data.error) {
         setError(data.error);
+        setErrorMeta(data.errorMeta || null);
         return;
       }
       setResult(data);
@@ -140,7 +142,7 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
 
   const renderErrorAlert = () => {
     if (!error) return null;
-    const meta = getAiErrorMeta(error);
+    const meta = errorMeta || getAiErrorMeta(error);
     if (meta.icon === "image-off") {
       return <ModelCapabilityError message={error} />;
     }

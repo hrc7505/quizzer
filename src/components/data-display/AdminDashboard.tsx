@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+
 import { Card } from "@/components/ui/Card";
 
 interface Stats {

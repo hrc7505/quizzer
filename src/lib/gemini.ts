@@ -8,7 +8,8 @@
 
 import { GoogleGenAI } from "@google/genai";
 
-export const GEMINI_MODEL = "gemini-2.5-flash";
+export const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+export const FALLBACK_MODELS = [GEMINI_MODEL, "gemini-2.0-flash", "gemini-1.5-flash"];
 
 export type AiErrorIcon = "image-off" | "alert-circle" | "alert-triangle" | "info";
 
@@ -145,6 +146,16 @@ export function isRetryableGeminiError(error: unknown): boolean {
     return true;
   }
 
+  // Model availability / not found on new/old project
+  if (
+    lower.includes("404") ||
+    lower.includes("not_found") ||
+    lower.includes("not found") ||
+    lower.includes("no longer available")
+  ) {
+    return true;
+  }
+
   return false;
 }
 
@@ -222,14 +233,38 @@ export async function executeWithGeminiFailover<T>(
 }
 
 /**
- * Universal `ai` client interface with automatic multi-key failover support.
+ * Universal `ai` client interface with automatic multi-key failover and model fallback support.
  */
 export const ai = {
   models: {
     generateContent: async (
       params: Parameters<GoogleGenAI["models"]["generateContent"]>[0]
     ): ReturnType<GoogleGenAI["models"]["generateContent"]> => {
-      return executeWithGeminiFailover((client) => client.models.generateContent(params));
+      return executeWithGeminiFailover(async (client) => {
+        const requestedModel = params.model || GEMINI_MODEL;
+        const candidateModels = Array.from(new Set([requestedModel, ...FALLBACK_MODELS]));
+
+        let lastModelErr: unknown = null;
+        for (const modelName of candidateModels) {
+          try {
+            return await client.models.generateContent({
+              ...params,
+              model: modelName,
+            });
+          } catch (modelErr) {
+            lastModelErr = modelErr;
+            const msg = modelErr instanceof Error ? modelErr.message : String(modelErr);
+            if (/404|not_found|not found|no longer available/i.test(msg)) {
+              console.warn(
+                `[Gemini Model Fallback] Model "${modelName}" is unavailable for this key, falling back to next available model...`
+              );
+              continue;
+            }
+            throw modelErr;
+          }
+        }
+        throw lastModelErr;
+      });
     },
   },
 };

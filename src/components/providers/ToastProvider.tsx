@@ -23,10 +23,14 @@ interface ToastContextValue {
 
 const ToastContext = React.createContext<ToastContextValue | null>(null);
 
-export function useToast() {
+const noopToastContext: ToastContextValue = {
+  addToast: () => {},
+  removeToast: () => {},
+};
+
+export function useToast(): ToastContextValue {
   const ctx = React.useContext(ToastContext);
-  if (!ctx) throw new Error("useToast must be used within <ToastProvider>");
-  return ctx;
+  return ctx ?? noopToastContext;
 }
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { Type } from "@google/genai";
 import { Prisma } from "@prisma/client";
 import { getServerSession } from "next-auth/next";
@@ -293,8 +293,8 @@ export async function processBatchById(batchId: string): Promise<{ success: bool
     let batchFailed = false;
     let batchErrorMessage = "";
 
-    for (let j = 0; j < rawQuestions.length; j += 10) {
-      const subBatch = rawQuestions.slice(j, j + 10);
+    for (let j = 0; j < rawQuestions.length; j += 30) {
+      const subBatch = rawQuestions.slice(j, j + 30);
       const prompt = `You are an expert quiz parser.
 The user provided ${subBatch.length} multiple-choice question(s) below.
 Your task is to parse and extract EVERY SINGLE question into the structured JSON array. Do not omit, skip, or drop any question.
@@ -314,7 +314,7 @@ ${subBatch.join("\n\n")}`;
         const batchRes = await generateQuestionsBatch(sanitizeImageText(prompt));
         parsedQuestions.push(...batchRes);
       } catch (err) {
-        console.warn(`Sub-batch failure for batch ${batch.id}:`, err);
+        console.warn(`Batch AI generation failure for batch ${batch.id}:`, err);
         batchFailed = true;
         batchErrorMessage = describeAiError(err).message;
         break;
@@ -535,12 +535,13 @@ Provide a hint and a detailed description/explanation for the answer.${existingQ
           revalidatePath(`/admin/manage/subtopics/${existingTopicId}/quizzes`);
         }
 
-        // 2. Start asynchronous processing in background
-        (async () => {
+        // 2. Start asynchronous processing in background using Next.js after()
+        after(async () => {
           for (const b of batchRecords) {
             await processBatchById(b.id);
+            await new Promise((r) => setTimeout(r, 1500));
           }
-        })().catch((err) => console.error("Background batch processing error:", err));
+        });
 
         // 3. Return immediately so batches appear instantly in the UI
         return NextResponse.json({

@@ -8,12 +8,13 @@
 
 import { GoogleGenAI } from "@google/genai";
 
-export const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+export const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-flash-lite-latest";
 export const FALLBACK_MODELS = [
+  "gemini-flash-lite-latest",
+  "gemini-flash-latest",
+  "gemini-3.5-flash",
+  "gemini-3.7-flash",
   "gemini-2.5-flash",
-  "gemini-2.0-flash",
-  "gemini-1.5-flash",
-  "gemini-2.5-pro",
 ];
 
 export type AiErrorIcon = "image-off" | "alert-circle" | "alert-triangle" | "info";

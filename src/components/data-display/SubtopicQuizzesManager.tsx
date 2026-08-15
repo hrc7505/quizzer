@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, ArrowLeft, Search, Link as LinkIcon, MoreHorizontal, Unlink, Sparkles, HelpCircle } from "lucide-react";
+import { Plus, ArrowLeft, Search, Link as LinkIcon, MoreHorizontal, Unlink, Sparkles, HelpCircle, Layers } from "lucide-react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -115,6 +115,21 @@ export function SubtopicQuizzesManager({
       ),
     });
   }, [dialog, subtopic.id, subtopic.title, refreshQuizzes, toast]);
+
+  /**
+   * Opens the Batch Queue dialog panel for this subtopic.
+   */
+  const handleOpenBatchQueue = useCallback(() => {
+    dialog.open({
+      title: `Batch Queue - "${subtopic.title}"`,
+      showClose: true,
+      body: (
+        <div className="p-1">
+          <BatchQueueManager initialTopicId={subtopic.id} />
+        </div>
+      ),
+    });
+  }, [dialog, subtopic.id, subtopic.title]);
 
   /**
    * Opens the Link Existing Quizzes dialog.
@@ -321,6 +336,15 @@ export function SubtopicQuizzesManager({
               variant="outline"
               size="sm"
               className="gap-1.5 font-semibold text-xs h-9 px-3.5"
+              onClick={handleOpenBatchQueue}
+            >
+              <Layers className="h-3.5 w-3.5 text-primary" />
+              <span>Batch Queue</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 font-semibold text-xs h-9 px-3.5"
               onClick={handleOpenLinkDialog}
             >
               <LinkIcon className="h-3.5 w-3.5" />
@@ -338,9 +362,6 @@ export function SubtopicQuizzesManager({
           </div>
         }
       />
-
-      {/* Contextual Batch Queue (shows if batches are pending/failed for this subtopic) */}
-      <BatchQueueManager initialTopicId={subtopic.id} compact />
 
       {/* Search */}
       <div className="relative w-full max-w-md">

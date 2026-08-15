@@ -250,6 +250,134 @@ async function generateQuestionsBatch(prompt: string): Promise<GeneratedQuestion
   }
 }
 
+export async function processBatchById(batchId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const batch = await prisma.quizBatch.findUnique({
+      where: { id: batchId },
+    });
+
+    if (!batch) return { success: false, error: "Batch not found" };
+
+    await prisma.quizBatch.update({
+      where: { id: batchId },
+      data: { status: "PROCESSING", error: null },
+    });
+
+    const rawQuestions = extractQuestionBlocks(batch.rawText);
+    const parsedQuestions: GeneratedQuestion[] = [];
+    let batchFailed = false;
+    let batchErrorMessage = "";
+
+    for (let j = 0; j < rawQuestions.length; j += 10) {
+      const subBatch = rawQuestions.slice(j, j + 10);
+      const prompt = `You are an expert quiz parser.
+The user provided ${subBatch.length} multiple-choice question(s) below.
+Your task is to parse and extract EVERY SINGLE question into the structured JSON array. Do not omit, skip, or drop any question.
+
+Formatting rules:
+1. Clean the question text by removing any leading question numbers (e.g. "49. ").
+2. Extract the 4 options and trim any leading option letters like "(a)", "(b)", "A.", "B)" so only the clean option text remains.
+3. Identify and set the correct answer (matching one of the 4 cleaned option strings exactly).
+4. Provide a helpful hint and a detailed technical explanation for why the answer is correct.
+
+Difficulty level: ${batch.difficulty}.
+
+Questions to parse:
+${subBatch.join("\n\n")}`;
+
+      try {
+        const batchRes = await generateQuestionsBatch(sanitizeImageText(prompt));
+        parsedQuestions.push(...batchRes);
+      } catch (err) {
+        console.warn(`Sub-batch failure for batch ${batch.id}:`, err);
+        batchFailed = true;
+        batchErrorMessage = describeAiError(err).message;
+        break;
+      }
+    }
+
+    if (batchFailed || parsedQuestions.length === 0) {
+      await prisma.quizBatch.update({
+        where: { id: batchId },
+        data: {
+          status: "FAILED",
+          error: batchErrorMessage || "No valid questions could be extracted.",
+        },
+      });
+      return { success: false, error: batchErrorMessage || "No questions generated" };
+    }
+
+    // Determine target topic
+    let questionTopicId: string;
+    if (batch.topicId) {
+      questionTopicId = batch.topicId;
+    } else {
+      let sentinel = await prisma.topic.findFirst({
+        where: { title: INTERNAL_TOPIC_TITLE },
+      });
+      if (!sentinel) {
+        sentinel = await prisma.topic.create({
+          data: { title: INTERNAL_TOPIC_TITLE },
+        });
+      }
+      questionTopicId = sentinel.id;
+    }
+
+    const existingQuizzesCount = batch.topicId
+      ? await prisma.quiz.count({ where: { topics: { some: { id: batch.topicId } } } })
+      : 0;
+    const quizOrder = existingQuizzesCount + 1;
+
+    const quizTitle = batch.totalBatches > 1
+      ? `${batch.title} - Part ${batch.batchIndex}`
+      : batch.title;
+
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const quiz = await tx.quiz.create({
+        data: {
+          ...(batch.topicId ? { topics: { connect: { id: batch.topicId } } } : {}),
+          title: quizTitle,
+          difficulty: batch.difficulty,
+          quizOrder,
+        },
+      });
+
+      await tx.question.createMany({
+        data: parsedQuestions.map((q) => ({
+          topicId: questionTopicId,
+          quizId: quiz.id,
+          text: q.text,
+          options: q.options,
+          correctAnswer: q.correctAnswer,
+          hint: q.hint,
+          description: q.description,
+        })),
+      });
+
+      // Automatically delete completed batch from database upon success
+      await tx.quizBatch.delete({
+        where: { id: batch.id },
+      });
+    });
+
+    revalidatePath("/admin/manage/batches");
+    if (batch.topicId) {
+      revalidatePath(`/admin/manage/subtopics/${batch.topicId}/quizzes`);
+      revalidatePath(`/topics/${batch.topicId}`);
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Batch processing error:", error);
+    const errRes = describeAiError(error);
+    await prisma.quizBatch.update({
+      where: { id: batchId },
+      data: { status: "FAILED", error: errRes.message },
+    }).catch(() => null);
+    return { success: false, error: errRes.message };
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -286,6 +414,22 @@ export async function POST(req: Request) {
         existingQuestionsText = `\n\nCRITICAL: Do NOT generate questions that are similar to these existing ones:\n` +
           recentQuestions.map((q) => `- ${q.text}`).join("\n");
       }
+    }
+
+    let questionTopicId: string;
+    if (topic) {
+      questionTopicId = topic.id;
+    } else {
+      let sentinel = await prisma.topic.findFirst({
+        where: { title: INTERNAL_TOPIC_TITLE },
+      });
+      if (!sentinel) {
+        sentinel = await prisma.topic.create({
+          data: { title: INTERNAL_TOPIC_TITLE },
+        });
+      }
+      topic = sentinel as unknown as TopicWithQuestions;
+      questionTopicId = sentinel.id;
     }
 
     let allGeneratedQuestions: GeneratedQuestion[] = [];
@@ -336,34 +480,46 @@ Provide a hint and a detailed description/explanation for the answer.${existingQ
           bunches.push(questionBlocks.slice(i, i + 30));
         }
 
-        // Process each 30-question bunch in sub-batches of 10 so AI never hits output token truncation
-        for (let b = 0; b < bunches.length; b++) {
-          const bunch = bunches[b];
-          for (let j = 0; j < bunch.length; j += 10) {
-            const subBatch = bunch.slice(j, j + 10);
-            const prompt = `You are an expert quiz parser.
-The user provided ${subBatch.length} multiple-choice question(s) below.
-Your task is to parse and extract EVERY SINGLE question into the structured JSON array. Do not omit, skip, or drop any question.
+        const totalBatches = bunches.length;
 
-Formatting rules:
-1. Clean the question text by removing any leading question numbers (e.g. "49. ").
-2. Extract the 4 options and trim any leading option letters like "(a)", "(b)", "A.", "B)" so only the clean option text remains.
-3. Identify and set the correct answer (matching one of the 4 cleaned option strings exactly).
-4. Provide a helpful hint and a detailed technical explanation for why the answer is correct.
+        // 1. Create persistent QuizBatch records in DB for all batches immediately
+        const batchRecords = await Promise.all(
+          bunches.map((bunch, idx) =>
+            prisma.quizBatch.create({
+              data: {
+                topicId: existingTopicId || null,
+                title: topicTitle,
+                difficulty,
+                rawText: bunch.join("\n\n"),
+                batchIndex: idx + 1,
+                totalBatches,
+                status: "PENDING",
+              },
+            })
+          )
+        );
 
-Difficulty level: ${difficulty}.${existingQuestionsText}
-
-Questions to parse:
-${subBatch.join("\n\n")}`;
-
-            try {
-              const batchQuestions = await generateQuestionsBatch(sanitizeImageText(prompt));
-              allGeneratedQuestions = [...allGeneratedQuestions, ...batchQuestions];
-            } catch (err) {
-              console.warn(`Failed to process bunch ${b + 1} sub-batch ${j / 10 + 1}`, err);
-            }
-          }
+        revalidatePath("/admin/manage/batches");
+        if (existingTopicId) {
+          revalidatePath(`/admin/manage/subtopics/${existingTopicId}/quizzes`);
         }
+
+        // 2. Start asynchronous processing in background
+        (async () => {
+          for (const b of batchRecords) {
+            await processBatchById(b.id);
+          }
+        })().catch((err) => console.error("Background batch processing error:", err));
+
+        // 3. Return immediately so batches appear instantly in the UI
+        return NextResponse.json({
+          success: true,
+          isBatched: true,
+          topicId: topic.id,
+          batchesCreated: totalBatches,
+          totalQuestions: questionBlocks.length,
+          message: `Created ${totalBatches} batch(es) with ${questionBlocks.length} questions in queue. Processing in background.`,
+        });
       } else {
         // General text/study material without explicit question markers
         const textChunks = chunkText(fullText, 4000);
@@ -397,25 +553,6 @@ ${chunk}`;
 
     if (N === 0) {
       return NextResponse.json({ error: "No questions could be generated from the provided content" }, { status: 400 });
-    }
-
-    let questionTopicId: string;
-
-    if (topic) {
-      questionTopicId = topic.id;
-    } else {
-      let sentinel = await prisma.topic.findFirst({
-        where: { title: INTERNAL_TOPIC_TITLE },
-        include: { quizzes: true, questions: { select: { text: true } } }
-      });
-      if (!sentinel) {
-        sentinel = await prisma.topic.create({
-          data: { title: INTERNAL_TOPIC_TITLE },
-          include: { quizzes: true, questions: { select: { text: true } } }
-        });
-      }
-      topic = sentinel;
-      questionTopicId = sentinel.id;
     }
 
     const chunkSize = 30;

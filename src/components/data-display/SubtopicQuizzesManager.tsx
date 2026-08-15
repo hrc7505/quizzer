@@ -19,6 +19,7 @@ import { DeleteConfirmDialogBody } from "@/components/feedback/DeleteConfirmDial
 import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from "@/components/ui/Dropdown";
 import { useDialog } from "@/components/providers/OverlayProvider";
 import { useToast } from "@/components/providers/ToastProvider";
+import { BatchQueueManager } from "@/components/data-display/BatchQueueManager";
 import { difficultyColor } from "@/lib/format";
 import { api } from "@/lib/api";
 
@@ -337,6 +338,9 @@ export function SubtopicQuizzesManager({
           </div>
         }
       />
+
+      {/* Contextual Batch Queue (shows if batches are pending/failed for this subtopic) */}
+      <BatchQueueManager initialTopicId={subtopic.id} compact />
 
       {/* Search */}
       <div className="relative w-full max-w-md">

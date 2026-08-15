@@ -120,3 +120,21 @@ model UserAnswer {
   isCorrect      Boolean
   attempt        QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
 }
+
+model QuizBatch {
+  id           String    @id @default(uuid())
+  topicId      String?
+  title        String
+  difficulty   String    @default("Medium")
+  rawText      String    @db.Text
+  batchIndex   Int       @default(1)
+  totalBatches Int       @default(1)
+  status       String    @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  error        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([status])
+  @@index([topicId])
+}
+

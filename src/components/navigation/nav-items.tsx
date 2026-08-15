@@ -1,4 +1,4 @@
-import { Home, BookOpen, Brain, LayoutDashboard, Plus, Database, Users, Settings } from "lucide-react";
+import { Home, BookOpen, Brain, LayoutDashboard, Plus, Database, Users, Settings, Layers } from "lucide-react";
 
 import type { ReactNode } from "react";
 
@@ -20,6 +20,7 @@ export const adminNavLinks: NavItem[] = [
   { href: "/admin", label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
   { href: "/admin/generate", label: "Generate Quiz", icon: <Plus className="h-4 w-4" /> },
   { href: "/admin/manage/quizzes", label: "Quizzes", icon: <Database className="h-4 w-4" />, match: "/admin/manage/quizzes" },
+  { href: "/admin/manage/batches", label: "Batch Queue", icon: <Layers className="h-4 w-4" />, match: "/admin/manage/batches" },
   { href: "/admin/manage/users", label: "Users", icon: <Users className="h-4 w-4" />, match: "/admin/manage/users" },
   { href: "/admin/manage/deep-dives", label: "Deep Dives", icon: <Brain className="h-4 w-4" />, match: "/admin/manage/deep-dives" },
 ];

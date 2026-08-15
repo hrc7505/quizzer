@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 
 import { authOptions, SessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { ensureQuizBatchTable } from "@/app/api/admin/generate-quiz/route";
 
 export async function GET(req: Request) {
   try {
@@ -10,6 +11,8 @@ export async function GET(req: Request) {
     if (!session?.user || (session.user as SessionUser).role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    await ensureQuizBatchTable();
 
     const { searchParams } = new URL(req.url);
     const topicId = searchParams.get("topicId");

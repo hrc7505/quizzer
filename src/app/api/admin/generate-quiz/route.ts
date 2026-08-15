@@ -250,8 +250,33 @@ async function generateQuestionsBatch(prompt: string): Promise<GeneratedQuestion
   }
 }
 
+export async function ensureQuizBatchTable(): Promise<void> {
+  try {
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "QuizBatch" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "topicId" TEXT,
+        "title" TEXT NOT NULL,
+        "difficulty" TEXT NOT NULL DEFAULT 'Medium',
+        "rawText" TEXT NOT NULL,
+        "batchIndex" INTEGER NOT NULL DEFAULT 1,
+        "totalBatches" INTEGER NOT NULL DEFAULT 1,
+        "status" TEXT NOT NULL DEFAULT 'PENDING',
+        "error" TEXT,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS "QuizBatch_topicId_idx" ON "QuizBatch"("topicId");
+      CREATE INDEX IF NOT EXISTS "QuizBatch_status_idx" ON "QuizBatch"("status");
+    `);
+  } catch (err) {
+    console.warn("ensureQuizBatchTable warning:", err);
+  }
+}
+
 export async function processBatchById(batchId: string): Promise<{ success: boolean; error?: string }> {
   try {
+    await ensureQuizBatchTable();
     const batch = await prisma.quizBatch.findUnique({
       where: { id: batchId },
     });
@@ -481,6 +506,9 @@ Provide a hint and a detailed description/explanation for the answer.${existingQ
         }
 
         const totalBatches = bunches.length;
+
+        // Ensure table exists on database (safe auto-migration fallback)
+        await ensureQuizBatchTable();
 
         // 1. Create persistent QuizBatch records in DB for all batches immediately
         const batchRecords = await Promise.all(

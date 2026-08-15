@@ -90,7 +90,7 @@ export function BatchQueueManager({ initialTopicId, compact = false }: BatchQueu
 
     const interval = setInterval(() => {
       fetchBatches();
-    }, 3000);
+    }, 30000);
 
     return () => clearInterval(interval);
   }, [hasActiveBatches, fetchBatches]);
@@ -297,8 +297,8 @@ export function BatchQueueManager({ initialTopicId, compact = false }: BatchQueu
                           batch.status === "FAILED"
                             ? "danger"
                             : batch.status === "PROCESSING"
-                            ? "info"
-                            : "outline"
+                              ? "info"
+                              : "outline"
                         }
                         className="text-[11px]"
                       >

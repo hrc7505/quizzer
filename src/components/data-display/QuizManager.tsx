@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Sparkles, Download } from "lucide-react";
 
 import { GenerateQuizForm } from "@/components/forms/GenerateQuizForm";
@@ -14,6 +15,7 @@ import { useToast } from "@/components/providers/ToastProvider";
 import { LinkPicker } from "@/components/data-display/LinkPicker";
 import { EditQuizBody, QuizDrawerBody } from "@/components/data-display/QuizManagerBodies";
 import { QuestionEditorBody } from "@/components/data-display/QuestionEditorBody";
+import { DeleteConfirmDialogBody } from "@/components/feedback/DeleteConfirmDialogBody";
 import { downloadCSV } from "@/lib/csv-export";
 import { Pagination } from "@/components/data-display/Pagination";
 import { SearchFilterBar } from "@/components/data-display/SearchFilterBar";
@@ -49,6 +51,7 @@ const DIFFICULTIES = ["Easy", "Medium", "Hard"];
  * Supports create, edit, delete, link/unlink subtopics, search, filter, paginate.
  */
 export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
+  const router = useRouter();
   const [quizzes, setQuizzes] = useState<Quiz[]>(initial);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -221,18 +224,31 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
 
   // Delete Quiz
   const handleDeleteQuiz = (quiz: Quiz) => {
-    triggerConfirm(
-      "Delete Quiz",
-      `Are you sure you want to permanently delete "${quiz.title}"? This will delete all of its ${quiz._count.questions} questions, as well as all attempts and score history.`,
-      async () => {
+    dialog.confirm({
+      title: "Delete Quiz",
+      okText: "Delete Quiz",
+      okVariant: "danger",
+      body: (
+        <DeleteConfirmDialogBody
+          title={quiz.title}
+          itemType="Quiz"
+          linkSummaries={[
+            { label: "Linked Topics", items: quiz.topics.map(t => t.title) },
+            { label: "Questions Count", items: quiz._count.questions },
+            { label: "User Attempts", items: quiz._count.attempts },
+          ]}
+          consequenceMessage="This will unlink the quiz from all topics, delete its questions and score history, and permanently delete the quiz record."
+        />
+      ),
+      onConfirm: async () => {
         setLoading(true);
         await fetch(`/api/admin/quizzes/${quiz.id}`, { method: "DELETE" });
         setQuizzes(prev => prev.filter(q => q.id !== quiz.id));
         toast.addToast({ type: "success", message: "Quiz deleted" });
         if (selectedQuizId === quiz.id) setSelectedQuizId(null);
         setLoading(false);
-      }
-    );
+      },
+    });
   };
 
   // Open Link Dialog
@@ -550,7 +566,7 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
                   <QuizRow
                     key={item.id}
                     quiz={item}
-                    onSelectQuiz={setSelectedQuizId}
+                    onSelectQuiz={(id) => router.push(`/admin/manage/quizzes/${id}/questions`)}
                     onOpenLinkDialog={openLinkDialog}
                     onOpenEditDialog={openEditDialog}
                     onDeleteQuiz={handleDeleteQuiz}

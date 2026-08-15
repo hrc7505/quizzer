@@ -3,6 +3,34 @@ import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
 
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    const exam = await prisma.exam.findUnique({
+      where: { id },
+      include: {
+        topics: {
+          include: {
+            subtopics: { select: { id: true, title: true } },
+            quizzes: { select: { id: true, title: true } },
+            _count: { select: { subtopics: true, quizzes: true, questions: true } },
+          },
+          orderBy: { createdAt: "desc" },
+        },
+      },
+    });
+
+    if (!exam) {
+      return NextResponse.json({ error: "Exam not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(exam);
+  } catch (error) {
+    console.error("Failed to fetch exam:", error);
+    return NextResponse.json({ error: "Failed to fetch exam" }, { status: 500 });
+  }
+}
+
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
@@ -33,10 +61,18 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
+
+    // Disconnect all linked topics first before deleting the exam
+    await prisma.exam.update({
+      where: { id },
+      data: { topics: { set: [] } }
+    });
+
     await prisma.exam.delete({ where: { id } });
 
     revalidatePath("/exams");
     revalidatePath(`/exams/${id}`);
+    revalidatePath("/admin/manage/exams");
 
     return NextResponse.json({ success: true });
   } catch (error) {

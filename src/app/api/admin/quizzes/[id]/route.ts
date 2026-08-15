@@ -67,11 +67,23 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       include: { topics: { select: { id: true } } }
     });
 
+    // Disconnect linked topics
+    await prisma.quiz.update({
+      where: { id },
+      data: { topics: { set: [] } }
+    });
+
+    // Delete questions belonging to this quiz
+    await prisma.question.deleteMany({
+      where: { quizId: id }
+    });
+
     await prisma.quiz.delete({ where: { id } });
 
     revalidatePath("/exams");
     existing?.topics.forEach(t => revalidatePath(`/topics/${t.id}`));
     await revalidateQuizAndRelated(id);
+    revalidatePath("/admin/manage/quizzes");
 
     return NextResponse.json({ success: true });
   } catch (error) {

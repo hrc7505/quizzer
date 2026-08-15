@@ -1,0 +1,76 @@
+import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
+import { revalidatePath } from "next/cache";
+
+import { prisma } from "@/lib/prisma";
+import { INTERNAL_TOPIC_TITLE } from "@/lib/constants";
+
+
+export async function GET(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const examId = searchParams.get("examId");
+    const parentId = searchParams.get("parentId");
+    const all = searchParams.get("all") === "true";
+    
+    const where: Prisma.TopicWhereInput = {
+      // Always exclude the hidden sentinel topic used as a FK anchor for standalone-generated questions
+      NOT: { title: INTERNAL_TOPIC_TITLE }
+    };
+    if (examId) {
+      where.exams = { some: { id: examId } };
+    }
+    if (parentId) {
+      where.parentTopics = { some: { id: parentId } };
+    } else if (!all) {
+      // By default, filter out subtopics to only return main/root topics
+      where.parentTopics = { none: {} };
+    }
+
+    const topics = await prisma.topic.findMany({
+      where,
+      include: {
+        exams: { select: { id: true, title: true } },
+        parentTopics: { select: { id: true, title: true } },
+        subtopics: { select: { id: true, title: true } },
+        quizzes: {
+          include: { _count: { select: { questions: true } } }
+        },
+        _count: {
+          select: { quizzes: true, questions: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    return NextResponse.json(topics);
+  } catch (error) {
+    console.error("Failed to fetch topics:", error);
+    return NextResponse.json({ error: "Failed to fetch topics" }, { status: 500 });
+  }
+}
+
+export async function POST(req: Request) {
+  try {
+    const { title, description, examId, parentId } = await req.json();
+    if (!title) return NextResponse.json({ error: "Title is required" }, { status: 400 });
+
+    const topic = await prisma.topic.create({
+      data: { 
+        title, 
+        description, 
+        exams: examId ? { connect: { id: examId } } : undefined,
+        parentTopics: parentId ? { connect: { id: parentId } } : undefined,
+      }
+    });
+
+    revalidatePath("/topics");
+    if (examId) revalidatePath(`/exams/${examId}`);
+    if (parentId) revalidatePath(`/topics/${parentId}`);
+    revalidatePath("/exams");
+
+    return NextResponse.json(topic);
+  } catch (error) {
+    console.error("Failed to create topic:", error);
+    return NextResponse.json({ error: "Failed to create topic" }, { status: 500 });
+  }
+}

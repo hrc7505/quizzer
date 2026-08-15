@@ -34,7 +34,7 @@ type TopicWithQuestions = Prisma.TopicGetPayload<{
   include: { quizzes: true; questions: { select: { text: true } } };
 }>;
 
-const AI_TIMEOUT_MS = 240000;
+const AI_TIMEOUT_MS = 60000;
 
 function extractJson(text: string): unknown {
   const trimmed = text.trim();
@@ -357,33 +357,36 @@ ${subBatch.join("\n\n")}`;
       ? `${batch.title} - Part ${batch.batchIndex}`
       : batch.title;
 
-    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const quiz = await tx.quiz.create({
-        data: {
-          ...(batch.topicId ? { topics: { connect: { id: batch.topicId } } } : {}),
-          title: quizTitle,
-          difficulty: batch.difficulty,
-          quizOrder,
-        },
-      });
+    await prisma.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        const quiz = await tx.quiz.create({
+          data: {
+            ...(batch.topicId ? { topics: { connect: { id: batch.topicId } } } : {}),
+            title: quizTitle,
+            difficulty: batch.difficulty,
+            quizOrder,
+          },
+        });
 
-      await tx.question.createMany({
-        data: parsedQuestions.map((q) => ({
-          topicId: questionTopicId,
-          quizId: quiz.id,
-          text: q.text,
-          options: q.options,
-          correctAnswer: q.correctAnswer,
-          hint: q.hint,
-          description: q.description,
-        })),
-      });
+        await tx.question.createMany({
+          data: parsedQuestions.map((q) => ({
+            topicId: questionTopicId,
+            quizId: quiz.id,
+            text: q.text,
+            options: q.options,
+            correctAnswer: q.correctAnswer,
+            hint: q.hint,
+            description: q.description,
+          })),
+        });
 
-      // Automatically delete completed batch from database upon success
-      await tx.quizBatch.delete({
-        where: { id: batch.id },
-      });
-    });
+        // Automatically delete completed batch from database upon success
+        await tx.quizBatch.delete({
+          where: { id: batch.id },
+        });
+      },
+      { maxWait: 10000, timeout: 30000 }
+    );
 
     revalidatePath("/admin/manage/batches");
     if (batch.topicId) {

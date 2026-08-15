@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Layers,
   RefreshCw,
@@ -55,8 +55,10 @@ export function BatchQueueManager({ initialTopicId, compact = false }: BatchQueu
   const [retryingAll, setRetryingAll] = useState(false);
   const [expandedErrorIds, setExpandedErrorIds] = useState<Set<string>>(new Set());
   const toast = useToast();
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
 
-  const fetchBatches = useCallback(async () => {
+  const fetchBatches = useCallback(async (isManualRefresh = false) => {
     try {
       setLoading(true);
       const url = initialTopicId
@@ -67,20 +69,23 @@ export function BatchQueueManager({ initialTopicId, compact = false }: BatchQueu
       const data = await res.json();
       setBatches(data.batches || []);
     } catch (err) {
-      console.error(err);
-      toast.addToast({ type: "error", message: "Failed to load batch queue" });
+      console.warn("Could not fetch batches:", err);
+      if (isManualRefresh) {
+        toastRef.current.addToast({ type: "error", message: "Failed to load batch queue" });
+      }
     } finally {
       setLoading(false);
     }
-  }, [initialTopicId, toast]);
+  }, [initialTopicId]);
 
   useEffect(() => {
     fetchBatches();
   }, [fetchBatches]);
 
-  // Auto-poll while batches are in PENDING or PROCESSING states
+  // Stable auto-poll while batches are in PENDING or PROCESSING states
+  const hasActiveBatches = batches.some((b) => b.status === "PENDING" || b.status === "PROCESSING");
+
   useEffect(() => {
-    const hasActiveBatches = batches.some((b) => b.status === "PENDING" || b.status === "PROCESSING");
     if (!hasActiveBatches) return;
 
     const interval = setInterval(() => {
@@ -88,7 +93,7 @@ export function BatchQueueManager({ initialTopicId, compact = false }: BatchQueu
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [batches, fetchBatches]);
+  }, [hasActiveBatches, fetchBatches]);
 
   const handleRetrySingle = async (id: string) => {
     setRetryingIds((prev) => new Set(prev).add(id));
@@ -216,7 +221,7 @@ export function BatchQueueManager({ initialTopicId, compact = false }: BatchQueu
           <Button
             variant="outline"
             size="sm"
-            onClick={fetchBatches}
+            onClick={() => fetchBatches(true)}
             disabled={loading}
             className="gap-1.5 text-xs h-8"
           >

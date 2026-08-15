@@ -14,6 +14,19 @@ export async function GET(req: Request) {
 
     await ensureQuizBatchTable();
 
+    // Auto-recover stale batches that have been in PROCESSING status for more than 2 minutes
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+    await prisma.quizBatch.updateMany({
+      where: {
+        status: "PROCESSING",
+        updatedAt: { lt: twoMinutesAgo },
+      },
+      data: {
+        status: "FAILED",
+        error: "Generation timed out or was interrupted. Click Retry to re-process.",
+      },
+    }).catch(() => null);
+
     const { searchParams } = new URL(req.url);
     const topicId = searchParams.get("topicId");
     const status = searchParams.get("status");

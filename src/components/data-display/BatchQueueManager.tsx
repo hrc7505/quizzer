@@ -395,7 +395,7 @@ export function BatchQueueManager({
                       variant="primary"
                       size="sm"
                       onClick={() => handleRetrySingle(batch.id)}
-                      disabled={isRetrying || batch.status === "PROCESSING"}
+                      disabled={isRetrying}
                       className="h-8 px-3 text-xs font-semibold gap-1.5"
                     >
                       {isRetrying ? (

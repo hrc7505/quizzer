@@ -8,8 +8,14 @@
 
 import { GoogleGenAI } from "@google/genai";
 
-export const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
-export const FALLBACK_MODELS = [GEMINI_MODEL, "gemini-2.0-flash", "gemini-1.5-flash"];
+export const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash";
+export const FALLBACK_MODELS = [
+  GEMINI_MODEL,
+  "gemini-3.5-flash",
+  "gemini-flash-lite-latest",
+  "gemini-flash-latest",
+  "gemini-2.5-flash",
+];
 
 export type AiErrorIcon = "image-off" | "alert-circle" | "alert-triangle" | "info";
 
@@ -254,9 +260,9 @@ export const ai = {
           } catch (modelErr) {
             lastModelErr = modelErr;
             const msg = modelErr instanceof Error ? modelErr.message : String(modelErr);
-            if (/404|not_found|not found|no longer available/i.test(msg)) {
+            if (/404|503|429|not_found|not found|no longer available|unavailable|high demand|resource_exhausted/i.test(msg)) {
               console.warn(
-                `[Gemini Model Fallback] Model "${modelName}" is unavailable for this key, falling back to next available model...`
+                `[Gemini Model Fallback] Model "${modelName}" failed, trying next candidate model...`
               );
               continue;
             }

@@ -123,9 +123,10 @@ export function SubtopicQuizzesManager({
     dialog.open({
       title: `Batch Queue - "${subtopic.title}"`,
       showClose: true,
+      className: "max-w-2xl sm:max-w-3xl",
       body: (
-        <div className="p-1">
-          <BatchQueueManager initialTopicId={subtopic.id} />
+        <div className="py-1">
+          <BatchQueueManager initialTopicId={subtopic.id} hideHeader={true} />
         </div>
       ),
     });

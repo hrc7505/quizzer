@@ -38,16 +38,31 @@ export interface BatchItem {
   updatedAt: string;
 }
 
+function formatSafeTime(dateStr?: string | null): string {
+  if (!dateStr) return "";
+  try {
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? "" : d.toLocaleTimeString();
+  } catch {
+    return "";
+  }
+}
+
 interface BatchQueueManagerProps {
   initialTopicId?: string;
   compact?: boolean;
+  hideHeader?: boolean;
 }
 
 /**
  * BatchQueueManager component displays persistent quiz generation batches,
  * and allows admins to retry failed/pending batches or discard them.
  */
-export function BatchQueueManager({ initialTopicId, compact = false }: BatchQueueManagerProps) {
+export function BatchQueueManager({
+  initialTopicId,
+  compact = false,
+  hideHeader = false,
+}: BatchQueueManagerProps) {
   const [batches, setBatches] = useState<BatchItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"ALL" | "FAILED" | "PENDING">("ALL");
@@ -182,56 +197,104 @@ export function BatchQueueManager({ initialTopicId, compact = false }: BatchQueu
   return (
     <div className={cn("flex flex-col gap-4 w-full", compact && "rounded-xl border border-warning/30 bg-warning/5 p-4")}>
       {/* Header bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
-            <Layers className="h-5 w-5" />
+      {!hideHeader ? (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+              <Layers className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-base sm:text-lg font-bold text-foreground tracking-tight flex items-center gap-2">
+                <span>{compact ? "Pending Topic Batches" : "Quiz Generation Batch Queue"}</span>
+                {batches.length > 0 && (
+                  <Badge variant="outline" className="text-xs">
+                    {batches.length}
+                  </Badge>
+                )}
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                {compact
+                  ? "Batches queued for this subtopic waiting for AI generation or retry."
+                  : "Manage and retry multi-quiz batches and uncompleted question imports."}
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-base sm:text-lg font-bold text-foreground tracking-tight flex items-center gap-2">
-              <span>{compact ? "Pending Topic Batches" : "Quiz Generation Batch Queue"}</span>
-              {batches.length > 0 && (
-                <Badge variant="outline" className="text-xs">
-                  {batches.length}
-                </Badge>
-              )}
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              {compact
-                ? "Batches queued for this subtopic waiting for AI generation or retry."
-                : "Manage and retry multi-quiz batches and uncompleted question imports."}
-            </p>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          {failedCount > 0 && (
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            {failedCount > 0 && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleRetryAllFailed}
+                disabled={retryingAll || loading}
+                className="gap-1.5 text-xs font-semibold h-8"
+              >
+                {retryingAll ? <Spinner size="sm" /> : <Play className="h-3.5 w-3.5" />}
+                <span>Retry All ({failedCount})</span>
+              </Button>
+            )}
+
             <Button
-              variant="primary"
+              variant="outline"
               size="sm"
-              onClick={handleRetryAllFailed}
-              disabled={retryingAll || loading}
-              className="gap-1.5 text-xs font-semibold h-8"
+              onClick={() => fetchBatches(true)}
+              disabled={loading}
+              className="gap-1.5 text-xs h-8"
             >
-              {retryingAll ? <Spinner size="sm" /> : <Play className="h-3.5 w-3.5" />}
-              <span>Retry All ({failedCount})</span>
+              <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+              <span>Refresh</span>
             </Button>
-          )}
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => fetchBatches(true)}
-            disabled={loading}
-            className="gap-1.5 text-xs h-8"
-          >
-            <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
-            <span>Refresh</span>
-          </Button>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="flex items-center justify-between gap-2 pb-1">
+          <div className="flex gap-1.5">
+            {(["ALL", "FAILED", "PENDING"] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                  activeTab === tab
+                    ? "bg-secondary text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground hover:bg-surface"
+                )}
+              >
+                {tab === "ALL" && `All (${batches.length})`}
+                {tab === "FAILED" && `Failed (${failedCount})`}
+                {tab === "PENDING" && `Pending (${pendingCount})`}
+              </button>
+            ))}
+          </div>
 
-      {!compact && (
+          <div className="flex items-center gap-2">
+            {failedCount > 0 && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleRetryAllFailed}
+                disabled={retryingAll || loading}
+                className="gap-1.5 text-xs font-semibold h-8"
+              >
+                {retryingAll ? <Spinner size="sm" /> : <Play className="h-3.5 w-3.5" />}
+                <span>Retry All</span>
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fetchBatches(true)}
+              disabled={loading}
+              className="gap-1.5 text-xs h-8"
+            >
+              <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+              <span>Refresh</span>
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {!compact && !hideHeader && (
         <div className="flex gap-1.5 border-b border-border/50 pb-2">
           {(["ALL", "FAILED", "PENDING"] as const).map((tab) => (
             <button
@@ -323,7 +386,7 @@ export function BatchQueueManager({ initialTopicId, compact = false }: BatchQueu
                         </span>
                       )}
                       <span>Difficulty: {batch.difficulty}</span>
-                      <span>Created: {new Date(batch.createdAt).toLocaleTimeString()}</span>
+                      {batch.createdAt && <span>Created: {formatSafeTime(batch.createdAt)}</span>}
                     </div>
                   </div>
 

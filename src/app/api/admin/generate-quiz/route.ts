@@ -50,6 +50,91 @@ function extractJson(text: string): unknown {
   return JSON.parse(trimmed);
 }
 
+/**
+ * Extracts and separates individual question blocks from raw user text or PDF dumps.
+ * Handles numbered (e.g. "1.", "45)", "Q1:"), unnumbered questions, markdown, and inline options.
+ */
+function extractQuestionBlocks(rawText: string): string[] {
+  const text = rawText.replace(/\r\n/g, "\n").trim();
+  if (!text) return [];
+
+  // 1. If text is formatted with double newlines separating question blocks
+  const paragraphs = text.split(/\n\s*\n+/).map((p) => p.trim()).filter(Boolean);
+  const optionInlinePattern = /(?:[A-Da-d][\.\)]|\([A-Da-d]\))/;
+
+  if (paragraphs.length >= 2 && paragraphs.every((p) => optionInlinePattern.test(p))) {
+    return paragraphs;
+  }
+
+  // 2. Line-by-line state machine for single-spaced, unnumbered, or numbered questions
+  const lines = text.split("\n");
+  const blocks: string[] = [];
+  let currentBlock: string[] = [];
+
+  const optionPattern = /^\s*(?:[A-Da-d][\.\)]|\([A-Da-d]\))\s+/;
+  const answerPattern = /^\s*(?:Ans(?:wer)?|Correct(?:\s*Answer)?|Key|Explanation)[\s\:\-\.]/i;
+
+  let hasSeenOptions = false;
+
+  function isLineQuestionStart(line: string): boolean {
+    const trimmed = line.trim();
+    if (!trimmed) return false;
+
+    // Explicit prefix (Q1, Question 1, Que 1, etc.)
+    if (/^(?:[\*\_\#\s]*(?:Question|Q|Que|Ques)\s*[\.\:\-\#]?\s*\d+)/i.test(trimmed)) {
+      return true;
+    }
+
+    // Numbered prefix: e.g. "1. ", "2. ", "45. ", "[3] ", "1) "
+    const cleaned = trimmed.replace(/^[\*\_\#\s]+/, "");
+    if (/^\[?\d+[\.\)\:\-\]]\s+/.test(cleaned)) {
+      if (hasSeenOptions && optionPattern.test(cleaned)) {
+        return false;
+      }
+      return true;
+    }
+
+    return false;
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      if (currentBlock.length > 0) currentBlock.push(line);
+      continue;
+    }
+
+    const isOption = optionPattern.test(trimmed);
+    const isAnswer = answerPattern.test(trimmed);
+    const isQuestion = isLineQuestionStart(trimmed);
+
+    // An unnumbered question starts when the previous block already had options/answers,
+    // and the current line is a new question statement (i.e. not an option and not an answer)
+    const isNewUnnumbered = hasSeenOptions && !isOption && !isAnswer;
+
+    if ((isQuestion || isNewUnnumbered) && currentBlock.length > 0) {
+      const blockText = currentBlock.join("\n").trim();
+      if (blockText) blocks.push(blockText);
+      currentBlock = [line];
+      hasSeenOptions = isOption;
+    } else {
+      currentBlock.push(line);
+      if (isOption || optionInlinePattern.test(line)) {
+        hasSeenOptions = true;
+      }
+    }
+  }
+
+  if (currentBlock.length > 0) {
+    const remaining = currentBlock.join("\n").trim();
+    if (remaining) blocks.push(remaining);
+  }
+
+  return blocks.length >= 2 ? blocks : [text];
+}
+
 function chunkText(text: string, maxLength: number): string[] {
   const chunks: string[] = [];
   let currentChunk = "";
@@ -242,16 +327,53 @@ Provide a hint and a detailed description/explanation for the answer.${existingQ
         fullText = sanitizePdfText(text);
       }
 
-      const textChunks = chunkText(fullText, 15000);
+      const questionBlocks = extractQuestionBlocks(fullText);
 
-      for (let i = 0; i < textChunks.length; i++) {
-        const chunk = textChunks[i];
-        const prompt = `You are an expert quiz parser and generator.
-Analyze the following text content and perform one of the following tasks:
-1. If the text already contains a list of questions, quizzes, or a question bank (with options and/or answers), your task is to extract ALL of those questions. Do not skip, summarize, or omit any of them. Parse every single question present in the text chunk.
-2. If the text is general reading/study material or informational text (without pre-existing questions), generate up to 25 high-quality, comprehensive multiple-choice questions based on the key concepts in the text.
+      if (questionBlocks.length >= 2) {
+        // User pasted a question bank: group into 30-question bunches (each bunch = 1 Quiz)
+        const bunches: string[][] = [];
+        for (let i = 0; i < questionBlocks.length; i += 30) {
+          bunches.push(questionBlocks.slice(i, i + 30));
+        }
 
-Difficulty level for the questions: ${difficulty}.
+        // Process each 30-question bunch in sub-batches of 10 so AI never hits output token truncation
+        for (let b = 0; b < bunches.length; b++) {
+          const bunch = bunches[b];
+          for (let j = 0; j < bunch.length; j += 10) {
+            const subBatch = bunch.slice(j, j + 10);
+            const prompt = `You are an expert quiz parser.
+The user provided ${subBatch.length} multiple-choice question(s) below.
+Your task is to parse and extract EVERY SINGLE question into the structured JSON array. Do not omit, skip, or drop any question.
+
+Formatting rules:
+1. Clean the question text by removing any leading question numbers (e.g. "49. ").
+2. Extract the 4 options and trim any leading option letters like "(a)", "(b)", "A.", "B)" so only the clean option text remains.
+3. Identify and set the correct answer (matching one of the 4 cleaned option strings exactly).
+4. Provide a helpful hint and a detailed technical explanation for why the answer is correct.
+
+Difficulty level: ${difficulty}.${existingQuestionsText}
+
+Questions to parse:
+${subBatch.join("\n\n")}`;
+
+            try {
+              const batchQuestions = await generateQuestionsBatch(sanitizeImageText(prompt));
+              allGeneratedQuestions = [...allGeneratedQuestions, ...batchQuestions];
+            } catch (err) {
+              console.warn(`Failed to process bunch ${b + 1} sub-batch ${j / 10 + 1}`, err);
+            }
+          }
+        }
+      } else {
+        // General text/study material without explicit question markers
+        const textChunks = chunkText(fullText, 4000);
+
+        for (let i = 0; i < textChunks.length; i++) {
+          const chunk = textChunks[i];
+          const prompt = `You are an expert quiz generator.
+Generate up to 10 comprehensive multiple-choice questions based on the key concepts in the text below.
+
+Difficulty level: ${difficulty}.
 Each question must have exactly 4 options.
 One option must be the correct answer (matching the string exactly).
 Provide a hint and a detailed description/explanation for why the answer is correct.${existingQuestionsText}
@@ -259,11 +381,12 @@ Provide a hint and a detailed description/explanation for why the answer is corr
 Text content to analyze:
 ${chunk}`;
 
-        try {
-          const batchQuestions = await generateQuestionsBatch(sanitizeImageText(prompt));
-          allGeneratedQuestions = [...allGeneratedQuestions, ...batchQuestions];
-        } catch (err) {
-          console.warn(`Failed to process chunk ${i + 1}/${textChunks.length}`, err);
+          try {
+            const batchQuestions = await generateQuestionsBatch(sanitizeImageText(prompt));
+            allGeneratedQuestions = [...allGeneratedQuestions, ...batchQuestions];
+          } catch (err) {
+            console.warn(`Failed to process chunk ${i + 1}/${textChunks.length}`, err);
+          }
         }
       }
     } else {

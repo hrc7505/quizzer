@@ -40,8 +40,14 @@ export async function GET(req: Request) {
     }));
 
     return NextResponse.json({ batches: result });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Failed to fetch quiz batches:", error);
+    // If the table has not been created yet in the database, return empty array instead of 500
+    const errCode = (error as { code?: string })?.code;
+    const errMsg = (error as { message?: string })?.message || "";
+    if (errCode === "P2021" || errMsg.includes("does not exist")) {
+      return NextResponse.json({ batches: [] });
+    }
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

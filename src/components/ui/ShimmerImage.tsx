@@ -1,11 +1,41 @@
 "use client";
 
 import * as React from "react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { ImageIcon, AlertCircle } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { sanitizeImageUrl } from "@/lib/format";
 import type { ShimmerImageProps } from "./interfaces/ShimmerImage.interface";
+
+/**
+ * Validates and sanitizes image source URL to satisfy strict DOM XSS guards.
+ */
+function getValidatedSrc(url?: string | null): string | null {
+  const sanitized = sanitizeImageUrl(url);
+  if (!sanitized) return null;
+
+  // Safe data:image base64
+  if (sanitized.startsWith("data:image/")) {
+    return sanitized;
+  }
+
+  // Safe relative paths
+  if (sanitized.startsWith("/") && !sanitized.startsWith("//") && !sanitized.includes("\\")) {
+    return encodeURI(sanitized);
+  }
+
+  // Safe absolute HTTP/HTTPS URLs
+  try {
+    const parsed = new URL(sanitized);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      return encodeURI(parsed.href);
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
 
 /**
  * High-performance image component that renders a shimmering placeholder
@@ -26,7 +56,7 @@ export const ShimmerImage = React.memo(function ShimmerImage({
   const [hasError, setHasError] = useState(false);
   const imgRef = useRef<HTMLImageElement | null>(null);
 
-  const safeSrc = sanitizeImageUrl(src);
+  const safeSrc = useMemo(() => getValidatedSrc(src), [src]);
 
   // Check if image is already cached/complete on initial mount
   useEffect(() => {

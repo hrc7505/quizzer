@@ -3,8 +3,46 @@ import fs from "fs/promises";
 import path from "path";
 
 /**
+ * Validates whether a hostname is safe against Server-Side Request Forgery (SSRF).
+ * Blocks loopback, private subnets, and cloud instance metadata endpoints.
+ */
+function isSafePublicHost(hostname: string): boolean {
+  const lower = hostname.toLowerCase();
+
+  // Block localhost, loopback, and cloud metadata hostnames
+  if (
+    lower === "localhost" ||
+    lower === "127.0.0.1" ||
+    lower === "::1" ||
+    lower === "0.0.0.0" ||
+    lower === "169.254.169.254" ||
+    lower === "metadata.google.internal" ||
+    lower.endsWith(".local") ||
+    lower.endsWith(".internal")
+  ) {
+    return false;
+  }
+
+  // Block IPv4 private address ranges: 10.x.x.x, 172.16-31.x.x, 192.168.x.x, 100.64-127.x.x
+  const ipv4Match = lower.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4Match) {
+    const [, a, b] = ipv4Match.map(Number);
+    if (a === 10) return false;
+    if (a === 127) return false;
+    if (a === 169 && b === 254) return false;
+    if (a === 172 && b >= 16 && b <= 31) return false;
+    if (a === 192 && b === 168) return false;
+    if (a === 100 && b >= 64 && b <= 127) return false;
+    if (a === 0) return false;
+  }
+
+  return true;
+}
+
+/**
  * Fetches an image from an absolute HTTPS URL, relative local path, or base64 data URI
  * and converts it into a base64 payload and MIME type suitable for Gemini vision models.
+ * Includes strict SSRF protection and path traversal guards.
  *
  * @param imageUrl The image URL or data URI.
  * @returns Object with base64 data and mimeType, or null if unreachable.
@@ -30,14 +68,27 @@ export async function fetchImageAsBase64(
 
     // Case 2: Remote HTTPS / HTTP URL (e.g. Cloudinary, ImgBB, GitHub)
     if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+      let parsedUrl: URL;
+      try {
+        parsedUrl = new URL(trimmed);
+      } catch {
+        return null;
+      }
+
+      // Enforce safe public hosts to prevent SSRF
+      if (!isSafePublicHost(parsedUrl.hostname)) {
+        console.warn(`[SSRF Guard] Blocked request to internal/restricted host: ${parsedUrl.hostname}`);
+        return null;
+      }
+
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s timeout
 
-      const res = await fetch(trimmed, { signal: controller.signal });
+      const res = await fetch(parsedUrl.href, { signal: controller.signal });
       clearTimeout(timeoutId);
 
       if (!res.ok) {
-        console.warn(`Failed to fetch diagram image (${res.status}): ${trimmed}`);
+        console.warn(`Failed to fetch diagram image (${res.status}): ${parsedUrl.href}`);
         return null;
       }
 
@@ -53,9 +104,21 @@ export async function fetchImageAsBase64(
 
     // Case 3: Local relative public path (e.g. /uploads/... or /diagrams/...)
     if (trimmed.startsWith("/")) {
-      const localPath = path.join(process.cwd(), "public", trimmed);
-      const buffer = await fs.readFile(localPath);
-      const ext = path.extname(trimmed).toLowerCase();
+      const publicDir = path.resolve(process.cwd(), "public");
+      const filename = path.basename(trimmed);
+
+      // Strictly allow only valid alphanumeric image filenames
+      if (!/^[a-zA-Z0-9_\-.]+\.(png|jpg|jpeg|webp|svg|gif)$/i.test(filename)) {
+        return null;
+      }
+
+      const resolvedPath = path.resolve(publicDir, "uploads", filename);
+      if (!resolvedPath.startsWith(publicDir)) {
+        console.warn(`[Path Guard] Blocked path traversal attempt: ${trimmed}`);
+        return null;
+      }
+
+      const ext = path.extname(filename).toLowerCase();
       const mimeMap: Record<string, string> = {
         ".png": "image/png",
         ".jpg": "image/jpeg",
@@ -64,10 +127,20 @@ export async function fetchImageAsBase64(
         ".svg": "image/svg+xml",
         ".gif": "image/gif",
       };
-      return {
-        base64: buffer.toString("base64"),
-        mimeType: mimeMap[ext] || "image/png",
-      };
+
+      if (!mimeMap[ext]) {
+        return null;
+      }
+
+      try {
+        const buffer = await fs.readFile(resolvedPath);
+        return {
+          base64: buffer.toString("base64"),
+          mimeType: mimeMap[ext],
+        };
+      } catch {
+        return null;
+      }
     }
 
     return null;

@@ -6,8 +6,8 @@ import { Sparkles, Check, Lightbulb, X, Loader2, ZoomIn } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/utils/cn";
-import { splitSentences } from "@/lib/text";
 import { sanitizeImageUrl } from "@/lib/format";
+import { MarkdownContent } from "@/components/data-display/MarkdownContent";
 
 interface QuizQuestionCardProps {
   question: {
@@ -151,21 +151,12 @@ function QuizQuestionCardInner({
 
       {/* Explanation Box post answering */}
       {selectedOption && question.description && (
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 flex flex-col gap-3 select-none">
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 flex flex-col gap-3">
           <div className="flex items-center gap-2 text-primary font-bold text-xs">
             <Sparkles className="h-4 w-4" />
             <span>Answer Explanation:</span>
           </div>
-          <div className="flex flex-col gap-2 text-xs text-foreground/90 leading-relaxed font-medium">
-            {question.description.split("\n").flatMap((line: string) =>
-              splitSentences(line).map((part: string, idx: number) => (
-                <div key={idx} className="flex gap-2 items-start">
-                  <Check className="h-3.5 w-3.5 text-success shrink-0 mt-0.5" />
-                  <span>{part}</span>
-                </div>
-              ))
-            )}
-          </div>
+          <MarkdownContent content={question.description} />
         </div>
       )}
 

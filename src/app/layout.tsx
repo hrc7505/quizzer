@@ -2,6 +2,7 @@ import { Winky_Sans } from "next/font/google";
 import Script from "next/script";
 import NextTopLoader from "nextjs-toploader";
 
+import "katex/dist/katex.min.css";
 import "@/styles/globals.css";
 import { Providers } from "@/components/providers/Providers";
 

@@ -25,6 +25,7 @@ export interface TopicForm {
 }
 
 import { ImageUploader } from "@/components/forms/ImageUploader";
+import { Sparkles, Loader2 } from "lucide-react";
 
 export interface QuestionForm {
   id: string;
@@ -123,6 +124,8 @@ export function QuestionDialogBody({ initialForm, onSave, loading }: QuestionDia
     ...initialForm,
     invertInDark: initialForm.invertInDark !== undefined ? initialForm.invertInDark : true,
   });
+  const [isGeneratingAi, setIsGeneratingAi] = React.useState(false);
+  const [aiError, setAiError] = React.useState<string | null>(null);
   const dialog = useDialog();
 
   const handleOptionChange = (idx: number, val: string) => {
@@ -135,6 +138,49 @@ export function QuestionDialogBody({ initialForm, onSave, loading }: QuestionDia
       }
       return { ...prev, options: newOpts, correctAnswer: newCorrect };
     });
+  };
+
+  const handleAiGenerateExplanation = async () => {
+    if (!form.text.trim()) {
+      setAiError("Please enter question text first.");
+      return;
+    }
+
+    if (!form.correctAnswer) {
+      setAiError("Please select the correct answer option first.");
+      return;
+    }
+
+    setIsGeneratingAi(true);
+    setAiError(null);
+
+    try {
+      const res = await fetch("/api/admin/questions/explain", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: form.text,
+          options: form.options.filter(Boolean),
+          correctAnswer: form.correctAnswer,
+          imageUrl: form.imageUrl,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        setAiError(data.error || "Failed to generate explanation.");
+      } else {
+        setForm(prev => ({
+          ...prev,
+          description: data.explanation || prev.description,
+          hint: data.hint || prev.hint,
+        }));
+      }
+    } catch {
+      setAiError("Error connecting to AI service.");
+    } finally {
+      setIsGeneratingAi(false);
+    }
   };
 
   const handleSave = async () => {
@@ -161,7 +207,7 @@ export function QuestionDialogBody({ initialForm, onSave, loading }: QuestionDia
         onChange={(url) => setForm(prev => ({ ...prev, imageUrl: url }))}
         invertInDark={form.invertInDark}
         onInvertInDarkChange={(invert) => setForm(prev => ({ ...prev, invertInDark: invert }))}
-        disabled={loading}
+        disabled={loading || isGeneratingAi}
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -202,19 +248,46 @@ export function QuestionDialogBody({ initialForm, onSave, loading }: QuestionDia
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Explanation / Description <span className="text-danger">*</span></label>
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Explanation / Description <span className="text-danger">*</span>
+          </label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={isGeneratingAi || loading}
+            onClick={handleAiGenerateExplanation}
+            className="h-7 px-2.5 text-xs font-semibold text-primary border-primary/30 hover:bg-primary/10 gap-1.5 shrink-0"
+          >
+            {isGeneratingAi ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                <span>{form.imageUrl ? "Analyzing Diagram..." : "Generating with AI..."}</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
+                <span>{form.imageUrl ? "Generate with Diagram AI" : "Generate with AI"}</span>
+              </>
+            )}
+          </Button>
+        </div>
         <Textarea
           value={form.description}
           onChange={e => setForm(prev => ({ ...prev, description: e.target.value }))}
-          placeholder="Explain step-by-step why this option is correct..."
-          rows={3}
+          placeholder="Explain step-by-step why this option is correct (or click 'Generate with Diagram AI' above)..."
+          rows={4}
           required
         />
+        {aiError && (
+          <p className="text-[11px] text-danger font-medium mt-0.5">{aiError}</p>
+        )}
       </div>
 
       <div className="flex items-center justify-end space-x-2 mt-4 pt-3 border-t border-border/30">
         <Button variant="outline" onClick={() => dialog.close()}>Cancel</Button>
-        <Button variant="primary" onClick={handleSave} disabled={!form.text || !form.correctAnswer || !form.description || loading}>
+        <Button variant="primary" onClick={handleSave} disabled={!form.text || !form.correctAnswer || !form.description || loading || isGeneratingAi}>
           Save
         </Button>
       </div>

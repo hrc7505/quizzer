@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/utils/cn";
 import { sanitizeImageUrl } from "@/lib/format";
+import { MarkdownContent } from "@/components/data-display/MarkdownContent";
 
 import type { QuestionData, UserAnswerData } from "@/components/data-display/interfaces/QuizResults.interface";
 
@@ -102,9 +103,7 @@ function DetailedQuestionAccordionInner({
               <span className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground">
                 Explanation
               </span>
-              <p className="text-foreground/90 leading-relaxed text-sm whitespace-pre-wrap">
-                {question.description}
-              </p>
+              <MarkdownContent content={question.description} className="text-sm" />
             </div>
           )}
 

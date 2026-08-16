@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/utils/cn";
 import { sanitizeImageUrl } from "@/lib/format";
+import { MarkdownContent } from "@/components/data-display/MarkdownContent";
 
 export interface QuestionCardData {
   id: string;
@@ -41,8 +42,8 @@ function HintExplanation({ question }: { question: QuestionCardData }) {
       )}
       {question.description && (
         <div className={cn(question.hint && "border-t border-border/20 pt-1.5 mt-0.5")}>
-          <strong className="text-foreground/90 font-bold">Explanation:</strong>{" "}
-          <span className="font-medium text-muted-foreground/95 whitespace-pre-wrap">{question.description}</span>
+          <strong className="text-foreground/90 font-bold block mb-1">Explanation:</strong>
+          <MarkdownContent content={question.description} className="text-[11px] sm:text-xs font-normal" />
         </div>
       )}
     </div>

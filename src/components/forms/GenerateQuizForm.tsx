@@ -165,7 +165,9 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
 
       {result && (
         <Alert variant="success" title="Success">
-          Generated {result.totalQuestions} questions across {result.quizzesCreated} quiz{result.quizzesCreated > 1 ? "zes" : ""}! Link them to subtopics from Quizzes → Link Topics.
+          {result.isBatched
+            ? `Created ${result.batchesCreated} batch(es) in the queue for ${result.totalQuestions} questions! Generation has started in the background.`
+            : `Generated ${result.totalQuestions} questions across ${result.quizzesCreated} quiz${result.quizzesCreated > 1 ? "zes" : ""}!`}
         </Alert>
       )}
 
@@ -187,7 +189,7 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
         ref={tablistRef} 
         role="tablist" 
         aria-label="Generation mode" 
-        className="flex gap-1.5 rounded-xl bg-secondary/60 p-1"
+        className="grid grid-cols-3 gap-1 rounded-xl bg-secondary/60 p-1"
         onKeyDown={handleTabKeyDown}
       >
         {tabs.map((tab) => {
@@ -208,14 +210,14 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
                 setResult(null);
               }}
               className={cn(
-                "flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-150 cursor-pointer select-none",
+                "flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 rounded-lg px-2 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium transition-all duration-150 cursor-pointer select-none text-center",
                 isActive 
-                  ? "bg-surface text-foreground shadow-sm" 
+                  ? "bg-surface text-foreground shadow-xs font-semibold" 
                   : "text-muted-foreground hover:text-foreground hover:bg-surface/60"
               )}
             >
-              <Icon className="h-4 w-4" />
-              <span>{tab.label}</span>
+              <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+              <span className="leading-none">{tab.label}</span>
             </button>
           );
         })}
@@ -223,25 +225,27 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
 
       {/* Quiz Title — always shown; used as AI context prompt */}
       <div className="flex flex-col gap-1.5">
-        <label className="text-sm font-semibold text-foreground/90">Quiz Title <span className="text-danger">*</span></label>
+        <label className="text-xs sm:text-sm font-semibold text-foreground/90">Quiz Title <span className="text-danger">*</span></label>
         <Input
           placeholder="e.g. History of Rome"
           value={quizTitle}
           onChange={e => setQuizTitle(e.target.value)}
           disabled={loading}
+          className="h-10 text-sm"
           required
         />
-        <span className="text-xs text-muted-foreground/70">
-          The title is used by AI to generate relevant questions. The quiz will be created standalone — link it to subtopics afterwards.
+        <span className="text-[11px] sm:text-xs text-muted-foreground/70 leading-tight">
+          The title is used by AI to generate relevant questions. The quiz will be created standalone or linked under your selected topic.
         </span>
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label className="text-sm font-semibold text-foreground/90">Difficulty Level <span className="text-danger">*</span></label>
+        <label className="text-xs sm:text-sm font-semibold text-foreground/90">Difficulty Level <span className="text-danger">*</span></label>
         <Select 
           value={difficulty} 
           onChange={(e) => setDifficulty(e.target.value)} 
           disabled={loading}
+          className="h-10 text-sm"
         >
           <option value="Easy">Easy</option>
           <option value="Medium">Medium</option>
@@ -251,22 +255,25 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
 
       {mode === "text" && (
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-semibold text-foreground/90">Content (Text) <span className="text-danger">*</span></label>
+          <label className="text-xs sm:text-sm font-semibold text-foreground/90">Content (Text) <span className="text-danger">*</span></label>
           <Textarea
-            placeholder="Paste text here..."
+            placeholder="Paste questions or study text here..."
             value={topicText}
             onChange={e => setTopicText(e.target.value)}
             disabled={loading}
-            rows={8}
+            rows={6}
+            className="text-xs sm:text-sm max-h-[30vh] sm:max-h-[40vh] resize-y"
             required
           />
-          <span className="text-xs text-muted-foreground/70">Paste the text you want to generate questions from.</span>
+          <span className="text-[11px] sm:text-xs text-muted-foreground/70">
+            Paste any amount of questions — they will be automatically batched into 30-question quizzes.
+          </span>
         </div>
       )}
 
       {mode === "pdf" && (
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-semibold text-foreground/90">Upload PDF <span className="text-danger">*</span></label>
+          <label className="text-xs sm:text-sm font-semibold text-foreground/90">Upload PDF <span className="text-danger">*</span></label>
           <div
             role="button"
             tabIndex={0}
@@ -278,7 +285,7 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
               }
             }}
             className={cn(
-              "flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border p-8 text-center transition-all duration-150 cursor-pointer select-none",
+              "flex flex-col items-center justify-center gap-2 sm:gap-3 rounded-xl border-2 border-dashed border-border p-4 sm:p-6 text-center transition-all duration-150 cursor-pointer select-none",
               isDragging ? "border-primary bg-primary/[0.04]" : "hover:border-primary/40 hover:bg-surface-hover/50",
               file && "border-solid border-success/30 bg-success/5"
             )}
@@ -289,31 +296,41 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
           >
             <input type="file" accept=".pdf" onChange={handleFileUpload} disabled={loading} ref={fileInputRef} className="hidden" />
             <div className={cn(
-              "flex h-12 w-12 items-center justify-center rounded-xl transition-colors duration-150",
+              "flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl transition-colors duration-150",
               file ? "bg-success/10 text-success" : isDragging ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"
             )}>
-              {file ? (
-                <FileText className="h-6 w-6" />
-              ) : (
-                <FileText className="h-6 w-6" />
-              )}
+              <FileText className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
-            <span className="text-sm font-semibold text-foreground">
-              {file ? file.name : isDragging ? "Drop PDF here" : "Drag & drop a PDF, or click to browse"}
+            <span className="text-xs sm:text-sm font-semibold text-foreground break-all px-2">
+              {file ? file.name : isDragging ? "Drop PDF here" : "Drag & drop a PDF, or tap to browse"}
             </span>
             {!file && !isDragging && (
-              <span className="text-xs text-muted-foreground/70">Supports .pdf files only</span>
+              <span className="text-[11px] sm:text-xs text-muted-foreground/70">Supports .pdf files only</span>
             )}
             {file && (
-              <span className="text-xs text-success font-medium">PDF ready to upload</span>
+              <span className="text-[11px] sm:text-xs text-success font-medium">PDF ready to process</span>
             )}
           </div>
         </div>
       )}
 
-      <Button variant="primary" type="submit" disabled={loading || !isFormValid()} className="h-10 mt-1 font-semibold gap-2">
-        {loading ? <><Spinner size="sm" className="text-primary-foreground" /> Generating…</> : "Generate Quiz"}
-      </Button>
+      <div className="sticky bottom-0 bg-card pt-2 pb-1 z-10">
+        <Button 
+          variant="primary" 
+          type="submit" 
+          disabled={loading || !isFormValid()} 
+          className="h-11 w-full font-semibold gap-2 shadow-sm text-sm"
+        >
+          {loading ? (
+            <>
+              <Spinner size="sm" className="text-primary-foreground" /> 
+              <span>Generating Quizzes…</span>
+            </>
+          ) : (
+            "Generate Quiz"
+          )}
+        </Button>
+      </div>
     </form>
   );
 }

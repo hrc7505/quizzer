@@ -3,6 +3,42 @@ import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
 
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    const topic = await prisma.topic.findUnique({
+      where: { id },
+      include: {
+        exams: { select: { id: true, title: true } },
+        parentTopics: { select: { id: true, title: true } },
+        subtopics: {
+          include: {
+            quizzes: { select: { id: true, title: true } },
+            _count: { select: { quizzes: true, questions: true } },
+          },
+          orderBy: { createdAt: "desc" },
+        },
+        quizzes: {
+          include: {
+            topics: { select: { id: true, title: true } },
+            _count: { select: { questions: true, attempts: true } },
+          },
+          orderBy: { quizOrder: "asc" },
+        },
+      },
+    });
+
+    if (!topic) {
+      return NextResponse.json({ error: "Topic not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(topic);
+  } catch (error) {
+    console.error("Failed to fetch topic:", error);
+    return NextResponse.json({ error: "Failed to fetch topic" }, { status: 500 });
+  }
+}
+
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
@@ -53,6 +89,22 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       include: { exams: { select: { id: true } }, parentTopics: { select: { id: true } } }
     });
 
+    // Disconnect all relational links first
+    await prisma.topic.update({
+      where: { id },
+      data: {
+        exams: { set: [] },
+        parentTopics: { set: [] },
+        subtopics: { set: [] },
+        quizzes: { set: [] },
+      }
+    });
+
+    // Delete questions directly referencing this topic if any
+    await prisma.question.deleteMany({
+      where: { topicId: id }
+    });
+
     await prisma.topic.delete({ where: { id } });
 
     revalidatePath("/topics");
@@ -60,6 +112,8 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     existing?.exams.forEach(e => revalidatePath(`/exams/${e.id}`));
     existing?.parentTopics.forEach(p => revalidatePath(`/topics/${p.id}`));
     revalidatePath("/exams");
+    revalidatePath("/admin/manage/topics");
+    revalidatePath("/admin/manage/subtopics");
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -4,7 +4,8 @@ import { AdminDashboard } from "@/components/data-display/AdminDashboard";
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
-  const topicsCount = await prisma.topic.count();
+  const examsCount = await prisma.exam.count();
+  const topicsCount = await prisma.topic.count({ where: { parentTopics: { none: {} } } });
   const subtopicsCount = await prisma.topic.count({ where: { parentTopics: { some: {} } } });
   const quizzesCount = await prisma.quiz.count();
   const questionsCount = await prisma.question.count();
@@ -21,6 +22,7 @@ export default async function AdminPage() {
   return (
     <AdminDashboard 
       stats={{
+        examsCount,
         topicsCount,
         subtopicsCount,
         quizzesCount,

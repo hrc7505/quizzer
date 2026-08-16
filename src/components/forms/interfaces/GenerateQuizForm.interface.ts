@@ -2,10 +2,16 @@
  * Represents the response from the quiz generation API.
  */
 export interface GenerateQuizResponse {
-  /** The total number of questions generated. */
+  /** The total number of questions generated or queued. */
   totalQuestions: number;
   /** The number of quizzes created from the generated questions. */
   quizzesCreated: number;
+  /** Whether the generation was split into persistent background batches. */
+  isBatched?: boolean;
+  /** Number of batches created in the queue. */
+  batchesCreated?: number;
+  /** Server message. */
+  message?: string;
   /** Any error message returned by the server, if applicable. */
   error?: string;
   /** Structured error metadata returned by the server for UI rendering. */

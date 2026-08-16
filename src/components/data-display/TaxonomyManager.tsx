@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 
 import { Alert } from "@/components/ui/Alert";
 import { LoadingSpinner } from "@/components/data-display/LoadingSpinner";
@@ -29,6 +30,7 @@ const difficultyBadgeVariant = (difficulty: string) => {
 };
 
 export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "subtopics" }) {
+  const router = useRouter();
   const [{ exams, topics, flatTopics, allQuizzes, loading, error }, { fetchData, setLoading, setError }] =
     useTaxonomyData();
 
@@ -492,7 +494,7 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
               ),
             });
           }}
-          onSelectExam={setSelectedExamId}
+          onSelectExam={(id) => router.push(`/admin/manage/exams/${id}/topics`)}
           onOpenLinkDialog={(exam) => {
             setLinkExamId(exam.id);
             setSelectedTopicIds(exam.topics.map((t) => t.id));
@@ -514,7 +516,10 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
               ),
             });
           }}
-          onDeleteExam={actions.handleDeleteExam}
+          onDeleteExam={(id, title) => {
+            const ex = exams.find((e) => e.id === id);
+            actions.handleDeleteExam(id, title, ex?.topics.length || 0);
+          }}
         />
       )}
 
@@ -537,7 +542,13 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
             setCurrentPage(1);
           }}
           onAddTopic={() => openNewTopicDialog("", "")}
-          onSelectTopic={setSelectedTopicId}
+          onSelectTopic={(id) => {
+            if (view === "main-topics") {
+              router.push(`/admin/manage/topics/${id}/subtopics`);
+            } else {
+              router.push(`/admin/manage/subtopics/${id}/quizzes`);
+            }
+          }}
           onLinkSubtopics={(topic) => {
             setLinkTopicId(topic.id);
             setSelectedSubtopicIds(topic.subtopics?.map((s) => s.id) || []);
@@ -566,7 +577,14 @@ export function TaxonomyManager({ view }: { view: "exams" | "main-topics" | "sub
               ),
             });
           }}
-          onDeleteTopic={actions.handleDeleteTopic}
+          onDeleteTopic={(id, title) => {
+            const top = flatTopics.find((t) => t.id === id);
+            actions.handleDeleteTopic(id, title, {
+              subtopicsCount: top?.subtopics?.length || 0,
+              quizzesCount: top?.quizzes?.length || 0,
+              examsCount: top?.exams?.length || 0,
+            });
+          }}
           onAddSubtopic={(topic) => openNewTopicDialog("", topic.id)}
         />
       )}

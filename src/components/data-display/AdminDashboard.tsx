@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 
 interface Stats {
+  examsCount: number;
   topicsCount: number;
   subtopicsCount: number;
   quizzesCount: number;
@@ -15,7 +16,8 @@ interface Stats {
 
 export function AdminDashboard({ stats }: { stats: Stats }) {
   const statCards = [
-    { label: "Topics", value: stats.topicsCount, href: "/admin/manage/topics" },
+    { label: "Exams", value: stats.examsCount, href: "/admin/manage/exams" },
+    { label: "Main Topics", value: stats.topicsCount, href: "/admin/manage/topics" },
     { label: "Sub Topics", value: stats.subtopicsCount, href: "/admin/manage/subtopics" },
     { label: "Quizzes", value: stats.quizzesCount, href: "/admin/manage/quizzes" },
     { label: "Questions", value: stats.questionsCount, href: "/admin/manage/quizzes" },

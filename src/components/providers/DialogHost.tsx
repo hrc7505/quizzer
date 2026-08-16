@@ -51,7 +51,7 @@ export function DialogHost({ config, onClose }: DialogHostProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
       <div
         className="fixed inset-0 bg-overlay/50 backdrop-blur-xs transition-all duration-200 animate-fade-in"
         onClick={onClose}
@@ -61,18 +61,18 @@ export function DialogHost({ config, onClose }: DialogHostProps) {
         role="dialog"
         aria-modal="true"
         className={cn(
-          "relative z-50 w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-lg animate-scale-in text-foreground",
+          "relative z-50 w-full max-w-lg max-h-[90dvh] flex flex-col rounded-2xl border border-border bg-card p-4 sm:p-6 shadow-2xl animate-scale-in text-foreground my-auto",
           config.className
         )}
       >
         {config.title !== undefined && (
-          <div className="flex items-center justify-between border-b border-border/50 pb-3 mb-4">
-            <h2 className="text-lg font-semibold tracking-tight">{config.title}</h2>
+          <div className="flex items-center justify-between border-b border-border/50 pb-3 mb-3 shrink-0">
+            <h2 className="text-base sm:text-lg font-semibold tracking-tight truncate pr-2">{config.title}</h2>
             {config.showClose !== false && (
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 rounded-md hover:bg-surface-hover opacity-70 hover:opacity-100"
+                className="h-7 w-7 rounded-md hover:bg-surface-hover opacity-70 hover:opacity-100 shrink-0 cursor-pointer"
                 onClick={onClose}
                 aria-label="Close dialog"
               >
@@ -81,14 +81,16 @@ export function DialogHost({ config, onClose }: DialogHostProps) {
             )}
           </div>
         )}
-        <div className="text-sm text-muted-foreground leading-relaxed">{config.body}</div>
+        <div className="text-sm text-muted-foreground leading-relaxed overflow-y-auto pr-1 overscroll-contain flex-1">
+          {config.body}
+        </div>
         {config.footer !== undefined ? (
-          config.footer
+          <div className="shrink-0 mt-4 pt-3 border-t border-border/30">{config.footer}</div>
         ) : (
           (config.onOk || config.onCancel) && (
-            <div className="flex items-center justify-end space-x-2 mt-6 pt-3 border-t border-border/30">
+            <div className="flex items-center justify-end space-x-2 mt-4 pt-3 border-t border-border/30 shrink-0">
               {config.onCancel !== undefined && (
-                <Button variant="outline" onClick={onClose}>
+                <Button variant="outline" onClick={onClose} className="h-9 px-3 text-xs font-semibold">
                   {config.cancelText ?? "Cancel"}
                 </Button>
               )}
@@ -97,6 +99,7 @@ export function DialogHost({ config, onClose }: DialogHostProps) {
                   variant={config.okVariant ?? "primary"}
                   onClick={handleOk}
                   disabled={config.okDisabled || okBusy}
+                  className="h-9 px-4 text-xs font-semibold"
                 >
                   {config.okText ?? "OK"}
                 </Button>

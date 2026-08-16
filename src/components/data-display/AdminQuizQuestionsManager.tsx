@@ -13,16 +13,7 @@ import { useDialog } from "@/components/providers/OverlayProvider";
 import { useToast } from "@/components/providers/ToastProvider";
 import { PageHeader } from "@/components/data-display/PageHeader";
 import { QuestionCard } from "@/components/data-display/QuestionCard";
-import { QuestionEditorBody } from "@/components/data-display/QuestionEditorBody";
-
-interface QuestionForm {
-  id: string;
-  text: string;
-  options: string[];
-  correctAnswer: string;
-  hint: string;
-  description: string;
-}
+import { QuestionDialogBody, type QuestionForm } from "@/components/data-display/TaxonomyDialogBodies";
 
 interface Question {
   id: string;
@@ -77,62 +68,19 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
     }
   };
 
-  const [questionForm, setQuestionForm] = useState<QuestionForm>({
-    id: "",
-    text: "",
-    options: ["", "", "", ""],
-    correctAnswer: "",
-    hint: "",
-    description: ""
-  });
-
-  const handleOpenAdd = () => {
-    setQuestionForm({ id: "", text: "", options: ["", "", "", ""], correctAnswer: "", hint: "", description: "" });
-    setError(null);
-    dialog.open({
-      title: "Add Question",
-      body: <QuestionEditorBody form={questionForm} onChange={setQuestionForm} onOptionChange={handleOptionChange} loading={loading} />,
-      onOk: () => handleSaveQuestion(),
-      okText: "Save",
-    });
-  };
-
-  const handleOpenEdit = (q: Question) => {
-    setQuestionForm({ id: q.id, text: q.text, options: [...q.options], correctAnswer: q.correctAnswer, hint: q.hint || "", description: q.description || "" });
-    setError(null);
-    dialog.open({
-      title: "Edit Question",
-      body: <QuestionEditorBody form={questionForm} onChange={setQuestionForm} onOptionChange={handleOptionChange} loading={loading} />,
-      onOk: () => handleSaveQuestion(),
-      okText: "Save",
-    });
-  };
-
-  const handleOptionChange = (idx: number, val: string) => {
-    setQuestionForm(prev => {
-      const newOpts = [...prev.options];
-      newOpts[idx] = val;
-      let newCorrect = prev.correctAnswer;
-      if (prev.correctAnswer === prev.options[idx]) {
-        newCorrect = val;
-      }
-      return { ...prev, options: newOpts, correctAnswer: newCorrect };
-    });
-  };
-
-  const handleSaveQuestion = async () => {
+  const handleSaveQuestion = async (form: QuestionForm) => {
     setLoading(true);
-    const isEdit = !!questionForm.id;
-    const url = isEdit ? `/api/admin/questions/${questionForm.id}` : "/api/admin/questions";
+    const isEdit = !!form.id;
+    const url = isEdit ? `/api/admin/questions/${form.id}` : "/api/admin/questions";
     const method = isEdit ? "PUT" : "POST";
 
     const payload = {
       quizId: quiz.id,
-      text: questionForm.text,
-      options: questionForm.options,
-      correctAnswer: questionForm.correctAnswer,
-      hint: questionForm.hint,
-      description: questionForm.description
+      text: form.text,
+      options: form.options,
+      correctAnswer: form.correctAnswer,
+      hint: form.hint,
+      description: form.description
     };
 
     try {
@@ -154,6 +102,34 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleOpenAdd = () => {
+    setError(null);
+    dialog.open({
+      title: "Add Question",
+      body: (
+        <QuestionDialogBody
+          initialForm={{ id: "", text: "", options: ["", "", "", ""], correctAnswer: "", hint: "", description: "" }}
+          onSave={handleSaveQuestion}
+          loading={loading}
+        />
+      ),
+    });
+  };
+
+  const handleOpenEdit = (q: Question) => {
+    setError(null);
+    dialog.open({
+      title: "Edit Question",
+      body: (
+        <QuestionDialogBody
+          initialForm={{ id: q.id, text: q.text, options: [...q.options], correctAnswer: q.correctAnswer, hint: q.hint || "", description: q.description || "" }}
+          onSave={handleSaveQuestion}
+          loading={loading}
+        />
+      ),
+    });
   };
 
   const handleDelete = (questionId: string, text: string) => {

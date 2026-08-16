@@ -17,17 +17,20 @@ export interface Toast {
 }
 
 interface ToastContextValue {
-  toasts: Toast[];
   addToast: (toast: Omit<Toast, "id">) => void;
   removeToast: (id: string) => void;
 }
 
 const ToastContext = React.createContext<ToastContextValue | null>(null);
 
-export function useToast() {
+const noopToastContext: ToastContextValue = {
+  addToast: () => {},
+  removeToast: () => {},
+};
+
+export function useToast(): ToastContextValue {
   const ctx = React.useContext(ToastContext);
-  if (!ctx) throw new Error("useToast must be used within <ToastProvider>");
-  return ctx;
+  return ctx ?? noopToastContext;
 }
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
@@ -50,8 +53,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
+  const contextValue = React.useMemo(() => ({ addToast, removeToast }), [addToast, removeToast]);
+
   return (
-    <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
+    <ToastContext.Provider value={contextValue}>
       {children}
       <ToastContainer toasts={toasts} onDismiss={removeToast} />
     </ToastContext.Provider>

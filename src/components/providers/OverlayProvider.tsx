@@ -16,7 +16,8 @@ interface OverlayContextValue {
     update: (config: Partial<DialogConfig>) => void;
     confirm: (config: {
       title: React.ReactNode;
-      description: React.ReactNode;
+      description?: React.ReactNode;
+      body?: React.ReactNode;
       okText?: string;
       cancelText?: string;
       okVariant?: "primary" | "danger";
@@ -90,12 +91,12 @@ export function OverlayProvider({ children }: OverlayProviderProps) {
       close: closeDialog,
       update: config =>
         setDialogConfig(prev => (prev ? { ...prev, ...config } : null)),
-      confirm: ({ title, description, okText = "Confirm", cancelText = "Cancel", okVariant = "danger", onConfirm }) =>
+      confirm: ({ title, description, body, okText = "Confirm", cancelText = "Cancel", okVariant = "danger", onConfirm }) =>
         new Promise<boolean>(resolve => {
           setDialogConfig({
             title,
             showClose: true,
-            body: <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>,
+            body: body || (description ? <p className="text-sm text-muted-foreground leading-relaxed">{description}</p> : null),
             okText,
             cancelText,
             okVariant,

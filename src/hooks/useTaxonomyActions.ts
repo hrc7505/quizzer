@@ -59,10 +59,10 @@ export function useTaxonomyActions(deps: TaxonomyActionsDeps) {
     setLoading(false);
   }, [fetchData, setLoading, setError, toast]);
 
-  const handleDeleteExam = useCallback((examId: string, title: string) => {
+  const handleDeleteExam = useCallback((examId: string, title: string, linkedTopicsCount: number = 0) => {
     triggerConfirm(
       "Delete Exam",
-      `Permanently delete exam "${title}"? This unlinks all associated topics, but does not delete them.`,
+      `Are you sure you want to delete exam "${title}"? This will automatically unlink all ${linkedTopicsCount} associated topics before deleting.`,
       async () => {
         setLoading(true);
         await api.delete(`/api/admin/exams/${examId}`);
@@ -97,10 +97,14 @@ export function useTaxonomyActions(deps: TaxonomyActionsDeps) {
     setLoading(false);
   }, [fetchData, setLoading, setError, toast, selectedTopicId, setSelectedTopicId]);
 
-  const handleDeleteTopic = useCallback((topicId: string, title: string) => {
+  const handleDeleteTopic = useCallback((topicId: string, title: string, linkInfo?: { subtopicsCount?: number; quizzesCount?: number; examsCount?: number }) => {
+    const subCount = linkInfo?.subtopicsCount ?? 0;
+    const qCount = linkInfo?.quizzesCount ?? 0;
+    const desc = `Permanently delete topic "${title}"? This will safely unlink its ${subCount} subtopics and ${qCount} quizzes before deleting.`;
+
     triggerConfirm(
       "Delete Topic",
-      `Permanently delete topic "${title}"? This unlinks nested elements and attempts.`,
+      desc,
       async () => {
         setLoading(true);
         await api.delete(`/api/admin/topics/${topicId}`);

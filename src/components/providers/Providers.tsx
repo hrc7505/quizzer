@@ -11,9 +11,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <OverlayProvider>
-          <ToastProvider>{children}</ToastProvider>
-        </OverlayProvider>
+        <ToastProvider>
+          <OverlayProvider>{children}</OverlayProvider>
+        </ToastProvider>
       </ThemeProvider>
     </SessionProvider>
   );

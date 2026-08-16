@@ -21,6 +21,18 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClientSingleton | undefined
 }
 
-export const prisma = globalForPrisma.prisma ?? prismaClientSingleton()
+function getPrismaClient(): PrismaClientSingleton {
+  if (
+    !globalForPrisma.prisma ||
+    !(globalForPrisma.prisma as unknown as { quizBatch?: unknown }).quizBatch
+  ) {
+    globalForPrisma.prisma = prismaClientSingleton();
+  }
+  return globalForPrisma.prisma;
+}
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+export const prisma = getPrismaClient();
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma;
+}

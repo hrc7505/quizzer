@@ -120,3 +120,33 @@ img, video, canvas, svg {
   border-left: 0.25em solid var(--markdown-quote-border);
   margin: 0 0 1em 0;
 }
+
+/* KaTeX Mathematical Formula Typography & Layout Reset */
+.katex,
+.katex * {
+  box-sizing: content-box !important;
+}
+
+.katex {
+  font-size: 1.08em;
+  text-rendering: auto;
+}
+
+.katex-display {
+  display: block;
+  margin: 0.85rem 0 !important;
+  text-align: center;
+}
+
+.katex-display > .katex {
+  display: inline-block;
+  text-align: initial;
+}
+
+.markdown-content p,
+.markdown-content li {
+  line-height: 1.85;
+}
+
+
+

@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/utils/cn";
 import { sanitizeImageUrl } from "@/lib/format";
+import { MarkdownContent } from "@/components/data-display/MarkdownContent";
+import { ShimmerImage } from "@/components/ui/ShimmerImage";
 
 import type { QuestionData, UserAnswerData } from "@/components/data-display/interfaces/QuizResults.interface";
 
@@ -69,13 +71,12 @@ function DetailedQuestionAccordionInner({
         <div className="p-4 sm:p-5 bg-secondary/10 border-t border-border/50 flex flex-col gap-4 text-xs">
           {safeImageUrl && (
             <div className="flex flex-col items-center justify-center p-3 rounded-xl border border-border/70 bg-card/60 dark:bg-zinc-950/80 overflow-hidden">
-              <img
+              <ShimmerImage
                 src={safeImageUrl}
                 alt="Question diagram"
-                className={cn(
-                  "max-h-60 w-auto object-contain",
-                  question.invertInDark !== false && "dark:invert"
-                )}
+                invertInDark={question.invertInDark !== false}
+                containerClassName="min-h-[140px] w-full max-w-lg"
+                className="max-h-60 w-auto object-contain"
                 loading="lazy"
               />
             </div>
@@ -102,9 +103,7 @@ function DetailedQuestionAccordionInner({
               <span className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground">
                 Explanation
               </span>
-              <p className="text-foreground/90 leading-relaxed text-sm whitespace-pre-wrap">
-                {question.description}
-              </p>
+              <MarkdownContent content={question.description} className="text-sm" />
             </div>
           )}
 

@@ -2,6 +2,7 @@ import { Winky_Sans } from "next/font/google";
 import Script from "next/script";
 import NextTopLoader from "nextjs-toploader";
 
+import "katex/dist/katex.min.css";
 import "@/styles/globals.css";
 import { Providers } from "@/components/providers/Providers";
 
@@ -72,6 +73,11 @@ export default function RootLayout({
     <html lang="en" className={`${winkySans.variable}`} suppressHydrationWarning>
       <head>
         <meta name="mobile-web-app-capable" content="yes" />
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.css"
+          crossOrigin="anonymous"
+        />
       </head>
       <body className="antialiased" id="__next_ssr_loader_body">
         <Providers>

@@ -6,3 +6,5 @@
 @import "./theme.css";
 @import "./animations.css";
 @import "./utilities.css";
+@import "katex/dist/katex.min.css";
+

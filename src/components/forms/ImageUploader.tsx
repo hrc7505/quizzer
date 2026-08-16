@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/Progress";
 import { useImageUpload } from "@/hooks/useImageUpload";
 import { cn } from "@/utils/cn";
 import { sanitizeImageUrl } from "@/lib/format";
+import { ShimmerImage } from "@/components/ui/ShimmerImage";
 import type { ImageUploaderProps } from "@/components/forms/interfaces/ImageUploader.interface";
 
 /**
@@ -149,13 +150,12 @@ export function ImageUploader({
       {safeImageUrl && !isUploading ? (
         <div className="flex flex-col gap-3 p-3 bg-card border border-border/80 rounded-xl">
           <div className="max-h-52 max-w-full overflow-hidden rounded-lg bg-card/60 dark:bg-zinc-950/80 p-3 border border-border/40 flex items-center justify-center">
-            <img
+            <ShimmerImage
               src={safeImageUrl}
               alt="Diagram preview"
-              className={cn(
-                "max-h-48 max-w-full object-contain transition-all",
-                shouldInvert && "dark:invert"
-              )}
+              invertInDark={shouldInvert}
+              containerClassName="min-h-[120px] w-full"
+              className="max-h-48 max-w-full object-contain transition-all"
             />
           </div>
 

@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 
-import { ai, GEMINI_MODEL, describeAiError } from "@/lib/gemini";
+import { GEMINI_MODEL, describeAiError, executeWithGeminiFailover } from "@/lib/gemini";
 import { prisma } from "@/lib/prisma";
-import { sanitizeImageText } from "@/lib/format";
+import { fetchImageAsBase64 } from "@/lib/services/ai-explain.service";
 
 /**
  * POST /api/admin/elaborate
@@ -39,31 +39,41 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, markdown: question.elaboration, cached: true });
     }
 
-    const prompt = `You are an expert tutor. Provide a detailed markdown explanation for the following question and its correct answer. 
+    // Load image for multimodal deep dive analysis if present
+    const imageData = question.imageUrl ? await fetchImageAsBase64(question.imageUrl) : null;
+
+    const prompt = `You are an expert tutor and university professor. Provide a comprehensive, high-quality markdown deep-dive explanation for the following question and its correct answer${imageData ? " (based on the attached circuit diagram / image)" : ""}. 
 Topic: ${question.topic.title}
-Question: ${sanitizeImageText(question.text)}
-Correct Answer: ${sanitizeImageText(question.correctAnswer)}
-Options were: ${question.options.map(sanitizeImageText).join(", ")}
+Question: ${question.text}
+Correct Answer: ${question.correctAnswer}
+Options were: ${question.options.join(", ")}
 
 Your response should include:
-1. A deep dive into the core concept.
-2. Why the correct answer is right.
+1. A deep dive into the core concept${imageData ? " (referencing the specific components, polarities, connections, values, and features visible in the diagram)" : ""}.
+2. Why the correct answer is right with step-by-step mathematical/physical derivation.
 3. Why the other options are incorrect.
-4. Suggested search-intent keywords for video tutorials and online web links (e.g. "Search YouTube for: [keyword]").
+4. Practical takeaways or memory rules.
+5. Suggested search-intent keywords for video tutorials and online web links (e.g. "Search YouTube for: [keyword]").
 `;
 
-    const safePrompt = sanitizeImageText(prompt);
-
-    if (!ai) {
-      return NextResponse.json({ error: "AI service is not configured." }, { status: 500 });
+    const contents: any[] = [];
+    if (imageData) {
+      contents.push({
+        inlineData: {
+          mimeType: imageData.mimeType,
+          data: imageData.base64,
+        },
+      });
     }
+    contents.push(prompt);
 
-    const response = await ai.models.generateContent({
-      model: GEMINI_MODEL,
-      contents: safePrompt,
+    const markdown = await executeWithGeminiFailover(async (client) => {
+      const response = await client.models.generateContent({
+        model: GEMINI_MODEL,
+        contents,
+      });
+      return response.text;
     });
-
-    const markdown = response.text;
 
     // Persist to DB for future cache hits
     await prisma.question.update({

@@ -76,6 +76,7 @@ export function QuizResults({ attempt }: QuizResultsProps) {
         title: attempt.quiz.title,
         questions: attempt.quiz.questions.map((q: QuestionData) => ({
           text: q.text,
+          imageUrl: q.imageUrl,
           options: q.options,
           correctAnswer: q.correctAnswer,
           description: q.description,

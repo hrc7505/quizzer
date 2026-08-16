@@ -1,20 +1,19 @@
 "use client";
 
 import { Brain, BookOpen } from "lucide-react";
-import ReactMarkdown from "react-markdown";
 
 import { NoData } from "@/components/feedback/NoData";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { DeepDiveBodyProps } from "@/components/data-display/interfaces/DeepDiveBody.interface";
+import { MarkdownContent } from "@/components/data-display/MarkdownContent";
 
 /**
  * DeepDiveBody component displays the full detail of a deep dive,
  * including question banner, topic, quiz title/difficulty, correct answer,
- * and the AI-generated elaboration content.
+ * and the AI-generated elaboration content with KaTeX math and Markdown formatting.
  */
 export function DeepDiveBody({ question }: DeepDiveBodyProps) {
-  
   // Custom difficulty color mapper for Tailwind-styled badges
   const difficultyBadgeVariant = (difficulty: string) => {
     const diff = difficulty.toLowerCase();
@@ -27,10 +26,10 @@ export function DeepDiveBody({ question }: DeepDiveBodyProps) {
   return (
     <div className="flex flex-col gap-6 w-full py-2">
       {/* Header card */}
-      <Card className="border-border/80 bg-card overflow-hidden shadow-sm p-0">
+      <Card className="border-border/80 bg-card overflow-hidden shadow-xs p-0">
         {/* Gradient banner */}
         <div className="bg-linear-to-br from-primary to-accent p-6 sm:p-7 flex items-start gap-4 text-primary-foreground">
-          <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center shrink-0 shadow-sm border border-white/10">
+          <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center shrink-0 shadow-xs border border-white/10">
             <Brain className="h-5 w-5 text-white" />
           </div>
           <div className="min-w-0">
@@ -71,10 +70,8 @@ export function DeepDiveBody({ question }: DeepDiveBodyProps) {
 
       {/* Elaboration content */}
       {question.elaboration ? (
-        <Card className="p-8 sm:p-10 border-border/80 shadow-xs">
-          <div className="markdown-body prose dark:prose-invert max-w-none text-foreground/95">
-            <ReactMarkdown>{question.elaboration}</ReactMarkdown>
-          </div>
+        <Card className="p-6 sm:p-10 border-border/80 shadow-xs">
+          <MarkdownContent content={question.elaboration} className="text-sm sm:text-base leading-relaxed" />
         </Card>
       ) : (
         <NoData

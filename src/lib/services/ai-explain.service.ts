@@ -105,7 +105,7 @@ export async function generateQuestionExplanation(
   // Attempt to load the image for Gemini multimodal inspection
   const imageData = imageUrl ? await fetchImageAsBase64(imageUrl) : null;
 
-  const prompt = `You are a distinguished university professor and master technical tutor.
+  const prompt = `You are a distinguished professor and master technical tutor.
 Analyze the following multiple-choice question, options, correct answer, and the attached diagram/schematic image${imageData ? " (provided in the image payload)" : ""}.
 
 ${topicTitle ? `Topic: ${topicTitle}` : ""}
@@ -115,22 +115,27 @@ ${options.map((opt, i) => `Option ${i + 1}: ${opt}`).join("\n")}
 Correct Answer: ${correctAnswer}
 
 Instructions:
-1. ${imageData ? "CRITICAL: Carefully examine the attached circuit diagram / image. Look at every component (e.g. diode cathode/anode orientation, capacitor arrangement, resistor values, input/output waveform nodes, voltage sources, logic gates, pinouts). Reference these specific visual details in your explanation." : "Provide an accurate, step-by-step breakdown of the concept."}
-2. Explain step-by-step why '${correctAnswer}' is the correct answer based on circuit/scientific laws.
-3. Formatting rules:
-   - Use clean, well-structured Markdown paragraphs, numbered steps, or bullet points.
-   - For mathematical or circuit formulas, use proper LaTeX: inline math like $V_A$ or $4\\,\\Omega$, and block math like $$\\frac{V_A - 4}{1} + \\frac{V_A}{4} = 0$$ on separate lines.
-   - Keep the structure clean, elegant, and easy to read on mobile and desktop.
-4. Provide a succinct, helpful hint (1-2 sentences) that points the student toward the key visual observation or fundamental formula without outright stating the answer.
+1. ${imageData ? "CRITICAL: Carefully inspect the attached diagram. Reference specific components (diode orientations, capacitors, resistors, nodes, voltages, logic gates, waveforms, etc.)." : "Break down the core concept step-by-step."}
+2. Structure the explanation strictly as a structured point-by-point Markdown list:
+   - **Concept Overview:** 1-sentence fundamental principle.
+   - **Step 1 — [Title]:** Specific analytical or mathematical step.
+   - **Step 2 — [Title]:** Next step or formula derivation.
+   - **Step 3 — [Title]:** Calculation or substitution (if applicable).
+   - **Conclusion:** Why '${correctAnswer}' is undeniably correct and why other options fail.
+3. Formatting Rules:
+   - Mathematical expressions: Use standard LaTeX: inline $term$ (e.g. $V_A$, $4\\,\\Omega$, $I$) and block math $$\\frac{a}{b}$$ on its own separate line.
+   - Code snippets: Wrap programming code in triple backtick markdown blocks \`\`\`language ... \`\`\`.
+   - Never output raw unparsed HTML or stray '<' / '>' symbols.
+4. Hint:
+   - Provide a concise 1-2 sentence hint pointing toward the key observation.
 
 Respond ONLY with a valid JSON object matching this exact structure:
 {
-  "explanation": "Well-structured Markdown explanation with LaTeX math...",
+  "explanation": "- **Concept Overview:** ...\\n- **Step 1 — [Title]:** ...\\n- **Step 2 — [Title]:** ...\\n- **Conclusion:** ...",
   "hint": "Concise 1-2 sentence hint..."
 }`;
 
   return executeWithGeminiFailover(async (client) => {
-    // Build multimodal contents array
     const contents: any[] = [];
 
     if (imageData) {

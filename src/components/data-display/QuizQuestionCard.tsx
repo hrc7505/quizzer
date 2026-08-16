@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/utils/cn";
 import { sanitizeImageUrl } from "@/lib/format";
 import { MarkdownContent } from "@/components/data-display/MarkdownContent";
+import { ShimmerImage } from "@/components/ui/ShimmerImage";
 
 interface QuizQuestionCardProps {
   question: {
@@ -56,16 +57,15 @@ function QuizQuestionCardInner({
             onClick={() => setIsZoomed(true)}
             className="group relative flex items-center justify-center p-3 sm:p-4 rounded-xl border border-border/70 bg-card/60 dark:bg-zinc-950/80 overflow-hidden cursor-zoom-in hover:border-primary/50 transition-colors"
           >
-            <img
+            <ShimmerImage
               src={safeImageUrl}
               alt="Question diagram"
-              className={cn(
-                "max-h-64 sm:max-h-72 w-auto object-contain transition-transform duration-200 group-hover:scale-[1.01]",
-                shouldInvert && "dark:invert"
-              )}
+              invertInDark={shouldInvert}
+              containerClassName="min-h-[160px] w-full max-w-xl"
+              className="max-h-64 sm:max-h-72 w-auto object-contain transition-transform duration-200 group-hover:scale-[1.01]"
               loading="eager"
             />
-            <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-background/80 backdrop-blur-xs text-[11px] font-semibold text-muted-foreground px-2 py-1 rounded-md border border-border/60 shadow-xs opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-background/80 backdrop-blur-xs text-[11px] font-semibold text-muted-foreground px-2 py-1 rounded-md border border-border/60 shadow-xs opacity-0 group-hover:opacity-100 transition-opacity z-20">
               <ZoomIn className="h-3.5 w-3.5" />
               <span>Enlarge</span>
             </div>
@@ -151,10 +151,10 @@ function QuizQuestionCardInner({
 
       {/* Explanation Box post answering */}
       {selectedOption && question.description && (
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 flex flex-col gap-3">
-          <div className="flex items-center gap-2 text-primary font-bold text-xs">
+        <div className="rounded-2xl border border-primary/20 bg-primary/5 dark:bg-primary/10 p-4 sm:p-5 flex flex-col gap-3.5 shadow-xs">
+          <div className="flex items-center gap-2 text-primary font-bold text-xs sm:text-sm tracking-tight">
             <Sparkles className="h-4 w-4" />
-            <span>Answer Explanation:</span>
+            <span>Answer Explanation</span>
           </div>
           <MarkdownContent content={question.description} />
         </div>

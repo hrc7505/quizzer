@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/utils/cn";
 import { sanitizeImageUrl } from "@/lib/format";
 import { MarkdownContent } from "@/components/data-display/MarkdownContent";
+import { ShimmerImage } from "@/components/ui/ShimmerImage";
 
 export interface QuestionCardData {
   id: string;
@@ -140,13 +141,12 @@ export function QuestionCard({
       {safeImageUrl && (
         <div className="flex justify-start">
           <div className="p-2.5 border border-border/70 rounded-xl bg-card/60 dark:bg-zinc-950/80 max-w-xs overflow-hidden flex items-center justify-center">
-            <img
+            <ShimmerImage
               src={safeImageUrl}
               alt="Question diagram thumbnail"
-              className={cn(
-                "max-h-36 w-auto object-contain",
-                question.invertInDark !== false && "dark:invert"
-              )}
+              invertInDark={question.invertInDark !== false}
+              containerClassName="min-h-[90px] w-full max-w-xs"
+              className="max-h-36 w-auto object-contain"
               loading="lazy"
             />
           </div>

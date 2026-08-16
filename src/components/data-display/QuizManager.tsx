@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles, Download } from "lucide-react";
+import { Sparkles, Download, GitMerge, CheckSquare, Square, X } from "lucide-react";
 
 import { GenerateQuizForm } from "@/components/forms/GenerateQuizForm";
 import { Alert } from "@/components/ui/Alert";
@@ -16,6 +16,7 @@ import { LinkPicker } from "@/components/data-display/LinkPicker";
 import { EditQuizBody, QuizDrawerBody } from "@/components/data-display/QuizManagerBodies";
 import { QuestionEditorBody } from "@/components/data-display/QuestionEditorBody";
 import { DeleteConfirmDialogBody } from "@/components/feedback/DeleteConfirmDialogBody";
+import { MergeQuizzesDialogBody } from "@/components/data-display/MergeQuizzesDialogBody";
 import { downloadCSV } from "@/lib/csv-export";
 import { Pagination } from "@/components/data-display/Pagination";
 import { SearchFilterBar } from "@/components/data-display/SearchFilterBar";
@@ -48,13 +49,17 @@ const DIFFICULTIES = ["Easy", "Medium", "Hard"];
 
 /**
  * QuizManager — full CRUD management table for quizzes.
- * Supports create, edit, delete, link/unlink subtopics, search, filter, paginate.
+ * Supports create, edit, delete, link/unlink subtopics, search, filter, paginate,
+ * multi-select quiz merging, and AI question appending.
  */
 export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
   const router = useRouter();
   const [quizzes, setQuizzes] = useState<Quiz[]>(initial);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Multi-selection state for merging
+  const [selectedQuizIds, setSelectedQuizIds] = useState<string[]>([]);
 
   // Dialog / panel / toast hooks
   const dialog = useDialog();
@@ -123,6 +128,24 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
 
   const totalItems = filtered.length;
 
+  // Toggle single quiz selection
+  const handleToggleSelect = useCallback((id: string) => {
+    setSelectedQuizIds(prev => 
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  }, []);
+
+  // Toggle select all on current page
+  const handleToggleSelectAll = useCallback(() => {
+    const pageIds = paginated.map(q => q.id);
+    const allSelected = pageIds.every(id => selectedQuizIds.includes(id));
+    if (allSelected) {
+      setSelectedQuizIds(prev => prev.filter(id => !pageIds.includes(id)));
+    } else {
+      setSelectedQuizIds(prev => Array.from(new Set([...prev, ...pageIds])));
+    }
+  }, [paginated, selectedQuizIds]);
+
   const handleExportCSV = useCallback(() => {
     const headers = ["Title", "Difficulty", "Order", "Questions", "Attempts", "Linked Topics"];
     const rows = filtered.map(q => [
@@ -170,8 +193,6 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
       });
     }
   }, [selectedQuizId]);
-
-
 
   // Available subtopics (topics that have a parent - not root curriculums)
   const availableSubtopics = useMemo(() => {
@@ -222,171 +243,123 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
     }
   };
 
-  // Delete Quiz
+  // Delete Quiz confirmation
   const handleDeleteQuiz = (quiz: Quiz) => {
-    dialog.confirm({
+    dialog.open({
       title: "Delete Quiz",
-      okText: "Delete Quiz",
-      okVariant: "danger",
       body: (
         <DeleteConfirmDialogBody
           title={quiz.title}
-          itemType="Quiz"
+          itemType="quiz"
           linkSummaries={[
-            { label: "Linked Topics", items: quiz.topics.map(t => t.title) },
-            { label: "Questions Count", items: quiz._count.questions },
-            { label: "User Attempts", items: quiz._count.attempts },
+            { label: "Questions", items: quiz._count.questions },
+            { label: "Linked Topics", items: quiz.topics.map((t) => t.title) },
+            { label: "Attempts", items: quiz._count.attempts },
           ]}
-          consequenceMessage="This will unlink the quiz from all topics, delete its questions and score history, and permanently delete the quiz record."
         />
       ),
-      onConfirm: async () => {
+      okText: "Delete",
+      okVariant: "danger",
+      onOk: async () => {
         setLoading(true);
-        await fetch(`/api/admin/quizzes/${quiz.id}`, { method: "DELETE" });
-        setQuizzes(prev => prev.filter(q => q.id !== quiz.id));
-        toast.addToast({ type: "success", message: "Quiz deleted" });
-        if (selectedQuizId === quiz.id) setSelectedQuizId(null);
-        setLoading(false);
-      },
+        try {
+          const res = await fetch(`/api/admin/quizzes/${quiz.id}`, { method: "DELETE" });
+          const data = await res.json();
+          if (data.error) {
+            setError(data.error);
+          } else {
+            await fetchQuizzes();
+            setSelectedQuizIds(prev => prev.filter(id => id !== quiz.id));
+            toast.addToast({ type: "success", message: "Quiz deleted" });
+          }
+        } catch {
+          setError("An unexpected error occurred");
+        } finally {
+          setLoading(false);
+        }
+      }
     });
   };
 
-  // Open Link Dialog
+  // Open Link Topics dialog
   const openLinkDialog = (quiz: Quiz) => {
     setLinkQuizId(quiz.id);
     setSelectedTopicIds(quiz.topics.map(t => t.id));
     setError(null);
     dialog.open({
-      title: "Link / Unlink Topics",
-      okText: "Save Links",
-      onOk: handleSaveLinks,
+      title: `Link Subtopics to "${quiz.title}"`,
+      onOk: handleSaveTopicLinks,
       body: (
         <LinkPicker
-          description="Select the subtopics this quiz should appear under. A quiz can be linked to multiple topics."
           label="Subtopics"
-          placeholder="Search subtopics..."
           items={availableSubtopics}
-          selectedIds={selectedTopicIds}
+          selectedIds={quiz.topics.map(t => t.id)}
           onSelectionChange={setSelectedTopicIds}
+          emptyHint="No subtopics found"
         />
       ),
     });
   };
 
-  // Save linked topics
-  const handleSaveLinks = async () => {
+  // Save Link Topics
+  const handleSaveTopicLinks = async () => {
     if (!linkQuizId) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/quizzes/${linkQuizId}/link-topics`, {
-        method: "POST",
+      const res = await fetch(`/api/admin/quizzes/${linkQuizId}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ topicIds: selectedTopicIds })
       });
       const data = await res.json();
       if (!data.error) {
         await fetchQuizzes();
-        toast.addToast({ type: "success", message: "Topics linked to quiz" });
+        toast.addToast({ type: "success", message: "Topic links updated" });
       } else {
-        setError(data.error || "Failed to link topics");
+        setError(data.error || "Failed to update links");
       }
     } catch {
-      setError("Failed to link topics");
+      setError("An unexpected error occurred");
     } finally {
       setLoading(false);
     }
   };
 
-  // Open Generate Quiz Dialog (AI-powered)
-  const openGenerateDialog = () => {
-    dialog.open({
-      title: "Generate Quiz with AI",
-      showClose: true,
-      body: (
-        <GenerateQuizForm
-          onSuccess={async () => {
-            await fetchQuizzes();
-            dialog.close();
-          }}
-        />
-      ),
-    });
-  };
+  // Unlink a single topic from active quiz
+  const handleUnlinkTopic = async (topicId: string) => {
+    if (!selectedQuizId) return;
+    const quiz = quizzes.find(q => q.id === selectedQuizId);
+    if (!quiz) return;
 
-  // Unlink specific topic from drawer
-  const handleUnlinkTopic = async (quizId: string, quizTitle: string, topicId: string, topicTitle: string) => {
     triggerConfirm(
-      "Unlink Topic",
-      `Are you sure you want to unlink "${quizTitle}" from "${topicTitle}"?`,
+      "Unlink Subtopic",
+      "Are you sure you want to unlink this subtopic? The quiz and its questions will not be deleted.",
       async () => {
+        const remainingTopicIds = quiz.topics.map(t => t.id).filter(id => id !== topicId);
         setLoading(true);
-        const currentLinked = quizzes.find(q => q.id === quizId)?.topics.map(t => t.id) || [];
-        const nextLinked = currentLinked.filter(id => id !== topicId);
-        
-        await fetch(`/api/admin/quizzes/${quizId}/link-topics`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ topicIds: nextLinked })
-        });
-        
-        await fetchQuizzes();
-        toast.addToast({ type: "success", message: "Topic unlinked from quiz" });
-        setLoading(false);
+        try {
+          const res = await fetch(`/api/admin/quizzes/${selectedQuizId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ topicIds: remainingTopicIds })
+          });
+          const data = await res.json();
+          if (!data.error) {
+            await fetchQuizzes();
+            toast.addToast({ type: "success", message: "Subtopic unlinked" });
+          } else {
+            setError(data.error || "Failed to unlink topic");
+          }
+        } catch {
+          setError("An unexpected error occurred");
+        } finally {
+          setLoading(false);
+        }
       }
     );
   };
 
-  // Open Add Question inside Drawer
-  const handleOpenAddQuestion = () => {
-    const form = {
-      id: "",
-      text: "",
-      options: ["", "", "", ""],
-      correctAnswer: "",
-      hint: "",
-      description: ""
-    };
-    setQuestionForm(form);
-    setError(null);
-    dialog.open({
-      title: "Add Question",
-      onOk: handleSaveQuestion,
-      body: <QuestionEditorBody form={form} onChange={setQuestionForm} onOptionChange={handleOptionChange} loading={loading} />,
-    });
-  };
-
-  // Open Edit Question inside Drawer
-  const handleOpenEditQuestion = (q: QuizQuestionDetail) => {
-    const form = {
-      id: q.id,
-      text: q.text,
-      options: [...q.options],
-      correctAnswer: q.correctAnswer,
-      hint: q.hint || "",
-      description: q.description || ""
-    };
-    setQuestionForm(form);
-    setError(null);
-    dialog.open({
-      title: "Edit Question",
-      onOk: handleSaveQuestion,
-      body: <QuestionEditorBody form={form} onChange={setQuestionForm} onOptionChange={handleOptionChange} loading={loading} />,
-    });
-  };
-
-  const handleOptionChange = (idx: number, val: string) => {
-    setQuestionForm(prev => {
-      const newOpts = [...prev.options];
-      newOpts[idx] = val;
-      let newCorrect = prev.correctAnswer;
-      if (prev.correctAnswer === prev.options[idx]) {
-        newCorrect = val;
-      }
-      return { ...prev, options: newOpts, correctAnswer: newCorrect };
-    });
-  };
-
-  // Save question (inside drawer)
+  // Save Question in active quiz
   const handleSaveQuestion = async () => {
     if (!selectedQuizId) return;
     setLoading(true);
@@ -418,44 +391,205 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
         setError(data.error || "Failed to save question");
       }
     } catch {
-      setError("Error saving question");
+      setError("An unexpected error occurred");
     } finally {
       setLoading(false);
     }
   };
 
-  // Delete question (inside drawer)
-  const handleDeleteQuestion = (questionId: string, text: string) => {
+  // Open Question Edit Modal
+  const handleOpenEditQuestion = (q: QuizQuestionDetail) => {
+    const form = {
+      id: q.id,
+      text: q.text,
+      options: [...q.options],
+      correctAnswer: q.correctAnswer,
+      hint: q.hint || "",
+      description: q.description || ""
+    };
+    setQuestionForm(form);
+    dialog.open({
+      title: "Edit Question",
+      onOk: handleSaveQuestion,
+      body: (
+        <QuestionEditorBody
+          form={form}
+          onChange={(updater) => setQuestionForm((prev) => updater(prev))}
+          onOptionChange={(idx, val) => {
+            setQuestionForm((prev) => {
+              const opts = [...prev.options];
+              opts[idx] = val;
+              return { ...prev, options: opts };
+            });
+          }}
+        />
+      ),
+    });
+  };
+
+  // Open Question Add Modal
+  const handleOpenAddQuestion = () => {
+    const form = {
+      id: "",
+      text: "",
+      options: ["", "", "", ""],
+      correctAnswer: "",
+      hint: "",
+      description: ""
+    };
+    setQuestionForm(form);
+    dialog.open({
+      title: "Add Question",
+      onOk: handleSaveQuestion,
+      body: (
+        <QuestionEditorBody
+          form={form}
+          onChange={(updater) => setQuestionForm((prev) => updater(prev))}
+          onOptionChange={(idx, val) => {
+            setQuestionForm((prev) => {
+              const opts = [...prev.options];
+              opts[idx] = val;
+              return { ...prev, options: opts };
+            });
+          }}
+        />
+      ),
+    });
+  };
+
+  // Delete Question confirmation
+  const handleDeleteQuestion = (questionId: string) => {
     triggerConfirm(
       "Delete Question",
-      `Permanently delete this question? "${text.slice(0, 60)}..." This cannot be undone.`,
+      "Are you sure you want to delete this question? This action cannot be undone.",
       async () => {
-        if (!selectedQuizId) return;
         setLoading(true);
         try {
           const res = await fetch(`/api/admin/questions/${questionId}`, { method: "DELETE" });
           const data = await res.json();
-          if (data.success) {
-            await fetchActiveQuizDetail(selectedQuizId);
+          if (!data.error) {
+            if (selectedQuizId) await fetchActiveQuizDetail(selectedQuizId);
             await fetchQuizzes();
             toast.addToast({ type: "success", message: "Question deleted" });
+          } else {
+            setError(data.error || "Failed to delete question");
           }
-        } catch (e) {
-          console.error(e);
+        } catch {
+          setError("An unexpected error occurred");
         } finally {
           setLoading(false);
         }
       }
     );
   };
-  interface QuizManagerCallbacks {
-    handleUnlinkTopic: (quizId: string, quizTitle: string, topicId: string, topicTitle: string) => Promise<void>;
+
+  // Open Generate Quiz Dialog (Create New)
+  const openGenerateDialog = () => {
+    dialog.open({
+      title: "Generate Quiz with AI",
+      body: (
+        <GenerateQuizForm
+          onSuccess={async () => {
+            dialog.close();
+            await fetchQuizzes();
+            toast.addToast({ type: "success", message: "New quiz created successfully!" });
+          }}
+        />
+      ),
+    });
+  };
+
+  // Open Append Questions Dialog (Append to Existing)
+  const handleOpenAppendDialog = (quiz: Quiz) => {
+    dialog.open({
+      title: `AI Append Questions — ${quiz.title}`,
+      body: (
+        <GenerateQuizForm
+          targetQuizId={quiz.id}
+          targetQuizTitle={quiz.title}
+          onSuccess={async () => {
+            dialog.close();
+            await fetchQuizzes();
+            toast.addToast({
+              type: "success",
+              message: `Appended questions to "${quiz.title}"!`,
+            });
+          }}
+        />
+      ),
+    });
+  };
+
+  // Open Merge Multiple Quizzes Dialog
+  const handleOpenMergeDialog = () => {
+    const selectedList = quizzes.filter(q => selectedQuizIds.includes(q.id));
+    if (selectedList.length < 2) {
+      toast.addToast({ type: "warning", message: "Please select at least 2 quizzes to merge." });
+      return;
+    }
+
+    const initialState = {
+      targetQuizId: selectedList[0].id,
+      targetTitle: selectedList[0].title,
+    };
+
+    dialog.open({
+      title: "Merge Quizzes",
+      body: (
+        <MergeQuizzesDialogBody
+          selectedQuizzes={selectedList}
+          initialForm={initialState}
+          onConfirm={async (finalForm) => {
+            const targetId = finalForm.targetQuizId || selectedList[0].id;
+            const sourceIds = selectedList.map(q => q.id).filter(id => id !== targetId);
+
+            setLoading(true);
+            try {
+              const res = await fetch("/api/admin/quizzes/merge", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  targetQuizId: targetId,
+                  sourceQuizIds: sourceIds,
+                  targetTitle: finalForm.targetTitle,
+                }),
+              });
+
+              const data = await res.json();
+              if (res.ok && !data.error) {
+                setSelectedQuizIds([]);
+                await fetchQuizzes();
+                toast.addToast({
+                  type: "success",
+                  message: data.message || `Successfully merged ${selectedList.length} quizzes!`,
+                });
+              } else {
+                toast.addToast({
+                  type: "error",
+                  message: data.error || "Failed to merge quizzes",
+                });
+                throw new Error(data.error);
+              }
+            } catch (err) {
+              console.error("Merge error:", err);
+              toast.addToast({ type: "error", message: "An unexpected error occurred during merge" });
+              throw err;
+            } finally {
+              setLoading(false);
+            }
+          }}
+        />
+      ),
+    });
+  };
+
+  const callbacksRef = useRef<{
+    handleUnlinkTopic: (id: string) => Promise<void>;
     handleOpenAddQuestion: () => void;
     handleOpenEditQuestion: (q: QuizQuestionDetail) => void;
-    handleDeleteQuestion: (questionId: string, text: string) => void;
-  }
+    handleDeleteQuestion: (id: string) => void;
+  } | null>(null);
 
-  const callbacksRef = useRef<QuizManagerCallbacks | null>(null);
   useEffect(() => {
     callbacksRef.current = {
       handleUnlinkTopic,
@@ -478,22 +612,24 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
           quiz={quiz}
           detail={activeQuizDetail}
           loading={activeQuizLoading}
-          onUnlinkTopic={(...args) => callbacksRef.current?.handleUnlinkTopic(...args)}
+          onUnlinkTopic={(_quizId, _quizTitle, topicId) => callbacksRef.current?.handleUnlinkTopic(topicId)}
           onAddQuestion={() => callbacksRef.current?.handleOpenAddQuestion()}
-          onEditQuestion={(...args) => callbacksRef.current?.handleOpenEditQuestion(...args)}
-          onDeleteQuestion={(...args) => callbacksRef.current?.handleDeleteQuestion(...args)}
+          onEditQuestion={(q) => callbacksRef.current?.handleOpenEditQuestion(q)}
+          onDeleteQuestion={(questionId) => callbacksRef.current?.handleDeleteQuestion(questionId)}
         />
       ),
     });
   }, [selectedQuizId, activeQuizDetail, activeQuizLoading, quizzes, panel]);
 
+  const isAllCurrentPageSelected = paginated.length > 0 && paginated.every(q => selectedQuizIds.includes(q.id));
+
   return (
-    <div className="flex flex-col gap-6 py-4 w-full">
-        {error && (
-          <Alert variant="danger" title="Error">
-            {error}
-          </Alert>
-        )}
+    <div className="flex flex-col gap-6 py-4 w-full relative">
+      {error && (
+        <Alert variant="danger" title="Error">
+          {error}
+        </Alert>
+      )}
 
       {/* Page Header */}
       <PageHeader
@@ -503,9 +639,21 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
             {quizzes.length}
           </Badge>
         }
-        description="Manage quizzes, link topics, and inspect questions."
+        description="Manage quizzes, merge multiple quizzes, link topics, and inspect questions."
         actions={
-          <>
+          <div className="flex items-center gap-2">
+            {selectedQuizIds.length >= 2 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleOpenMergeDialog}
+                className="gap-1.5 font-semibold text-xs h-9 px-3.5 border-primary/40 text-primary bg-primary/5 hover:bg-primary/10 shadow-xs"
+              >
+                <GitMerge className="h-3.5 w-3.5" />
+                <span>Merge Selected ({selectedQuizIds.length})</span>
+              </Button>
+            )}
+
             <Button variant="primary" size="sm" className="gap-1.5 font-semibold text-xs h-9 px-4 shadow-xs" onClick={openGenerateDialog}>
               <Sparkles className="h-3.5 w-3.5" />
               <span>Generate Quiz</span>
@@ -516,7 +664,7 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
                 <span>Export CSV</span>
               </Button>
             )}
-          </>
+          </div>
         }
       />
 
@@ -552,7 +700,21 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="border-b border-border/40 text-muted-foreground font-bold bg-secondary/10 sticky top-0 z-10">
-                  <th scope="col" className="py-3.5 px-4 font-bold w-16 text-center">Order</th>
+                  <th scope="col" className="py-3.5 px-3 w-10 text-center">
+                    <button
+                      type="button"
+                      onClick={handleToggleSelectAll}
+                      title={isAllCurrentPageSelected ? "Deselect page" : "Select all on page"}
+                      className="text-muted-foreground hover:text-foreground inline-flex items-center justify-center p-0.5"
+                    >
+                      {isAllCurrentPageSelected ? (
+                        <CheckSquare className="h-4 w-4 text-primary" />
+                      ) : (
+                        <Square className="h-4 w-4" />
+                      )}
+                    </button>
+                  </th>
+                  <th scope="col" className="py-3.5 px-3 font-bold w-14 text-center">Order</th>
                   <th scope="col" className="py-3.5 px-4 font-bold max-w-sm">Title</th>
                   <th scope="col" className="py-3.5 px-4 font-bold text-center w-24">Difficulty</th>
                   <th scope="col" className="py-3.5 px-4 font-bold text-center w-24">Questions</th>
@@ -566,10 +728,13 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
                   <QuizRow
                     key={item.id}
                     quiz={item}
+                    isSelected={selectedQuizIds.includes(item.id)}
+                    onToggleSelect={handleToggleSelect}
                     onSelectQuiz={(id) => router.push(`/admin/manage/quizzes/${id}/questions`)}
                     onOpenLinkDialog={openLinkDialog}
                     onOpenEditDialog={openEditDialog}
                     onDeleteQuiz={handleDeleteQuiz}
+                    onAppendQuestions={handleOpenAppendDialog}
                   />
                 ))}
               </tbody>
@@ -585,6 +750,37 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
             onPageChange={setCurrentPage}
           />
         </Card>
+      )}
+
+      {/* Floating Bottom Multi-Select Merge Action Bar */}
+      {selectedQuizIds.length >= 2 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-4 px-5 py-3 rounded-2xl bg-foreground text-background shadow-2xl border border-border/40 animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <div className="flex items-center gap-2">
+            <span className="h-6 w-6 rounded-full bg-primary text-white font-bold text-xs flex items-center justify-center">
+              {selectedQuizIds.length}
+            </span>
+            <span className="text-xs font-semibold">quizzes selected</span>
+          </div>
+
+          <div className="h-4 w-px bg-background/20" />
+
+          <Button
+            size="sm"
+            onClick={handleOpenMergeDialog}
+            className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-bold h-8 px-4"
+          >
+            <GitMerge className="h-3.5 w-3.5" />
+            <span>Merge into 1 Quiz</span>
+          </Button>
+
+          <button
+            onClick={() => setSelectedQuizIds([])}
+            className="text-background/70 hover:text-background text-xs flex items-center gap-1 ml-1 cursor-pointer"
+          >
+            <X className="h-3.5 w-3.5" />
+            <span>Clear</span>
+          </button>
+        </div>
       )}
 
     </div>

@@ -61,7 +61,7 @@ export function PanelHost({ config, onClose }: PanelHostProps) {
             )}
           </div>
         )}
-        <div className="flex-1 overflow-y-auto pr-1">{config.body}</div>
+        <div className="flex-1 overflow-y-auto px-1.5 py-0.5">{config.body}</div>
         {config.footer !== undefined && config.footer}
       </div>
     </div>

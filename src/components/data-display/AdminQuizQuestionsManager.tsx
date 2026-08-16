@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, ArrowLeft } from "lucide-react";
+import { Plus, ArrowLeft, Sparkles } from "lucide-react";
 
 import { difficultyColor } from "@/lib/format";
 import NoData from "@/components/feedback/NoData";
@@ -14,6 +14,7 @@ import { useToast } from "@/components/providers/ToastProvider";
 import { PageHeader } from "@/components/data-display/PageHeader";
 import { QuestionCard } from "@/components/data-display/QuestionCard";
 import { QuestionDialogBody, type QuestionForm } from "@/components/data-display/TaxonomyDialogBodies";
+import { GenerateQuizForm } from "@/components/forms/GenerateQuizForm";
 
 interface Question {
   id: string;
@@ -43,6 +44,7 @@ interface AdminQuizQuestionsManagerProps {
 /**
  * AdminQuizQuestionsManager — dedicated page component to manage questions for a single quiz.
  * Displays questions in cards with inline option lists and edit/delete controls.
+ * Supports manual question creation and AI-powered question appending.
  */
 export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuestionsManagerProps) {
   const router = useRouter();
@@ -100,9 +102,8 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
       } else {
         setError(data.error || "Failed to save question");
       }
-    } catch (e) {
-      console.error(e);
-      setError("Error saving question");
+    } catch {
+      setError("An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -114,9 +115,39 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
       title: "Add Question",
       body: (
         <QuestionDialogBody
-          initialForm={{ id: "", text: "", imageUrl: "", invertInDark: true, options: ["", "", "", ""], correctAnswer: "", hint: "", description: "" }}
+          initialForm={{
+            id: "",
+            text: "",
+            imageUrl: "",
+            invertInDark: true,
+            options: ["", "", "", ""],
+            correctAnswer: "",
+            hint: "",
+            description: ""
+          }}
           onSave={handleSaveQuestion}
           loading={loading}
+        />
+      ),
+    });
+  };
+
+  const handleOpenAiAppend = () => {
+    setError(null);
+    dialog.open({
+      title: `AI Generate Questions — ${quiz.title}`,
+      body: (
+        <GenerateQuizForm
+          targetQuizId={quiz.id}
+          targetQuizTitle={quiz.title}
+          onSuccess={async () => {
+            dialog.close();
+            await refreshQuiz();
+            toast.addToast({
+              type: "success",
+              message: `Appended questions to "${quiz.title}"!`,
+            });
+          }}
         />
       ),
     });
@@ -128,7 +159,16 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
       title: "Edit Question",
       body: (
         <QuestionDialogBody
-          initialForm={{ id: q.id, text: q.text, imageUrl: q.imageUrl || "", invertInDark: q.invertInDark ?? true, options: [...q.options], correctAnswer: q.correctAnswer, hint: q.hint || "", description: q.description || "" }}
+          initialForm={{
+            id: q.id,
+            text: q.text,
+            imageUrl: q.imageUrl || "",
+            invertInDark: q.invertInDark ?? true,
+            options: [...q.options],
+            correctAnswer: q.correctAnswer,
+            hint: q.hint || "",
+            description: q.description || ""
+          }}
           onSave={handleSaveQuestion}
           loading={loading}
         />
@@ -136,16 +176,18 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
     });
   };
 
-  const handleDelete = (questionId: string, text: string) => {
+  const handleDelete = (id: string, text: string) => {
     triggerConfirm(
       "Delete Question",
-      `Permanently delete this question? "${text.slice(0, 60)}..." This cannot be undone.`,
+      `Are you sure you want to delete "${text}"? This action cannot be undone.`,
       async () => {
         setLoading(true);
         try {
-          const res = await fetch(`/api/admin/questions/${questionId}`, { method: "DELETE" });
+          const res = await fetch(`/api/admin/questions/${id}`, { method: "DELETE" });
           const data = await res.json();
-          if (data.success) {
+          if (data.error) {
+            setError(data.error);
+          } else {
             await refreshQuiz();
             toast.addToast({ type: "success", message: "Question deleted" });
           }
@@ -160,11 +202,11 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
 
   return (
     <div className="flex flex-col gap-6 py-4 w-full">
-        {error && (
-          <Alert variant="danger" title="Error">
-            {error}
-          </Alert>
-        )}
+      {error && (
+        <Alert variant="danger" title="Error">
+          {error}
+        </Alert>
+      )}
 
       {/* Back navigation & breadcrumbs */}
       <div className="flex flex-col gap-3 select-none">
@@ -196,10 +238,24 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
         }
         description="Compose, modify, or remove questions linked to this quiz."
         actions={
-          <Button variant="primary" className="h-9 px-4 font-semibold text-xs gap-1.5 shadow-xs" onClick={handleOpenAdd}>
-            <Plus className="h-3.5 w-3.5" />
-            <span>Add Question</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              className="h-9 px-4 font-semibold text-xs gap-1.5 shadow-xs"
+              onClick={handleOpenAiAppend}
+            >
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              <span>AI Generate More</span>
+            </Button>
+            <Button
+              variant="primary"
+              className="h-9 px-4 font-semibold text-xs gap-1.5 shadow-xs"
+              onClick={handleOpenAdd}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Add Question</span>
+            </Button>
+          </div>
         }
         titleClassName="text-2xl"
       />
@@ -208,13 +264,19 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
       {quiz.questions.length === 0 ? (
         <NoData 
           title="No Questions Yet" 
-          description="This quiz has no questions. Click Add Question below to add a question manually." 
+          description="This quiz has no questions. Add a question manually or use AI to generate questions from text/PDF." 
           icon="book"
           action={
-            <Button variant="primary" className="gap-1.5 font-semibold text-xs h-9 px-4" onClick={handleOpenAdd}>
-              <Plus className="h-3.5 w-3.5" />
-              <span>Add First Question</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" className="gap-1.5 font-semibold text-xs h-9 px-4" onClick={handleOpenAiAppend}>
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
+                <span>AI Generate Questions</span>
+              </Button>
+              <Button variant="primary" className="gap-1.5 font-semibold text-xs h-9 px-4" onClick={handleOpenAdd}>
+                <Plus className="h-3.5 w-3.5" />
+                <span>Add Question</span>
+              </Button>
+            </div>
           }
         />
       ) : (

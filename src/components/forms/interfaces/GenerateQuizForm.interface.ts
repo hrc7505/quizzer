@@ -6,6 +6,12 @@ export interface GenerateQuizResponse {
   totalQuestions: number;
   /** The number of quizzes created from the generated questions. */
   quizzesCreated: number;
+  /** Whether questions were appended directly to an existing quiz. */
+  appended?: boolean;
+  /** Number of questions appended. */
+  questionsAdded?: number;
+  /** Target quiz ID when appending. */
+  quizId?: string;
   /** Whether the generation was split into persistent background batches. */
   isBatched?: boolean;
   /** Number of batches created in the queue. */
@@ -29,6 +35,8 @@ export interface GenerateQuizPayload {
   mode: "title" | "text" | "pdf";
   topicTitle?: string;
   existingTopicId?: string;
+  targetQuizId?: string;
+  targetQuizTitle?: string;
   difficulty: string;
   topicText?: string;
   file?: File | null;

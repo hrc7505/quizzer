@@ -155,6 +155,25 @@ export function QuestionDialogBody({ initialForm, onSave, loading }: QuestionDia
     setAiError(null);
 
     try {
+      let imagePayload = form.imageUrl;
+      if (form.imageUrl && !form.imageUrl.startsWith("data:image/")) {
+        try {
+          const imgRes = await fetch(form.imageUrl);
+          if (imgRes.ok) {
+            const blob = await imgRes.blob();
+            const dataUri = await new Promise<string | null>((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(typeof reader.result === "string" ? reader.result : null);
+              reader.onerror = () => resolve(null);
+              reader.readAsDataURL(blob);
+            });
+            if (dataUri) imagePayload = dataUri;
+          }
+        } catch {
+          // Fallback to original URL
+        }
+      }
+
       const res = await fetch("/api/admin/questions/explain", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -162,7 +181,7 @@ export function QuestionDialogBody({ initialForm, onSave, loading }: QuestionDia
           text: form.text,
           options: form.options.filter(Boolean),
           correctAnswer: form.correctAnswer,
-          imageUrl: form.imageUrl,
+          imageUrl: imagePayload,
         }),
       });
 

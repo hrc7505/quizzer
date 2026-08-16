@@ -3,41 +3,12 @@ import fs from "fs/promises";
 import path from "path";
 
 /**
- * Strict allowlist of trusted domains for fetching diagram images on the server side.
- * Explicit allowlisting eliminates Server-Side Request Forgery (SSRF) as required by CodeQL.
- */
-const ALLOWED_IMAGE_HOSTS: readonly string[] = [
-  "res.cloudinary.com",
-  "cloudinary.com",
-  "images.unsplash.com",
-  "i.imgur.com",
-  "imgur.com",
-  "i.ibb.co",
-  "ibb.co",
-  "raw.githubusercontent.com",
-  "githubusercontent.com",
-  "github.com",
-  "drive.google.com",
-  "lh3.googleusercontent.com",
-  "googleusercontent.com",
-  "wikimedia.org",
-  "upload.wikimedia.org",
-];
-
-/**
- * Validates whether a hostname matches the explicit trusted image domains allowlist.
- */
-function isAllowedImageHost(hostname: string): boolean {
-  const host = hostname.toLowerCase().trim();
-  return ALLOWED_IMAGE_HOSTS.some((allowed) => host === allowed || host.endsWith("." + allowed));
-}
-
-/**
- * Fetches an image from an absolute HTTPS URL, relative local path, or base64 data URI
+ * Safely extracts an image payload from a base64 Data URI or local filesystem path
  * and converts it into a base64 payload and MIME type suitable for Gemini vision models.
- * Includes strict SSRF protection and path traversal guards.
+ * 
+ * Outbound server-side HTTP requests are avoided to guarantee zero Server-Side Request Forgery (SSRF) risk.
  *
- * @param imageUrl The image URL or data URI.
+ * @param imageUrl The image data URI or local relative path.
  * @returns Object with base64 data and mimeType, or null if unreachable.
  */
 export async function fetchImageAsBase64(
@@ -48,7 +19,7 @@ export async function fetchImageAsBase64(
   try {
     const trimmed = imageUrl.trim();
 
-    // Case 1: Data URI (e.g. data:image/png;base64,...)
+    // Case 1: Base64 Data URI (e.g. data:image/png;base64,...)
     if (trimmed.startsWith("data:image/")) {
       const match = trimmed.match(/^data:(image\/[a-zA-Z0-9+.-]+);base64,(.+)$/);
       if (match) {
@@ -59,48 +30,7 @@ export async function fetchImageAsBase64(
       }
     }
 
-    // Case 2: Remote HTTPS / HTTP URL (e.g. Cloudinary, ImgBB, GitHub)
-    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-      let parsedUrl: URL;
-      try {
-        parsedUrl = new URL(trimmed);
-      } catch {
-        return null;
-      }
-
-      // Enforce valid protocols
-      if (parsedUrl.protocol !== "https:" && parsedUrl.protocol !== "http:") {
-        return null;
-      }
-
-      // Enforce strict allowlist check to satisfy CodeQL SSRF query
-      if (!isAllowedImageHost(parsedUrl.hostname)) {
-        console.warn(`[SSRF Guard] Blocked request to non-allowlisted host: ${parsedUrl.hostname}`);
-        return null;
-      }
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s timeout
-
-      const res = await fetch(parsedUrl.href, { signal: controller.signal });
-      clearTimeout(timeoutId);
-
-      if (!res.ok) {
-        console.warn(`Failed to fetch diagram image (${res.status}): ${parsedUrl.href}`);
-        return null;
-      }
-
-      const buffer = Buffer.from(await res.arrayBuffer());
-      const mimeType = res.headers.get("content-type") || "image/png";
-      const cleanMime = mimeType.split(";")[0].trim();
-
-      return {
-        base64: buffer.toString("base64"),
-        mimeType: cleanMime,
-      };
-    }
-
-    // Case 3: Local relative public path (e.g. /uploads/... or /diagrams/...)
+    // Case 2: Local relative public path (e.g. /uploads/... or /diagrams/...)
     if (trimmed.startsWith("/")) {
       const publicDir = path.resolve(process.cwd(), "public");
       const filename = path.basename(trimmed);

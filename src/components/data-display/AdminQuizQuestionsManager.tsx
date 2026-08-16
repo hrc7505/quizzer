@@ -18,6 +18,8 @@ import { QuestionDialogBody, type QuestionForm } from "@/components/data-display
 interface Question {
   id: string;
   text: string;
+  imageUrl?: string | null;
+  invertInDark?: boolean;
   options: string[];
   correctAnswer: string;
   hint?: string | null;
@@ -77,6 +79,8 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
     const payload = {
       quizId: quiz.id,
       text: form.text,
+      imageUrl: form.imageUrl,
+      invertInDark: form.invertInDark,
       options: form.options,
       correctAnswer: form.correctAnswer,
       hint: form.hint,
@@ -110,7 +114,7 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
       title: "Add Question",
       body: (
         <QuestionDialogBody
-          initialForm={{ id: "", text: "", options: ["", "", "", ""], correctAnswer: "", hint: "", description: "" }}
+          initialForm={{ id: "", text: "", imageUrl: "", invertInDark: true, options: ["", "", "", ""], correctAnswer: "", hint: "", description: "" }}
           onSave={handleSaveQuestion}
           loading={loading}
         />
@@ -124,7 +128,7 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
       title: "Edit Question",
       body: (
         <QuestionDialogBody
-          initialForm={{ id: q.id, text: q.text, options: [...q.options], correctAnswer: q.correctAnswer, hint: q.hint || "", description: q.description || "" }}
+          initialForm={{ id: q.id, text: q.text, imageUrl: q.imageUrl || "", invertInDark: q.invertInDark ?? true, options: [...q.options], correctAnswer: q.correctAnswer, hint: q.hint || "", description: q.description || "" }}
           onSave={handleSaveQuestion}
           loading={loading}
         />

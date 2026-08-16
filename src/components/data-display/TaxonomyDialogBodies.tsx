@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/Textarea";
 import { Select } from "@/components/ui/Select";
 import { useDialog } from "@/components/providers/OverlayProvider";
 import { GenerateQuizForm } from "@/components/forms/GenerateQuizForm";
+import { cn } from "@/utils/cn";
 
 export interface ExamForm {
   id: string;
@@ -23,9 +24,13 @@ export interface TopicForm {
   parentId: string;
 }
 
+import { ImageUploader } from "@/components/forms/ImageUploader";
+
 export interface QuestionForm {
   id: string;
   text: string;
+  imageUrl?: string;
+  invertInDark?: boolean;
   options: string[];
   correctAnswer: string;
   hint: string;
@@ -114,7 +119,10 @@ export interface QuestionDialogBodyProps {
 }
 
 export function QuestionDialogBody({ initialForm, onSave, loading }: QuestionDialogBodyProps) {
-  const [form, setForm] = React.useState<QuestionForm>(initialForm);
+  const [form, setForm] = React.useState<QuestionForm>({
+    ...initialForm,
+    invertInDark: initialForm.invertInDark !== undefined ? initialForm.invertInDark : true,
+  });
   const dialog = useDialog();
 
   const handleOptionChange = (idx: number, val: string) => {
@@ -135,17 +143,26 @@ export function QuestionDialogBody({ initialForm, onSave, loading }: QuestionDia
   };
 
   return (
-    <div className="flex flex-col gap-4 mt-3">
+    <div className="flex flex-col gap-4 mt-3 max-h-[75vh] overflow-y-auto pr-1">
       <div className="flex flex-col gap-1.5">
         <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Question Text <span className="text-danger">*</span></label>
         <Textarea
           value={form.text}
           onChange={e => setForm(prev => ({ ...prev, text: e.target.value }))}
-          placeholder="Enter the question text..."
+          placeholder="Enter the question text (e.g. In the given circuit diagram below, calculate the equivalent resistance...)"
           rows={3}
           required
         />
       </div>
+
+      {/* Reusable Diagram / Image Upload Component */}
+      <ImageUploader
+        value={form.imageUrl}
+        onChange={(url) => setForm(prev => ({ ...prev, imageUrl: url }))}
+        invertInDark={form.invertInDark}
+        onInvertInDarkChange={(invert) => setForm(prev => ({ ...prev, invertInDark: invert }))}
+        disabled={loading}
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {form.options.map((opt, idx) => (
@@ -180,7 +197,7 @@ export function QuestionDialogBody({ initialForm, onSave, loading }: QuestionDia
         <Input
           value={form.hint}
           onChange={e => setForm(prev => ({ ...prev, hint: e.target.value }))}
-          placeholder="e.g. Think about..."
+          placeholder="e.g. Apply Kirchhoff's current law at node A..."
         />
       </div>
 
@@ -189,13 +206,13 @@ export function QuestionDialogBody({ initialForm, onSave, loading }: QuestionDia
         <Textarea
           value={form.description}
           onChange={e => setForm(prev => ({ ...prev, description: e.target.value }))}
-          placeholder="Explain why this option is correct..."
+          placeholder="Explain step-by-step why this option is correct..."
           rows={3}
           required
         />
       </div>
 
-      <div className="flex items-center justify-end space-x-2 mt-6 pt-3 border-t border-border/30">
+      <div className="flex items-center justify-end space-x-2 mt-4 pt-3 border-t border-border/30">
         <Button variant="outline" onClick={() => dialog.close()}>Cancel</Button>
         <Button variant="primary" onClick={handleSave} disabled={!form.text || !form.correctAnswer || !form.description || loading}>
           Save

@@ -17,6 +17,8 @@ export interface QuizSummary {
 export interface QuizQuestionDetail {
   id: string;
   text: string;
+  imageUrl?: string | null;
+  invertInDark?: boolean;
   options: string[];
   correctAnswer: string;
   hint?: string | null;

@@ -88,6 +88,8 @@ model Question {
   topicId       String
   quizId        String?
   text          String
+  imageUrl      String?
+  invertInDark  Boolean  @default(true)
   options       String[]
   correctAnswer String
   hint          String

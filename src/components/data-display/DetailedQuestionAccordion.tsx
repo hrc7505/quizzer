@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/utils/cn";
+import { sanitizeImageUrl } from "@/lib/format";
 
 import type { QuestionData, UserAnswerData } from "@/components/data-display/interfaces/QuizResults.interface";
 
@@ -31,6 +32,7 @@ function DetailedQuestionAccordionInner({
 }: DetailedQuestionAccordionProps) {
   const [isOpen, setIsOpen] = useState(false);
   const isCorrect = answer?.isCorrect;
+  const safeImageUrl = sanitizeImageUrl(question.imageUrl);
 
   return (
     <div className={cn(
@@ -65,6 +67,20 @@ function DetailedQuestionAccordionInner({
 
       {isOpen && (
         <div className="p-4 sm:p-5 bg-secondary/10 border-t border-border/50 flex flex-col gap-4 text-xs">
+          {safeImageUrl && (
+            <div className="flex flex-col items-center justify-center p-3 rounded-xl border border-border/70 bg-card/60 dark:bg-zinc-950/80 overflow-hidden">
+              <img
+                src={safeImageUrl}
+                alt="Question diagram"
+                className={cn(
+                  "max-h-60 w-auto object-contain",
+                  question.invertInDark !== false && "dark:invert"
+                )}
+                loading="lazy"
+              />
+            </div>
+          )}
+
           <div className="flex flex-col gap-2 bg-success/10 border border-success/20 p-4 rounded-xl">
             <span className="font-bold text-[10px] uppercase tracking-wider text-success">
               ✓ Correct Answer

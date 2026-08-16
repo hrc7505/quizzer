@@ -32,7 +32,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { quizId, text, options, correctAnswer, hint, description } = body;
+    const { quizId, text, imageUrl, invertInDark, options, correctAnswer, hint, description } = body;
 
     if (!quizId || !text || !options || !correctAnswer) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -65,6 +65,8 @@ export async function POST(req: Request) {
         quizId,
         topicId,
         text,
+        imageUrl: imageUrl || null,
+        invertInDark: typeof invertInDark === "boolean" ? invertInDark : true,
         options,
         correctAnswer,
         hint: hint || "",

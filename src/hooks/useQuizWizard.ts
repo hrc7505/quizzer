@@ -39,6 +39,9 @@ interface QuizWizardAttempt {
   timeTakenSec: number;
 }
 
+import { soundEffects } from "@/lib/services/sound-effects.service";
+import type { CelebrationBurst, StreakMilestone } from "@/components/feedback/TelegramQuizCelebration";
+
 export interface QuizWizardState {
   loading: boolean;
   isPlaying: boolean;
@@ -56,13 +59,17 @@ export interface QuizWizardState {
   currentQuestion: QuizWizardQuestion | null;
   questions: QuizWizardQuestion[];
   progress: number;
+  streakCount: number;
+  celebrationBurst: CelebrationBurst | null;
+  streakMilestone: StreakMilestone | null;
 }
 
 export interface QuizWizardActions {
   handleStart: (forceNew: boolean, resumeAttemptId?: string) => Promise<void>;
-  handleOptionClick: (option: string) => void;
+  handleOptionClick: (option: string, origin?: { x: number; y: number }) => void;
   handleNext: () => Promise<void>;
   setShowHint: (show: boolean) => void;
+  clearMilestone: () => void;
 }
 
 export function useQuizWizard(quiz: QuizWizardQuiz): [QuizWizardState, QuizWizardActions] {
@@ -253,9 +260,69 @@ export function useQuizWizard(quiz: QuizWizardQuiz): [QuizWizardState, QuizWizar
     [status, activeAttempt, quiz.id]
   );
 
-  const handleOptionClick = useCallback((option: string) => {
-    setSelectedOption((prev) => (prev ? prev : option));
+  const [streakCount, setStreakCount] = useState(0);
+  const [celebrationBurst, setCelebrationBurst] = useState<CelebrationBurst | null>(null);
+  const [streakMilestone, setStreakMilestone] = useState<StreakMilestone | null>(null);
+
+  const clearMilestone = useCallback(() => {
+    setStreakMilestone(null);
   }, []);
+
+  const handleOptionClick = useCallback(
+    (option: string, origin?: { x: number; y: number }) => {
+      if (selectedOption || !currentQuestion) return;
+
+      setSelectedOption(option);
+
+      const isCorrect = option === currentQuestion.correctAnswer;
+      if (isCorrect) {
+        const nextStreak = streakCount + 1;
+        setStreakCount(nextStreak);
+
+        // Trigger Telegram-style firecracker burst
+        const defaultX = typeof window !== "undefined" ? window.innerWidth / 2 : 400;
+        const defaultY = typeof window !== "undefined" ? window.innerHeight / 2 : 400;
+        setCelebrationBurst({
+          id: Date.now(),
+          x: origin?.x ?? defaultX,
+          y: origin?.y ?? defaultY,
+        });
+
+        // Check for streak milestone celebrations
+        if (nextStreak === 3) {
+          setStreakMilestone({
+            streak: 3,
+            title: "3 In A Row!",
+            message: "You're on fire! Keep it going! 🔥",
+            icon: "fire",
+          });
+          soundEffects.playStreakCelebrationSound(3);
+        } else if (nextStreak === 5) {
+          setStreakMilestone({
+            streak: 5,
+            title: "5 Streak!",
+            message: "Unstoppable knowledge! ⚡",
+            icon: "zap",
+          });
+          soundEffects.playStreakCelebrationSound(5);
+        } else if (nextStreak > 5 && nextStreak % 5 === 0) {
+          setStreakMilestone({
+            streak: nextStreak,
+            title: `${nextStreak} Combo Streak!`,
+            message: "Absolute Quiz Master! 🏆",
+            icon: "trophy",
+          });
+          soundEffects.playStreakCelebrationSound(nextStreak);
+        } else {
+          soundEffects.playCorrectSound();
+        }
+      } else {
+        setStreakCount(0);
+        soundEffects.playWrongSound();
+      }
+    },
+    [selectedOption, currentQuestion, streakCount]
+  );
 
   const handleNext = useCallback(async () => {
     if (!selectedOption || !currentQuestion) return;
@@ -322,6 +389,9 @@ export function useQuizWizard(quiz: QuizWizardQuiz): [QuizWizardState, QuizWizar
     currentQuestion,
     questions,
     progress,
+    streakCount,
+    celebrationBurst,
+    streakMilestone,
   };
 
   const actions: QuizWizardActions = {
@@ -329,6 +399,7 @@ export function useQuizWizard(quiz: QuizWizardQuiz): [QuizWizardState, QuizWizar
     handleOptionClick,
     handleNext,
     setShowHint,
+    clearMilestone,
   };
 
   return [state, actions];

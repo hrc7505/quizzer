@@ -27,10 +27,23 @@ img, video, canvas, svg {
   height: auto;
 }
 
+/* Focus accessibility: outline for interactive elements without explicit border-focus */
 :focus-visible {
-  outline: var(--focus-ring-width) solid var(--primary);
-  outline-offset: var(--focus-ring-offset);
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
   border-radius: var(--radius-sm);
+}
+
+/* Form controls manage their own clean, single-pixel focus border */
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible {
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
 }
 
 ::selection {

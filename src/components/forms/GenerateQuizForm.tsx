@@ -1,17 +1,16 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { FileText, Type, Sparkles, Info } from "lucide-react";
+import { Sparkles, Type, FileText, Info, Layers } from "lucide-react";
 
-import { GenerateQuizResponse, GenerateQuizPayload } from "@/components/forms/interfaces/GenerateQuizForm.interface";
-import { QuizService } from "@/lib/services/quiz.service";
-import { getAiErrorMeta, type AiErrorMeta } from "@/lib/gemini";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
-import { Alert } from "@/components/ui/Alert";
-import { ModelCapabilityError } from "@/components/ui/ModelCapabilityError";
 import { Select } from "@/components/ui/Select";
+import { Alert } from "@/components/ui/Alert";
+import { getAiErrorMeta, type AiErrorMeta } from "@/lib/gemini";
+import { QuizService } from "@/lib/services/quiz.service";
+import type { GenerateQuizPayload, GenerateQuizResponse } from "./interfaces/GenerateQuizForm.interface";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/utils/cn";
 
@@ -19,14 +18,20 @@ interface GenerateQuizFormProps {
   /** Called after a successful generation — parent can close dialog / refresh state. */
   onSuccess?: (result: GenerateQuizResponse) => void;
   initialTopicId?: string;
+  targetQuizId?: string;
+  targetQuizTitle?: string;
 }
 
 /**
  * GenerateQuizForm — embeddable form that generates a quiz via Gemini AI.
- * The quiz title is used only as context for AI question generation.
- * After creation the quiz is standalone; admin links it to subtopics via QuizManager.
+ * Supports creating brand-new standalone quizzes or appending questions directly to an existing quiz.
  */
-export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizFormProps = {}) {
+export function GenerateQuizForm({
+  onSuccess,
+  initialTopicId,
+  targetQuizId,
+  targetQuizTitle,
+}: GenerateQuizFormProps = {}) {
   const [mode, setMode] = useState<"title" | "text" | "pdf">("title");
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const tablistRef = useRef<HTMLDivElement>(null);
@@ -56,7 +61,7 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
     }
   };
 
-  const [quizTitle, setQuizTitle] = useState("");
+  const [quizTitle, setQuizTitle] = useState(targetQuizTitle || "");
   const [topicText, setTopicText] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [difficulty, setDifficulty] = useState("Medium");
@@ -114,6 +119,7 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
         mode,
         topicTitle: quizTitle,
         existingTopicId: initialTopicId || undefined,
+        targetQuizId: targetQuizId || undefined,
         difficulty,
         topicText: mode === "text" ? topicText : undefined,
         file: mode === "pdf" ? file : undefined,
@@ -126,7 +132,9 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
         return;
       }
       setResult(data);
-      setQuizTitle("");
+      if (!targetQuizId) {
+        setQuizTitle("");
+      }
       setTopicText("");
       setFile(null);
       const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
@@ -143,9 +151,6 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
   const renderErrorAlert = () => {
     if (!error) return null;
     const meta = errorMeta || getAiErrorMeta(error);
-    if (meta.icon === "image-off") {
-      return <ModelCapabilityError message={error} />;
-    }
     return (
       <Alert variant={meta.variant} title="Error">
         {error}
@@ -165,10 +170,27 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
 
       {result && (
         <Alert variant="success" title="Success">
-          {result.isBatched
+          {result.appended
+            ? `Successfully appended ${result.questionsAdded || result.totalQuestions} new questions to "${result.message || targetQuizTitle || quizTitle}"!`
+            : result.isBatched
             ? `Created ${result.batchesCreated} batch(es) in the queue for ${result.totalQuestions} questions! Generation has started in the background.`
             : `Generated ${result.totalQuestions} questions across ${result.quizzesCreated} quiz${result.quizzesCreated > 1 ? "zes" : ""}!`}
         </Alert>
+      )}
+
+      {/* Target Quiz Indicator Banner when in Append Mode */}
+      {targetQuizId && (
+        <div className="flex items-center gap-3 rounded-xl border border-primary/25 bg-primary/10 p-3.5 text-xs text-primary">
+          <Layers className="h-4 w-4 shrink-0 text-primary" />
+          <div className="flex flex-col gap-0.5">
+            <span className="font-bold text-foreground">
+              Appending Questions to Existing Quiz
+            </span>
+            <span className="text-[11px] text-muted-foreground">
+              Target: <strong className="text-foreground">{targetQuizTitle || quizTitle}</strong>. New questions will be directly added without creating a new quiz.
+            </span>
+          </div>
+        </div>
       )}
 
       {/* Model capability banner */}
@@ -223,24 +245,29 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
         })}
       </div>
 
-      {/* Quiz Title — always shown; used as AI context prompt */}
+      {/* Inputs */}
       <div className="flex flex-col gap-1.5">
-        <label className="text-xs sm:text-sm font-semibold text-foreground/90">Quiz Title <span className="text-danger">*</span></label>
+        <label htmlFor="quiz-title-input" className="text-xs sm:text-sm font-semibold text-foreground/90">
+          {targetQuizId ? "Quiz Context / Title" : "Topic / Quiz Title"} <span className="text-danger">*</span>
+        </label>
         <Input
-          placeholder="e.g. History of Rome"
+          id="quiz-title-input"
+          placeholder="e.g. Linear Algebra, Cellular Biology, World History"
           value={quizTitle}
           onChange={e => setQuizTitle(e.target.value)}
-          disabled={loading}
-          className="h-10 text-sm"
+          disabled={loading || !!targetQuizId}
           required
+          className="h-10 text-sm"
         />
-        <span className="text-[11px] sm:text-xs text-muted-foreground/70 leading-tight">
-          The title is used by AI to generate relevant questions. The quiz will be created standalone or linked under your selected topic.
+        <span className="text-[11px] sm:text-xs text-muted-foreground/70">
+          {targetQuizId
+            ? "Context used by AI to generate complementary, non-duplicate questions."
+            : "Used to name the quiz and guide question generation."}
         </span>
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label className="text-xs sm:text-sm font-semibold text-foreground/90">Difficulty Level <span className="text-danger">*</span></label>
+        <label className="text-xs sm:text-sm font-semibold text-foreground/90">Target Difficulty <span className="text-danger">*</span></label>
         <Select 
           value={difficulty} 
           onChange={(e) => setDifficulty(e.target.value)} 
@@ -266,7 +293,7 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
             required
           />
           <span className="text-[11px] sm:text-xs text-muted-foreground/70">
-            Paste any amount of questions — they will be automatically batched into 30-question quizzes.
+            Paste questions or text — the AI will parse and append them.
           </span>
         </div>
       )}
@@ -324,10 +351,10 @@ export function GenerateQuizForm({ onSuccess, initialTopicId }: GenerateQuizForm
           {loading ? (
             <>
               <Spinner size="sm" className="text-primary-foreground" /> 
-              <span>Generating Quizzes…</span>
+              <span>{targetQuizId ? "Appending Questions…" : "Generating Quizzes…"}</span>
             </>
           ) : (
-            "Generate Quiz"
+            targetQuizId ? "Generate & Append Questions" : "Generate Quiz"
           )}
         </Button>
       </div>

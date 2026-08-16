@@ -415,19 +415,40 @@ export async function POST(req: Request) {
 
     const formData = await req.formData();
     const mode = formData.get("mode") as string;
-    const existingTopicId = formData.get("existingTopicId") as string | null;
     let topicTitle = formData.get("topicTitle") as string;
+    const existingTopicId = formData.get("existingTopicId") as string;
+    const targetQuizId = formData.get("targetQuizId") as string;
     const difficulty = formData.get("difficulty") as string;
 
-    if (!mode || (!topicTitle && !existingTopicId) || !difficulty) {
+    if (!mode || (!topicTitle && !existingTopicId && !targetQuizId) || !difficulty) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
     let existingQuestionsText = "";
     let existingQuizzesCount = 0;
     let topic: TopicWithQuestions | null = null;
+    let targetQuiz: { id: string; title: string; topics: { id: string }[]; questions: { text: string }[] } | null = null;
 
-    if (existingTopicId) {
+    if (targetQuizId) {
+      targetQuiz = await prisma.quiz.findUnique({
+        where: { id: targetQuizId },
+        include: {
+          topics: { select: { id: true } },
+          questions: { select: { text: true } },
+        },
+      });
+
+      if (!targetQuiz) {
+        return NextResponse.json({ error: "Target quiz to append to was not found" }, { status: 404 });
+      }
+
+      topicTitle = targetQuiz.title;
+      if (targetQuiz.questions.length > 0) {
+        const recentQuestions = targetQuiz.questions.slice(-50);
+        existingQuestionsText = `\n\nCRITICAL: Do NOT generate questions that are similar to these existing ones already in the quiz:\n` +
+          recentQuestions.map((q) => `- ${q.text}`).join("\n");
+      }
+    } else if (existingTopicId) {
       topic = await prisma.topic.findUnique({
         where: { id: existingTopicId },
         include: { quizzes: true, questions: { select: { text: true } } }
@@ -445,7 +466,9 @@ export async function POST(req: Request) {
     }
 
     let questionTopicId: string;
-    if (topic) {
+    if (targetQuiz && targetQuiz.topics.length > 0) {
+      questionTopicId = targetQuiz.topics[0].id;
+    } else if (topic) {
       questionTopicId = topic.id;
     } else {
       let sentinel = await prisma.topic.findFirst({
@@ -547,7 +570,7 @@ Provide a hint and a detailed description/explanation for the answer.${existingQ
         return NextResponse.json({
           success: true,
           isBatched: true,
-          topicId: topic.id,
+          topicId: topic?.id ?? "",
           batchesCreated: totalBatches,
           totalQuestions: questionBlocks.length,
           message: `Created ${totalBatches} batch(es) with ${questionBlocks.length} questions in queue. Processing in background.`,
@@ -587,6 +610,46 @@ ${chunk}`;
       return NextResponse.json({ error: "No questions could be generated from the provided content" }, { status: 400 });
     }
 
+    // Branch 1: Append Questions to an Existing Quiz
+    if (targetQuiz) {
+      try {
+        await prisma.question.createMany({
+          data: allGeneratedQuestions.map((q) => ({
+            topicId: questionTopicId,
+            quizId: targetQuiz.id,
+            text: q.text,
+            options: q.options,
+            correctAnswer: q.correctAnswer,
+            hint: q.hint,
+            description: q.description,
+          })),
+        });
+      } catch (saveErr) {
+        console.error("Failed to append questions to target quiz:", saveErr);
+        return NextResponse.json({
+          error: "Failed to save appended questions",
+          detail: saveErr instanceof Error ? saveErr.message : "Unknown error"
+        }, { status: 500 });
+      }
+
+      revalidatePath("/admin/manage/quizzes");
+      revalidatePath(`/admin/manage/quizzes/${targetQuiz.id}/questions`);
+      revalidatePath(`/quiz/${targetQuiz.id}`);
+      revalidatePath("/exams");
+      revalidatePath("/topics");
+
+      return NextResponse.json({
+        success: true,
+        appended: true,
+        quizId: targetQuiz.id,
+        quizTitle: targetQuiz.title,
+        totalQuestions: N,
+        questionsAdded: N,
+        quizzesCreated: 0,
+      });
+    }
+
+    // Branch 2: Create New Quiz(zes)
     const chunkSize = 30;
     const numQuizzes = Math.ceil(N / chunkSize);
     let currentQuizIndex = existingQuizzesCount > 0 ? existingQuizzesCount + 1 : 1;
@@ -641,7 +704,7 @@ ${chunk}`;
 
     return NextResponse.json({
       success: true,
-      topicId: topic.id,
+      topicId: topic?.id ?? "",
       totalQuestions: N,
       quizzesCreated: numQuizzes,
     });

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Link as LinkIcon, MoreHorizontal } from "lucide-react";
+import { Link as LinkIcon, MoreHorizontal, Sparkles, Pencil, ListOrdered, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -25,22 +25,44 @@ interface Quiz {
 
 export interface QuizRowProps {
   quiz: Quiz;
+  isSelected?: boolean;
+  onToggleSelect?: (id: string) => void;
   onSelectQuiz: (id: string) => void;
   onOpenLinkDialog: (quiz: Quiz) => void;
   onOpenEditDialog: (quiz: Quiz) => void;
   onDeleteQuiz: (quiz: Quiz) => void;
+  onAppendQuestions?: (quiz: Quiz) => void;
 }
 
 export const QuizRow = React.memo(function QuizRow({
   quiz,
+  isSelected = false,
+  onToggleSelect,
   onSelectQuiz,
   onOpenLinkDialog,
   onOpenEditDialog,
   onDeleteQuiz,
+  onAppendQuestions,
 }: QuizRowProps) {
   return (
-    <tr key={quiz.id} className="border-b border-border/20 hover:bg-secondary/20 transition-colors">
-      <td className="py-3 px-4 text-center font-bold text-muted-foreground">
+    <tr
+      key={quiz.id}
+      className={`border-b border-border/20 hover:bg-secondary/20 transition-colors ${
+        isSelected ? "bg-primary/5 hover:bg-primary/10" : ""
+      }`}
+    >
+      <td className="py-3 px-3 text-center">
+        {onToggleSelect && (
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => onToggleSelect(quiz.id)}
+            aria-label={`Select quiz ${quiz.title}`}
+            className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20 cursor-pointer accent-primary align-middle"
+          />
+        )}
+      </td>
+      <td className="py-3 px-3 text-center font-bold text-muted-foreground">
         #{quiz.quizOrder}
       </td>
       <td className="py-3 px-4">
@@ -61,13 +83,13 @@ export const QuizRow = React.memo(function QuizRow({
       <td className="py-3 px-4 max-w-xs select-none">
         <div className="flex flex-wrap gap-1">
           {quiz.topics.length > 0 ? (
-            quiz.topics.map(t => (
+            quiz.topics.map((t) => (
               <Badge key={t.id} variant="secondary" className="text-[10px] px-1.5 py-0 animate-none">
                 {t.title}
               </Badge>
             ))
           ) : (
-             <span className="text-[10px] text-muted-foreground/60 italic font-medium">Unlinked</span>
+            <span className="text-[10px] text-muted-foreground/60 italic font-medium">Unlinked</span>
           )}
         </div>
       </td>
@@ -94,10 +116,25 @@ export const QuizRow = React.memo(function QuizRow({
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownTrigger>
-            <DropdownContent align="right" className="w-44">
-              <DropdownItem onClick={() => onOpenEditDialog(quiz)}>Edit Details</DropdownItem>
-              <DropdownItem onClick={() => onSelectQuiz(quiz.id)}>Manage Questions</DropdownItem>
-              <DropdownItem onClick={() => onDeleteQuiz(quiz)} className="text-danger">Delete Quiz</DropdownItem>
+            <DropdownContent align="right" className="w-52">
+              <DropdownItem onClick={() => onOpenEditDialog(quiz)} className="gap-2">
+                <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                <span>Edit Details</span>
+              </DropdownItem>
+              <DropdownItem onClick={() => onSelectQuiz(quiz.id)} className="gap-2">
+                <ListOrdered className="h-3.5 w-3.5 text-muted-foreground" />
+                <span>Manage Questions</span>
+              </DropdownItem>
+              {onAppendQuestions && (
+                <DropdownItem onClick={() => onAppendQuestions(quiz)} className="gap-2 text-primary font-medium">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  <span>AI Append Questions</span>
+                </DropdownItem>
+              )}
+              <DropdownItem onClick={() => onDeleteQuiz(quiz)} className="gap-2 text-danger">
+                <Trash2 className="h-3.5 w-3.5 text-danger" />
+                <span>Delete Quiz</span>
+              </DropdownItem>
             </DropdownContent>
           </Dropdown>
         </div>

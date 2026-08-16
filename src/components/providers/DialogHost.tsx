@@ -81,7 +81,7 @@ export function DialogHost({ config, onClose }: DialogHostProps) {
             )}
           </div>
         )}
-        <div className="text-sm text-muted-foreground leading-relaxed overflow-y-auto pr-1 overscroll-contain flex-1">
+        <div className="text-sm text-muted-foreground leading-relaxed overflow-y-auto px-1.5 py-0.5 overscroll-contain flex-1">
           {config.body}
         </div>
         {config.footer !== undefined ? (

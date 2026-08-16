@@ -3,10 +3,10 @@ import fs from "fs/promises";
 import path from "path";
 
 /**
- * Allowed domains for fetching diagram images on the server side.
- * Explicit allowlisting prevents Server-Side Request Forgery (SSRF) as required by CodeQL.
+ * Strict allowlist of trusted domains for fetching diagram images on the server side.
+ * Explicit allowlisting eliminates Server-Side Request Forgery (SSRF) as required by CodeQL.
  */
-const ALLOWED_IMAGE_HOSTS = [
+const ALLOWED_IMAGE_HOSTS: readonly string[] = [
   "res.cloudinary.com",
   "cloudinary.com",
   "images.unsplash.com",
@@ -25,21 +25,11 @@ const ALLOWED_IMAGE_HOSTS = [
 ];
 
 /**
- * Validates whether a hostname is on the allowed list of safe public image domains.
+ * Validates whether a hostname matches the explicit trusted image domains allowlist.
  */
 function isAllowedImageHost(hostname: string): boolean {
   const host = hostname.toLowerCase().trim();
-
-  // 1. Check known image CDN and hosting providers
-  if (ALLOWED_IMAGE_HOSTS.some((allowed) => host === allowed || host.endsWith("." + allowed))) {
-    return true;
-  }
-
-  // 2. Allow valid public domain names with standard public TLDs (preventing internal IPs, localhost, etc.)
-  const isPublicDomain = /^[a-zA-Z0-9-]{1,63}(\.[a-zA-Z0-9-]{1,63})*\.(com|org|net|io|co|dev|app|edu|gov|in|ai|xyz|tech|online)$/i.test(host);
-  const isInternal = host === "localhost" || host.endsWith(".local") || host.endsWith(".internal") || host.endsWith(".lan");
-
-  return isPublicDomain && !isInternal;
+  return ALLOWED_IMAGE_HOSTS.some((allowed) => host === allowed || host.endsWith("." + allowed));
 }
 
 /**
@@ -78,26 +68,25 @@ export async function fetchImageAsBase64(
         return null;
       }
 
-      // Enforce valid protocols and allowlisted hostnames to eliminate SSRF
+      // Enforce valid protocols
       if (parsedUrl.protocol !== "https:" && parsedUrl.protocol !== "http:") {
         return null;
       }
 
+      // Enforce strict allowlist check to satisfy CodeQL SSRF query
       if (!isAllowedImageHost(parsedUrl.hostname)) {
         console.warn(`[SSRF Guard] Blocked request to non-allowlisted host: ${parsedUrl.hostname}`);
         return null;
       }
 
-      const safeUrl = parsedUrl.origin + parsedUrl.pathname + parsedUrl.search;
-
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s timeout
 
-      const res = await fetch(safeUrl, { signal: controller.signal });
+      const res = await fetch(parsedUrl.href, { signal: controller.signal });
       clearTimeout(timeoutId);
 
       if (!res.ok) {
-        console.warn(`Failed to fetch diagram image (${res.status}): ${safeUrl}`);
+        console.warn(`Failed to fetch diagram image (${res.status}): ${parsedUrl.href}`);
         return null;
       }
 

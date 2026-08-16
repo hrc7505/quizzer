@@ -6,6 +6,7 @@ import { Edit, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/utils/cn";
+import { sanitizeImageUrl } from "@/lib/format";
 
 export interface QuestionCardData {
   id: string;
@@ -96,6 +97,8 @@ export function QuestionCard({
   optionVariant = "plain",
   className,
 }: QuestionCardProps) {
+  const safeImageUrl = sanitizeImageUrl(question.imageUrl);
+
   return (
     <Card className={cn("p-5 border border-border/80 bg-card shadow-sm flex flex-col gap-4 rounded-xl", optionVariant === "badge" && "p-6 gap-5 rounded-2xl", className)}>
       <div className="flex items-start justify-between gap-4">
@@ -133,11 +136,11 @@ export function QuestionCard({
         )}
       </div>
 
-      {question.imageUrl && (
+      {safeImageUrl && (
         <div className="flex justify-start">
           <div className="p-2.5 border border-border/70 rounded-xl bg-card/60 dark:bg-zinc-950/80 max-w-xs overflow-hidden flex items-center justify-center">
             <img
-              src={question.imageUrl}
+              src={safeImageUrl}
               alt="Question diagram thumbnail"
               className={cn(
                 "max-h-36 w-auto object-contain",

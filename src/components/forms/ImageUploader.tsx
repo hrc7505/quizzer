@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { Progress } from "@/components/ui/Progress";
 import { useImageUpload } from "@/hooks/useImageUpload";
 import { cn } from "@/utils/cn";
+import { sanitizeImageUrl } from "@/lib/format";
 import type { ImageUploaderProps } from "@/components/forms/interfaces/ImageUploader.interface";
 
 /**
@@ -29,6 +30,8 @@ export function ImageUploader({
   const [isDragOver, setIsDragOver] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
+  const safeImageUrl = React.useMemo(() => sanitizeImageUrl(value), [value]);
+
   const {
     isUploading,
     progress,
@@ -49,6 +52,33 @@ export function ImageUploader({
     handleFileSelection(file);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    if (disabled || isUploading) return;
+
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    // Check if any clipboard item is an image file (screenshot, clipart, copied file)
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          const ext = item.type.split("/")[1] || "png";
+          const namedFile = new File([file], `clipboard-diagram-${Date.now()}.${ext}`, {
+            type: item.type,
+          });
+
+          handleFileSelection(namedFile);
+          return;
+        }
+      }
     }
   };
 
@@ -77,13 +107,14 @@ export function ImageUploader({
   return (
     <div
       className={cn(
-        "flex flex-col gap-2.5 p-3.5 rounded-xl border border-border/70 bg-secondary/10 transition-colors",
+        "flex flex-col gap-2.5 p-3.5 rounded-xl border border-border/70 bg-secondary/10 transition-colors focus-within:border-primary/50",
         isDragOver && "border-primary bg-primary/5 ring-2 ring-primary/20",
         className
       )}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
+      onPaste={handlePaste}
     >
       {/* Header Label & Remove Action */}
       <div className="flex items-center justify-between">
@@ -115,11 +146,11 @@ export function ImageUploader({
       />
 
       {/* Image Preview State */}
-      {value && !isUploading ? (
+      {safeImageUrl && !isUploading ? (
         <div className="flex flex-col gap-3 p-3 bg-card border border-border/80 rounded-xl">
           <div className="max-h-52 max-w-full overflow-hidden rounded-lg bg-card/60 dark:bg-zinc-950/80 p-3 border border-border/40 flex items-center justify-center">
             <img
-              src={value}
+              src={safeImageUrl}
               alt="Diagram preview"
               className={cn(
                 "max-h-48 max-w-full object-contain transition-all",
@@ -188,7 +219,8 @@ export function ImageUploader({
                 <Input
                   value={value || ""}
                   onChange={(e) => onChange(e.target.value)}
-                  placeholder="Paste image URL (https://...) or upload file"
+                  onPaste={handlePaste}
+                  placeholder="Paste copied image (⌘V) / image URL, or click upload"
                   className="text-xs pl-8"
                   disabled={disabled}
                 />

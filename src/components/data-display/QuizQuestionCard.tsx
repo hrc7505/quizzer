@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/utils/cn";
 import { splitSentences } from "@/lib/text";
+import { sanitizeImageUrl } from "@/lib/format";
 
 interface QuizQuestionCardProps {
   question: {
@@ -40,6 +41,7 @@ function QuizQuestionCardInner({
 }: QuizQuestionCardProps) {
   const [isZoomed, setIsZoomed] = useState(false);
   const shouldInvert = question.invertInDark !== false;
+  const safeImageUrl = sanitizeImageUrl(question.imageUrl);
 
   return (
     <Card className="p-6 sm:p-8 flex flex-col gap-6 border border-border/80 bg-card shadow-sm rounded-2xl">
@@ -48,14 +50,14 @@ function QuizQuestionCardInner({
       </div>
 
       {/* Question Diagram / Schematic Image */}
-      {question.imageUrl && (
+      {safeImageUrl && (
         <div className="flex flex-col gap-2">
           <div
             onClick={() => setIsZoomed(true)}
             className="group relative flex items-center justify-center p-3 sm:p-4 rounded-xl border border-border/70 bg-card/60 dark:bg-zinc-950/80 overflow-hidden cursor-zoom-in hover:border-primary/50 transition-colors"
           >
             <img
-              src={question.imageUrl}
+              src={safeImageUrl}
               alt="Question diagram"
               className={cn(
                 "max-h-64 sm:max-h-72 w-auto object-contain transition-transform duration-200 group-hover:scale-[1.01]",
@@ -96,7 +98,7 @@ function QuizQuestionCardInner({
                 </div>
                 <div className="max-h-[75vh] w-full overflow-auto flex items-center justify-center bg-card/60 dark:bg-zinc-950/80 p-4 rounded-xl border border-border/40">
                   <img
-                    src={question.imageUrl}
+                    src={safeImageUrl}
                     alt="Question diagram full view"
                     className={cn(
                       "max-h-[70vh] max-w-full object-contain",

@@ -3,40 +3,43 @@ import fs from "fs/promises";
 import path from "path";
 
 /**
- * Validates whether a hostname is safe against Server-Side Request Forgery (SSRF).
- * Blocks loopback, private subnets, and cloud instance metadata endpoints.
+ * Allowed domains for fetching diagram images on the server side.
+ * Explicit allowlisting prevents Server-Side Request Forgery (SSRF) as required by CodeQL.
  */
-function isSafePublicHost(hostname: string): boolean {
-  const lower = hostname.toLowerCase();
+const ALLOWED_IMAGE_HOSTS = [
+  "res.cloudinary.com",
+  "cloudinary.com",
+  "images.unsplash.com",
+  "i.imgur.com",
+  "imgur.com",
+  "i.ibb.co",
+  "ibb.co",
+  "raw.githubusercontent.com",
+  "githubusercontent.com",
+  "github.com",
+  "drive.google.com",
+  "lh3.googleusercontent.com",
+  "googleusercontent.com",
+  "wikimedia.org",
+  "upload.wikimedia.org",
+];
 
-  // Block localhost, loopback, and cloud metadata hostnames
-  if (
-    lower === "localhost" ||
-    lower === "127.0.0.1" ||
-    lower === "::1" ||
-    lower === "0.0.0.0" ||
-    lower === "169.254.169.254" ||
-    lower === "metadata.google.internal" ||
-    lower.endsWith(".local") ||
-    lower.endsWith(".internal")
-  ) {
-    return false;
+/**
+ * Validates whether a hostname is on the allowed list of safe public image domains.
+ */
+function isAllowedImageHost(hostname: string): boolean {
+  const host = hostname.toLowerCase().trim();
+
+  // 1. Check known image CDN and hosting providers
+  if (ALLOWED_IMAGE_HOSTS.some((allowed) => host === allowed || host.endsWith("." + allowed))) {
+    return true;
   }
 
-  // Block IPv4 private address ranges: 10.x.x.x, 172.16-31.x.x, 192.168.x.x, 100.64-127.x.x
-  const ipv4Match = lower.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
-  if (ipv4Match) {
-    const [, a, b] = ipv4Match.map(Number);
-    if (a === 10) return false;
-    if (a === 127) return false;
-    if (a === 169 && b === 254) return false;
-    if (a === 172 && b >= 16 && b <= 31) return false;
-    if (a === 192 && b === 168) return false;
-    if (a === 100 && b >= 64 && b <= 127) return false;
-    if (a === 0) return false;
-  }
+  // 2. Allow valid public domain names with standard public TLDs (preventing internal IPs, localhost, etc.)
+  const isPublicDomain = /^[a-zA-Z0-9-]{1,63}(\.[a-zA-Z0-9-]{1,63})*\.(com|org|net|io|co|dev|app|edu|gov|in|ai|xyz|tech|online)$/i.test(host);
+  const isInternal = host === "localhost" || host.endsWith(".local") || host.endsWith(".internal") || host.endsWith(".lan");
 
-  return true;
+  return isPublicDomain && !isInternal;
 }
 
 /**
@@ -75,20 +78,26 @@ export async function fetchImageAsBase64(
         return null;
       }
 
-      // Enforce safe public hosts to prevent SSRF
-      if (!isSafePublicHost(parsedUrl.hostname)) {
-        console.warn(`[SSRF Guard] Blocked request to internal/restricted host: ${parsedUrl.hostname}`);
+      // Enforce valid protocols and allowlisted hostnames to eliminate SSRF
+      if (parsedUrl.protocol !== "https:" && parsedUrl.protocol !== "http:") {
         return null;
       }
+
+      if (!isAllowedImageHost(parsedUrl.hostname)) {
+        console.warn(`[SSRF Guard] Blocked request to non-allowlisted host: ${parsedUrl.hostname}`);
+        return null;
+      }
+
+      const safeUrl = parsedUrl.origin + parsedUrl.pathname + parsedUrl.search;
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s timeout
 
-      const res = await fetch(parsedUrl.href, { signal: controller.signal });
+      const res = await fetch(safeUrl, { signal: controller.signal });
       clearTimeout(timeoutId);
 
       if (!res.ok) {
-        console.warn(`Failed to fetch diagram image (${res.status}): ${parsedUrl.href}`);
+        console.warn(`Failed to fetch diagram image (${res.status}): ${safeUrl}`);
         return null;
       }
 

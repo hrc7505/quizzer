@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2, Timer, Maximize, Minimize } from "lucide-react";
+import { Loader2, Timer, Maximize, Minimize, Volume2, VolumeX, Flame, Zap } from "lucide-react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Progress } from "@/components/ui/Progress";
@@ -10,6 +10,9 @@ import { formatTime } from "@/lib/text";
 import { useQuizWizard } from "@/hooks/useQuizWizard";
 import { QuizLobby } from "@/components/data-display/QuizLobby";
 import { QuizQuestionCard } from "@/components/data-display/QuizQuestionCard";
+import { TelegramQuizCelebration } from "@/components/feedback/TelegramQuizCelebration";
+import { soundEffects } from "@/lib/services/sound-effects.service";
+import { cn } from "@/utils/cn";
 
 interface QuizWizardQuestion {
   id: string;
@@ -32,6 +35,13 @@ interface QuizWizardQuiz {
 export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
   const [state, actions] = useQuizWizard(quiz);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(soundEffects.isEnabled());
+
+  const toggleSound = () => {
+    const next = !soundEnabled;
+    soundEffects.setEnabled(next);
+    setSoundEnabled(next);
+  };
 
   const toggleFullscreen = async () => {
     try {
@@ -78,11 +88,54 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-2xl mx-auto py-4">
+    <div className="relative flex flex-col gap-6 max-w-2xl mx-auto py-4">
+      {/* Telegram-style Firecrackers & Streak Celebration Overlay */}
+      <TelegramQuizCelebration
+        burst={state.celebrationBurst}
+        milestone={state.streakMilestone}
+        onClearMilestone={actions.clearMilestone}
+      />
+
       {/* Quiz Top Header */}
       <div className="flex items-center justify-between border-b border-border/80 pb-4 select-none gap-3">
         <h1 className="text-lg font-bold text-foreground truncate pr-6">{quiz.title}</h1>
         <div className="flex items-center gap-2 shrink-0">
+          {/* Consecutive Correct Streak Badge */}
+          {state.streakCount >= 2 && (
+            <div
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold border transition-all animate-scale-in shadow-xs",
+                state.streakCount >= 5
+                  ? "bg-blue-500/10 text-blue-500 border-blue-500/30"
+                  : "bg-amber-500/10 text-amber-500 border-amber-500/30"
+              )}
+            >
+              {state.streakCount >= 5 ? (
+                <Zap className="h-3.5 w-3.5 fill-blue-500 animate-pulse" />
+              ) : (
+                <Flame className="h-3.5 w-3.5 fill-amber-500 animate-bounce" />
+              )}
+              <span>{state.streakCount} Streak</span>
+            </div>
+          )}
+
+          {/* Sound Toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 shrink-0 border border-border/80 bg-surface rounded-lg text-muted-foreground hover:text-foreground"
+            onClick={toggleSound}
+            aria-label={soundEnabled ? "Mute sound effects" : "Unmute sound effects"}
+            title={soundEnabled ? "Mute sound" : "Enable sound"}
+          >
+            {soundEnabled ? (
+              <Volume2 className="h-4 w-4 text-primary" />
+            ) : (
+              <VolumeX className="h-4 w-4 text-muted-foreground/60" />
+            )}
+          </Button>
+
+          {/* Timer */}
           <Badge
             variant="default"
             className="flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary border border-primary/20 rounded-full text-xs font-bold"
@@ -90,6 +143,8 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
             <Timer className="h-3.5 w-3.5" />
             <span>{formatTime(state.timeTaken)}</span>
           </Badge>
+
+          {/* Fullscreen Toggle */}
           <Button
             variant="ghost"
             size="icon"

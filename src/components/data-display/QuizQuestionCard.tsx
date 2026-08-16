@@ -23,7 +23,7 @@ interface QuizQuestionCardProps {
   };
   selectedOption: string | null;
   showHint: boolean;
-  onOptionClick: (option: string) => void;
+  onOptionClick: (option: string, origin?: { x: number; y: number }) => void;
   onToggleHint: () => void;
   onNext: () => void;
   isSubmitting: boolean;
@@ -135,7 +135,7 @@ function QuizQuestionCardInner({
             <button
               key={i}
               type="button"
-              onClick={() => onOptionClick(opt)}
+              onClick={(e) => onOptionClick(opt, { x: e.clientX, y: e.clientY })}
               disabled={!!selectedOption}
               className={cn(
                 "w-full text-left p-4 rounded-xl border text-xs leading-relaxed transition-all cursor-pointer select-none active:scale-[0.99] duration-100 outline-hidden font-medium",

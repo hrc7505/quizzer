@@ -11,6 +11,8 @@ import type { LeaderboardEntry } from "@/lib/services/attempt.service";
 interface QuizWizardQuestion {
   id: string;
   text: string;
+  imageUrl?: string | null;
+  invertInDark?: boolean;
   hint?: string | null;
   description?: string | null;
   options: string[];

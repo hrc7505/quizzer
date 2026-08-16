@@ -10,6 +10,8 @@ import { cn } from "@/utils/cn";
 export interface QuestionCardData {
   id: string;
   text: string;
+  imageUrl?: string | null;
+  invertInDark?: boolean;
   options: string[];
   correctAnswer: string;
   hint?: string | null;
@@ -130,6 +132,22 @@ export function QuestionCard({
           </div>
         )}
       </div>
+
+      {question.imageUrl && (
+        <div className="flex justify-start">
+          <div className="p-2.5 border border-border/70 rounded-xl bg-card/60 dark:bg-zinc-950/80 max-w-xs overflow-hidden flex items-center justify-center">
+            <img
+              src={question.imageUrl}
+              alt="Question diagram thumbnail"
+              className={cn(
+                "max-h-36 w-auto object-contain",
+                question.invertInDark !== false && "dark:invert"
+              )}
+              loading="lazy"
+            />
+          </div>
+        </div>
+      )}
 
       <OptionGrid question={question} optionVariant={optionVariant} />
 

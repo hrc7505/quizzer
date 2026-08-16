@@ -65,6 +65,20 @@ function DetailedQuestionAccordionInner({
 
       {isOpen && (
         <div className="p-4 sm:p-5 bg-secondary/10 border-t border-border/50 flex flex-col gap-4 text-xs">
+          {question.imageUrl && (
+            <div className="flex flex-col items-center justify-center p-3 rounded-xl border border-border/70 bg-card/60 dark:bg-zinc-950/80 overflow-hidden">
+              <img
+                src={question.imageUrl}
+                alt="Question diagram"
+                className={cn(
+                  "max-h-60 w-auto object-contain",
+                  question.invertInDark !== false && "dark:invert"
+                )}
+                loading="lazy"
+              />
+            </div>
+          )}
+
           <div className="flex flex-col gap-2 bg-success/10 border border-success/20 p-4 rounded-xl">
             <span className="font-bold text-[10px] uppercase tracking-wider text-success">
               ✓ Correct Answer

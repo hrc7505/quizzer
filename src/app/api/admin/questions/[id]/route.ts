@@ -12,7 +12,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   try {
     const { id } = await params;
     const body = await req.json();
-    const { text, options, correctAnswer, hint, description } = body;
+    const { text, imageUrl, invertInDark, options, correctAnswer, hint, description } = body;
 
     const existing = await prisma.question.findUnique({
       where: { id },
@@ -23,6 +23,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       where: { id },
       data: {
         text,
+        imageUrl: imageUrl !== undefined ? (imageUrl || null) : undefined,
+        invertInDark: typeof invertInDark === "boolean" ? invertInDark : undefined,
         options,
         correctAnswer,
         hint,

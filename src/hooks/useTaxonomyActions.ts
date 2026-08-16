@@ -21,6 +21,8 @@ interface TopicForm {
 interface QuestionForm {
   id: string;
   text: string;
+  imageUrl?: string;
+  invertInDark?: boolean;
   options: string[];
   correctAnswer: string;
   hint: string;
@@ -219,6 +221,8 @@ export function useTaxonomyActions(deps: TaxonomyActionsDeps) {
     const payload = {
       quizId: selectedQuizId,
       text: form.text,
+      imageUrl: form.imageUrl,
+      invertInDark: form.invertInDark,
       options: form.options,
       correctAnswer: form.correctAnswer,
       hint: form.hint,

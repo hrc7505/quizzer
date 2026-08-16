@@ -4,6 +4,8 @@
 export interface QuestionData {
   id: string;
   text: string;
+  imageUrl?: string | null;
+  invertInDark?: boolean;
   options: string[];
   correctAnswer: string;
   hint: string;

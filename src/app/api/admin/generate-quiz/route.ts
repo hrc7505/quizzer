@@ -217,6 +217,8 @@ async function generateQuestionsBatch(prompt: string): Promise<GeneratedQuestion
       model: GEMINI_MODEL,
       contents: safePrompt,
       config: {
+        systemInstruction:
+          "You are a precise multilingual exam question processor. When processing regional languages such as Gujarati (ગુજરાતી) or Hindi (હિન્દી), you MUST preserve verbatim terminology, exact conjuncts (જોડાક્ષરો), grammar, and spelling from the input text without translation, paraphrasing, or substitution of words.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.ARRAY,
@@ -270,11 +272,13 @@ export async function ensureQuizBatchTable(): Promise<void> {
         "totalBatches" INTEGER NOT NULL DEFAULT 1,
         "status" TEXT NOT NULL DEFAULT 'PENDING',
         "error" TEXT,
+        "padTo30" BOOLEAN NOT NULL DEFAULT false,
         "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
       CREATE INDEX IF NOT EXISTS "QuizBatch_topicId_idx" ON "QuizBatch"("topicId");
       CREATE INDEX IF NOT EXISTS "QuizBatch_status_idx" ON "QuizBatch"("status");
+      ALTER TABLE "QuizBatch" ADD COLUMN IF NOT EXISTS "padTo30" BOOLEAN NOT NULL DEFAULT false;
     `);
   } catch (err) {
     console.warn("ensureQuizBatchTable warning:", err);
@@ -302,6 +306,8 @@ export async function processBatchById(batchId: string): Promise<{ success: bool
 
     for (let j = 0; j < rawQuestions.length; j += 30) {
       const subBatch = rawQuestions.slice(j, j + 30);
+      const isPaddingAllowed = batch.padTo30;
+
       const prompt = `You are an expert quiz parser.
 The user provided ${subBatch.length} multiple-choice question(s) below.
 Your task is to parse and extract EVERY SINGLE question into the structured JSON array. Do not omit, skip, or drop any question.
@@ -312,6 +318,12 @@ Formatting rules:
 3. Extract the 4 options and trim any leading option letters like "(a)", "(b)", "A.", "B)" so only the clean option text remains.
 4. Identify and set the correct answer (matching one of the 4 cleaned option strings exactly).
 5. Provide a helpful hint and a detailed technical explanation for why the answer is correct.
+6. CRITICAL VERBATIM ACCURACY: Do NOT rephrase, modernize, translate, or substitute any words in Gujarati/Indic regional text. Keep all authentic terminology, conjuncts (જોડાક્ષર), questions, and options EXACTLY verbatim as provided in the source text.
+${
+  isPaddingAllowed
+    ? `7. PADDING ALLOWED: If fewer than 30 questions are provided, you may generate complementary questions on "${batch.title}" to reach 30 questions.`
+    : `7. STRICT QUESTION COUNT: Return EXACTLY the ${subBatch.length} question(s) provided in the source text. DO NOT generate, fabricate, or add ANY new questions to pad the count. Return exactly ${subBatch.length} items in the JSON array.`
+}
 
 Difficulty level: ${batch.difficulty}.
 
@@ -320,7 +332,8 @@ ${subBatch.join("\n\n")}`;
 
       try {
         const batchRes = await generateQuestionsBatch(sanitizeImageText(prompt));
-        parsedQuestions.push(...batchRes);
+        const filteredRes = isPaddingAllowed ? batchRes : batchRes.slice(0, subBatch.length);
+        parsedQuestions.push(...filteredRes);
       } catch (err) {
         console.warn(`Batch AI generation failure for batch ${batch.id}:`, err);
         batchFailed = true;
@@ -427,6 +440,7 @@ export async function POST(req: Request) {
     const existingTopicId = stripNullBytes(formData.get("existingTopicId") as string || "");
     const targetQuizId = stripNullBytes(formData.get("targetQuizId") as string || "");
     const difficulty = stripNullBytes(formData.get("difficulty") as string || "Medium");
+    const padTo30 = formData.get("padTo30") === "true";
 
     if (!mode || (!topicTitle && !existingTopicId && !targetQuizId) || !difficulty) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -556,6 +570,7 @@ Provide a hint and a detailed description/explanation for the answer.${existingQ
                 batchIndex: idx + 1,
                 totalBatches,
                 status: "PENDING",
+                padTo30,
               },
             })
           )

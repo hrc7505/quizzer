@@ -18,6 +18,7 @@ import { EditQuizBody, QuizDrawerBody } from "@/components/data-display/QuizMana
 import { QuestionEditorBody } from "@/components/data-display/QuestionEditorBody";
 import { DeleteConfirmDialogBody } from "@/components/feedback/DeleteConfirmDialogBody";
 import { MergeQuizzesDialogBody } from "@/components/data-display/MergeQuizzesDialogBody";
+import { DuplicateQuestionsDialogBody } from "@/components/data-display/DuplicateQuestionsDialogBody";
 import { downloadCSV } from "@/lib/csv-export";
 import { Pagination } from "@/components/data-display/Pagination";
 import { SearchFilterBar } from "@/components/data-display/SearchFilterBar";
@@ -530,6 +531,21 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
     });
   };
 
+  // Open Find Duplicates Dialog
+  const handleOpenDuplicatesDialog = (quiz: Quiz) => {
+    dialog.open({
+      title: `Find Duplicates — ${quiz.title}`,
+      body: (
+        <DuplicateQuestionsDialogBody
+          quizId={quiz.id}
+          quizTitle={quiz.title}
+          onClose={() => dialog.close()}
+          onSuccess={fetchQuizzes}
+        />
+      ),
+    });
+  };
+
   // Open Merge Multiple Quizzes Dialog
   const handleOpenMergeDialog = () => {
     const selectedList = quizzes.filter(q => selectedQuizIds.includes(q.id));
@@ -745,6 +761,7 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
                     onOpenEditDialog={openEditDialog}
                     onDeleteQuiz={handleDeleteQuiz}
                     onAppendQuestions={handleOpenAppendDialog}
+                    onFindDuplicates={handleOpenDuplicatesDialog}
                   />
                 ))}
               </tbody>

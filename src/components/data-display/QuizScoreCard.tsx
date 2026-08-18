@@ -21,19 +21,32 @@ function QuizScoreCardInner({
   wrongCount,
   timeTakenSec,
 }: QuizScoreCardProps) {
+  const rounded = Math.round(scorePercentage);
   const scoreIndicatorClass =
-    scorePercentage >= 80
-      ? "bg-success"
-      : scorePercentage >= 50
-        ? "bg-warning"
-        : "bg-danger";
+    rounded === 100
+      ? "bg-amber-400"
+      : rounded >= 90
+        ? "bg-purple-500"
+        : rounded >= 75
+          ? "bg-emerald-500"
+          : rounded >= 50
+            ? "bg-blue-500"
+            : rounded >= 25
+              ? "bg-amber-500"
+              : "bg-red-500";
 
   const scoreTextClass =
-    scorePercentage >= 80
-      ? "text-success"
-      : scorePercentage >= 50
-        ? "text-warning"
-        : "text-danger";
+    rounded === 100
+      ? "text-amber-400 font-black drop-shadow-xs"
+      : rounded >= 90
+        ? "text-purple-500 font-extrabold"
+        : rounded >= 75
+          ? "text-emerald-500 font-bold"
+          : rounded >= 50
+            ? "text-blue-500 font-bold"
+            : rounded >= 25
+              ? "text-amber-500 font-bold"
+              : "text-red-500 font-bold";
 
   return (
     <Card className="p-6 border-border/80 shadow-xs flex flex-col gap-5">

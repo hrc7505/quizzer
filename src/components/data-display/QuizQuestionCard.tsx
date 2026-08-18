@@ -152,9 +152,9 @@ function QuizQuestionCardInner({
 
       {/* Explanation Box post answering */}
       {selectedOption && question.description && (
-        <div className="rounded-2xl border border-primary/20 bg-primary/5 dark:bg-primary/10 p-4 sm:p-5 flex flex-col gap-3.5 shadow-xs">
-          <div className="flex items-center gap-2 text-primary font-bold text-xs sm:text-sm tracking-tight">
-            <Sparkles className="h-4 w-4" />
+        <div className="rounded-xl border border-primary/20 bg-primary/5 dark:bg-primary/10 p-3 sm:p-3.5 flex flex-col gap-2 shadow-2xs">
+          <div className="flex items-center gap-1.5 text-primary font-bold text-xs">
+            <Sparkles className="h-3.5 w-3.5" />
             <span>Answer Explanation</span>
           </div>
           <MarkdownContent content={question.description} />

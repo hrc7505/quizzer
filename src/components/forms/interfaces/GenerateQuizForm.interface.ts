@@ -40,4 +40,6 @@ export interface GenerateQuizPayload {
   difficulty: string;
   topicText?: string;
   file?: File | null;
+  /** Whether AI should auto-pad incomplete quizzes with extra generated questions to reach 30 (default: false) */
+  padTo30?: boolean;
 }

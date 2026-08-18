@@ -273,6 +273,105 @@ class SoundEffectsService {
     osc.start(now);
     osc.stop(now + 0.1);
   }
+
+  /**
+   * Play dynamic sound effect according to quiz completion score percentage tier
+   */
+  public playScoreResultSound(scorePercentage: number): void {
+    if (!this.soundEnabled) return;
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    const score = Math.round(scorePercentage);
+
+    if (score < 25) {
+      // Danger / Thunder warning tone (deep dramatic drop)
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(160, now);
+      osc.frequency.exponentialRampToValueAtTime(55, now + 0.4);
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(300, now);
+
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.linearRampToValueAtTime(0.09, now + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.5);
+    } else if (score < 50) {
+      // Gentle encouragement (F4 -> A4)
+      [349.23, 440.0].forEach((freq, idx) => {
+        const startTime = now + idx * 0.1;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, startTime);
+        gain.gain.setValueAtTime(0.0001, startTime);
+        gain.gain.linearRampToValueAtTime(0.07, startTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.25);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(startTime);
+        osc.stop(startTime + 0.25);
+      });
+    } else if (score < 75) {
+      // Moderate / Good effort rising triad (C5, E5, G5)
+      [523.25, 659.25, 783.99].forEach((freq, idx) => {
+        const startTime = now + idx * 0.08;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, startTime);
+        gain.gain.setValueAtTime(0.0001, startTime);
+        gain.gain.linearRampToValueAtTime(0.08, startTime + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.3);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(startTime);
+        osc.stop(startTime + 0.3);
+      });
+    } else if (score < 90) {
+      // 75%+ Great appreciation fanfare
+      this.playStreakCelebrationSound(5);
+    } else if (score < 100) {
+      // 90%+ Superb mastery celebration
+      this.playStreakCelebrationSound(10);
+    } else {
+      // 100% PERFECT SCORE - Legendary Victory Fanfare
+      const victoryNotes = [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98, 2093.0];
+      victoryNotes.forEach((freq, idx) => {
+        const startTime = now + idx * 0.055;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(freq, startTime);
+        gain.gain.setValueAtTime(0.0001, startTime);
+        gain.gain.linearRampToValueAtTime(0.09, startTime + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.4);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(startTime);
+        osc.stop(startTime + 0.4);
+      });
+
+      // Cascading celebratory sparkle bursts
+      const clusterStart = now + victoryNotes.length * 0.055;
+      for (let i = 0; i < 10; i++) {
+        const popDelay = clusterStart + i * 0.03 + Math.random() * 0.02;
+        const pitch = 2400 + Math.random() * 1500;
+        this.triggerMicroPop(ctx, popDelay, pitch, 0.07);
+      }
+    }
+  }
 }
 
 export const soundEffects = new SoundEffectsService();

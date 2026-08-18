@@ -78,28 +78,28 @@ function DetailedQuestionAccordionInner({
             </div>
           )}
 
-          <div className="flex flex-col gap-2 bg-success/10 border border-success/20 p-4 rounded-xl">
+          <div className="flex flex-col gap-1.5 bg-success/10 border border-success/20 p-3 rounded-xl">
             <span className="font-bold text-[10px] uppercase tracking-wider text-success">
               ✓ Correct Answer
             </span>
-            <span className="text-foreground font-semibold text-sm leading-relaxed">{question.correctAnswer}</span>
+            <span className="text-foreground font-semibold text-xs sm:text-sm leading-relaxed">{question.correctAnswer}</span>
           </div>
 
           {!isCorrect && answer && (
-            <div className="flex flex-col gap-2 bg-danger/10 border border-danger/20 p-4 rounded-xl">
+            <div className="flex flex-col gap-1.5 bg-danger/10 border border-danger/20 p-3 rounded-xl">
               <span className="font-bold text-[10px] uppercase tracking-wider text-danger">
                 ✗ Your Answer
               </span>
-              <span className="text-foreground font-semibold text-sm leading-relaxed">{answer.selectedAnswer}</span>
+              <span className="text-foreground font-semibold text-xs sm:text-sm leading-relaxed">{answer.selectedAnswer}</span>
             </div>
           )}
 
           {question.description && (
-            <div className="flex flex-col gap-2 bg-card border border-border/60 p-4 rounded-xl">
+            <div className="flex flex-col gap-1.5 bg-card/80 border border-border/60 p-3 rounded-xl">
               <span className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground">
                 Explanation
               </span>
-              <MarkdownContent content={question.description} className="text-sm" />
+              <MarkdownContent content={question.description} className="text-xs sm:text-sm" />
             </div>
           )}
 

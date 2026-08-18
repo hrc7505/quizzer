@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, ArrowLeft, Sparkles } from "lucide-react";
+import { Plus, ArrowLeft, Sparkles, Layers, Wand2, Loader2 } from "lucide-react";
 
 import { difficultyColor } from "@/lib/format";
 import NoData from "@/components/feedback/NoData";
@@ -15,6 +15,8 @@ import { PageHeader } from "@/components/data-display/PageHeader";
 import { QuestionCard } from "@/components/data-display/QuestionCard";
 import { QuestionDialogBody, type QuestionForm } from "@/components/data-display/TaxonomyDialogBodies";
 import { GenerateQuizForm } from "@/components/forms/GenerateQuizForm";
+import { DuplicateQuestionsDialogBody } from "@/components/data-display/DuplicateQuestionsDialogBody";
+import { soundEffects } from "@/lib/services/sound-effects.service";
 
 interface Question {
   id: string;
@@ -44,13 +46,14 @@ interface AdminQuizQuestionsManagerProps {
 /**
  * AdminQuizQuestionsManager — dedicated page component to manage questions for a single quiz.
  * Displays questions in cards with inline option lists and edit/delete controls.
- * Supports manual question creation and AI-powered question appending.
+ * Supports manual question creation, duplicate detection & cleanup, and AI language proofreading.
  */
 export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuestionsManagerProps) {
   const router = useRouter();
   const toast = useToast();
   const [quiz, setQuiz] = useState<QuizDetail>(initialQuiz);
   const [loading, setLoading] = useState(false);
+  const [proofreadingAll, setProofreadingAll] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Dialog & confirm states
@@ -200,6 +203,59 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
     );
   };
 
+  const handleOpenDuplicates = () => {
+    dialog.open({
+      title: `Find Duplicates — ${quiz.title}`,
+      body: (
+        <DuplicateQuestionsDialogBody
+          quizId={quiz.id}
+          quizTitle={quiz.title}
+          onClose={() => dialog.close()}
+          onSuccess={refreshQuiz}
+        />
+      ),
+    });
+  };
+
+  const handleAiProofreadQuiz = () => {
+    if (quiz.questions.length === 0) {
+      toast.addToast({ type: "warning", message: "This quiz has no questions to proofread." });
+      return;
+    }
+
+    dialog.confirm({
+      title: "AI Proofread & Fix Gujarati Language",
+      description: `AI will proofread all ${quiz.questions.length} questions in "${quiz.title}", repairing broken Gujarati conjuncts (જોડાક્ષરો) and typos while strictly preserving authentic exam terminology.`,
+      okText: "Start Proofreading",
+      onConfirm: async () => {
+        setProofreadingAll(true);
+        try {
+          const res = await fetch("/api/admin/questions/fix-language", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ quizId: quiz.id }),
+          });
+          const data = await res.json();
+          if (data.error) {
+            toast.addToast({ type: "error", message: data.error });
+          } else {
+            soundEffects.playCorrectSound();
+            toast.addToast({
+              type: "success",
+              message: data.message || `Successfully proofread ${data.updatedCount} questions.`,
+            });
+            await refreshQuiz();
+          }
+        } catch (err) {
+          console.error(err);
+          toast.addToast({ type: "error", message: "Failed to proofread quiz questions." });
+        } finally {
+          setProofreadingAll(false);
+        }
+      },
+    });
+  };
+
   return (
     <div className="flex flex-col gap-6 py-4 w-full">
       {error && (
@@ -238,10 +294,33 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
         }
         description="Compose, modify, or remove questions linked to this quiz."
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Button
               variant="outline"
-              className="h-9 px-4 font-semibold text-xs gap-1.5 shadow-xs"
+              className="h-9 px-3 sm:px-4 font-semibold text-xs gap-1.5 shadow-xs text-muted-foreground hover:text-foreground"
+              onClick={handleOpenDuplicates}
+              title="Scan and remove duplicate questions"
+            >
+              <Layers className="h-3.5 w-3.5 text-amber-500" />
+              <span>Find Duplicates</span>
+            </Button>
+            <Button
+              variant="outline"
+              disabled={proofreadingAll || quiz.questions.length === 0}
+              className="h-9 px-3 sm:px-4 font-semibold text-xs gap-1.5 shadow-xs text-primary border-primary/30 hover:bg-primary/5"
+              onClick={handleAiProofreadQuiz}
+              title="Fix Gujarati conjuncts and typos in all questions"
+            >
+              {proofreadingAll ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Wand2 className="h-3.5 w-3.5 text-primary" />
+              )}
+              <span>{proofreadingAll ? "Proofreading…" : "AI Proofread Gujarati"}</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-9 px-3 sm:px-4 font-semibold text-xs gap-1.5 shadow-xs"
               onClick={handleOpenAiAppend}
             >
               <Sparkles className="h-3.5 w-3.5 text-primary" />
@@ -249,7 +328,7 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
             </Button>
             <Button
               variant="primary"
-              className="h-9 px-4 font-semibold text-xs gap-1.5 shadow-xs"
+              className="h-9 px-3 sm:px-4 font-semibold text-xs gap-1.5 shadow-xs"
               onClick={handleOpenAdd}
             >
               <Plus className="h-3.5 w-3.5" />

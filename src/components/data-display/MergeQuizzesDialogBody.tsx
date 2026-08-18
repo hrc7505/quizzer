@@ -53,10 +53,10 @@ export function MergeQuizzesDialogBody({
   return (
     <div className="flex flex-col gap-5 text-xs text-foreground/90 px-1.5 py-1">
       {/* Overview Banner */}
-      <div className="flex items-center gap-3 p-4 rounded-xl bg-primary/10 border border-primary/20 text-primary">
+      <div className="flex items-center gap-3 p-3.5 sm:p-4 rounded-xl bg-primary/10 border border-primary/20 text-primary">
         <GitMerge className="h-5 w-5 shrink-0" />
-        <div className="flex flex-col gap-0.5">
-          <span className="font-bold text-xs text-foreground">
+        <div className="flex flex-col gap-0.5 min-w-0">
+          <span className="font-bold text-xs text-foreground truncate">
             Merging {selectedQuizzes.length} Quizzes into 1
           </span>
           <span className="text-[11px] text-muted-foreground">
@@ -74,7 +74,7 @@ export function MergeQuizzesDialogBody({
           All questions and attempt history from the other quizzes will be transferred into this quiz.
         </p>
 
-        <div className="flex flex-col gap-2 mt-1">
+        <div className="flex flex-col gap-2 mt-1 max-h-60 overflow-y-auto pr-0.5">
           {selectedQuizzes.map((quiz) => {
             const isSelected = quiz.id === form.targetQuizId;
             return (
@@ -83,13 +83,13 @@ export function MergeQuizzesDialogBody({
                 type="button"
                 onClick={() => handleSelectTarget(quiz.id)}
                 className={cn(
-                  "w-full text-left flex items-center justify-between gap-3 p-3.5 rounded-xl border transition-all cursor-pointer select-none",
+                  "w-full text-left flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 p-3 sm:p-3.5 rounded-xl border transition-all cursor-pointer select-none",
                   isSelected
                     ? "bg-primary/5 border-primary shadow-xs"
                     : "bg-card border-border/70 hover:border-border hover:bg-secondary/20"
                 )}
               >
-                <div className="flex items-center gap-3 min-w-0">
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
                   <div
                     className={cn(
                       "h-4 w-4 rounded-full border flex items-center justify-center shrink-0 transition-colors",
@@ -100,17 +100,17 @@ export function MergeQuizzesDialogBody({
                   >
                     {isSelected && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
                   </div>
-                  <div className="flex flex-col min-w-0">
-                    <span className="font-semibold text-xs text-foreground truncate">
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="font-semibold text-xs text-foreground truncate block">
                       {quiz.title}
                     </span>
-                    <span className="text-[10.5px] text-muted-foreground">
+                    <span className="text-[10.5px] text-muted-foreground truncate block">
                       #{quiz.quizOrder} · {quiz._count?.questions || 0} questions · {quiz._count?.attempts || 0} attempts
                     </span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1.5 shrink-0 pl-6 sm:pl-0">
                   <Badge variant={difficultyColor(quiz.difficulty)} className="text-[9px] px-1.5 py-0">
                     {quiz.difficulty}
                   </Badge>
@@ -149,13 +149,13 @@ export function MergeQuizzesDialogBody({
       </div>
 
       {/* Dialog Action Buttons */}
-      <div className="flex items-center justify-end space-x-2 pt-3 border-t border-border/40 mt-1">
+      <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-3 border-t border-border/40 mt-1">
         <Button
           type="button"
           variant="outline"
           onClick={() => dialog.close()}
           disabled={isSubmitting || loading}
-          className="h-9 px-4 text-xs font-semibold"
+          className="w-full sm:w-auto h-9 px-4 text-xs font-semibold"
         >
           Cancel
         </Button>
@@ -164,16 +164,16 @@ export function MergeQuizzesDialogBody({
           variant="primary"
           onClick={handleExecute}
           disabled={!form.targetTitle.trim() || isSubmitting || loading}
-          className="h-9 px-4 text-xs font-semibold gap-1.5"
+          className="w-full sm:w-auto h-9 px-4 text-xs font-semibold gap-1.5 whitespace-nowrap"
         >
           {isSubmitting || loading ? (
             <>
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
               <span>Merging Quizzes...</span>
             </>
           ) : (
             <>
-              <GitMerge className="h-3.5 w-3.5" />
+              <GitMerge className="h-3.5 w-3.5 shrink-0" />
               <span>Confirm &amp; Merge Quizzes</span>
             </>
           )}

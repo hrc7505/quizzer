@@ -76,7 +76,7 @@ function extractQuestionBlocks(rawText: string): string[] {
 
   let hasSeenOptions = false;
 
-  function isLineQuestionStart(line: string): boolean {
+  function isLineQuestionStart(line: string, isBlockEmpty: boolean): boolean {
     const trimmed = line.trim();
     if (!trimmed) return false;
 
@@ -89,6 +89,11 @@ function extractQuestionBlocks(rawText: string): string[] {
     const cleaned = trimmed.replace(/^[\*\_\#\s]+/, "");
     if (/^\[?\d+[\.\)\:\-\]]\s+/.test(cleaned)) {
       if (hasSeenOptions && optionPattern.test(cleaned)) {
+        return false;
+      }
+      // If we already have content in currentBlock and have NOT seen options yet,
+      // this numbered line is a sub-statement (e.g. 1., 2., 3. inside the question)
+      if (!isBlockEmpty && !hasSeenOptions) {
         return false;
       }
       return true;
@@ -108,13 +113,13 @@ function extractQuestionBlocks(rawText: string): string[] {
 
     const isOption = optionPattern.test(trimmed);
     const isAnswer = answerPattern.test(trimmed);
-    const isQuestion = isLineQuestionStart(trimmed);
+    const isQuestion = isLineQuestionStart(trimmed, currentBlock.length === 0);
 
     // An unnumbered question starts when the previous block already had options/answers,
     // and the current line is a new question statement (i.e. not an option and not an answer)
     const isNewUnnumbered = hasSeenOptions && !isOption && !isAnswer;
 
-    if ((isQuestion || isNewUnnumbered) && currentBlock.length > 0) {
+    if ((isQuestion || isNewUnnumbered) && currentBlock.length > 0 && (hasSeenOptions || isNewUnnumbered)) {
       const blockText = currentBlock.join("\n").trim();
       if (blockText) blocks.push(blockText);
       currentBlock = [line];
@@ -302,10 +307,11 @@ The user provided ${subBatch.length} multiple-choice question(s) below.
 Your task is to parse and extract EVERY SINGLE question into the structured JSON array. Do not omit, skip, or drop any question.
 
 Formatting rules:
-1. Clean the question text by removing any leading question numbers (e.g. "49. ").
-2. Extract the 4 options and trim any leading option letters like "(a)", "(b)", "A.", "B)" so only the clean option text remains.
-3. Identify and set the correct answer (matching one of the 4 cleaned option strings exactly).
-4. Provide a helpful hint and a detailed technical explanation for why the answer is correct.
+1. Clean the question text by removing any leading overall question numbers (e.g. "49. ").
+2. For multi-statement questions (e.g. questions containing statements 1., 2., 3. or (i), (ii), (iii) or Assertion-Reason / કથન-કારણ), ALWAYS format the question text with newlines (\\n) separating the premise and each numbered statement. NEVER merge statements into a single paragraph.
+3. Extract the 4 options and trim any leading option letters like "(a)", "(b)", "A.", "B)" so only the clean option text remains.
+4. Identify and set the correct answer (matching one of the 4 cleaned option strings exactly).
+5. Provide a helpful hint and a detailed technical explanation for why the answer is correct.
 
 Difficulty level: ${batch.difficulty}.
 

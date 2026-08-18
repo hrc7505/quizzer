@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/utils/cn";
 import { sanitizeImageUrl } from "@/lib/format";
 import { MarkdownContent } from "@/components/data-display/MarkdownContent";
+import { QuestionText } from "@/components/data-display/QuestionText";
 import { ShimmerImage } from "@/components/ui/ShimmerImage";
 
 import type { QuestionData, UserAnswerData } from "@/components/data-display/interfaces/QuizResults.interface";
@@ -37,10 +38,7 @@ function DetailedQuestionAccordionInner({
   const safeImageUrl = sanitizeImageUrl(question.imageUrl);
 
   return (
-    <div className={cn(
-      "border rounded-xl overflow-hidden bg-card transition-all duration-200",
-      isCorrect ? "border-success/30" : "border-danger/30"
-    )}>
+    <div className="border border-border/80 rounded-xl overflow-hidden bg-card shadow-2xs transition-colors">
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -53,14 +51,9 @@ function DetailedQuestionAccordionInner({
           >
             {index + 1}
           </Badge>
-          <span
-            className={cn(
-              "text-sm font-semibold text-foreground leading-relaxed break-words",
-              !isCorrect && "text-danger/90"
-            )}
-          >
-            {question.text}
-          </span>
+          <div className={cn("flex-1 min-w-0", !isCorrect && "text-danger/90")}>
+            <QuestionText text={question.text} isCompact size="sm" />
+          </div>
         </div>
         <div className="shrink-0 text-muted-foreground/60">
           {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -69,6 +62,9 @@ function DetailedQuestionAccordionInner({
 
       {isOpen && (
         <div className="p-4 sm:p-5 bg-secondary/10 border-t border-border/50 flex flex-col gap-4 text-xs">
+          <div className="pb-2 border-b border-border/40">
+            <QuestionText text={question.text} size="base" />
+          </div>
           {safeImageUrl && (
             <div className="flex flex-col items-center justify-center p-3 rounded-xl border border-border/70 bg-card/60 dark:bg-zinc-950/80 overflow-hidden">
               <ShimmerImage

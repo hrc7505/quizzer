@@ -214,6 +214,65 @@ class SoundEffectsService {
     osc.start(now);
     osc.stop(now + 0.15);
   }
+
+  /**
+   * Play crisp, satisfying modern UI pop/chime when floating action bar appears or item selected
+   */
+  public playPopSound(): void {
+    if (!this.soundEnabled) return;
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+
+    // Harmonic double-bubble chime (F5 -> C6 ~ 698Hz -> 1046Hz)
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(698.46, now);
+    osc.frequency.exponentialRampToValueAtTime(1046.5, now + 0.08);
+
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(0.08, now + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.12);
+
+    // Subtle crisp micro-click at start for tactile haptic feedback feel
+    this.triggerMicroPop(ctx, now, 3200, 0.04);
+  }
+
+  /**
+   * Play soft swoosh/dismiss sound when action bar is cleared
+   */
+  public playClearSound(): void {
+    if (!this.soundEnabled) return;
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(520, now);
+    osc.frequency.exponentialRampToValueAtTime(260, now + 0.09);
+
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(0.05, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.1);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.1);
+  }
 }
 
 export const soundEffects = new SoundEffectsService();

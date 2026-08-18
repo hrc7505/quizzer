@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/utils/cn";
 import { sanitizeImageUrl } from "@/lib/format";
 import { MarkdownContent } from "@/components/data-display/MarkdownContent";
+import { QuestionText } from "@/components/data-display/QuestionText";
 import { ShimmerImage } from "@/components/ui/ShimmerImage";
 
 interface QuizQuestionCardProps {
@@ -47,7 +48,7 @@ function QuizQuestionCardInner({
   return (
     <Card className="p-6 sm:p-8 flex flex-col gap-6 border border-border/80 bg-card shadow-sm rounded-2xl">
       <div>
-        <h2 className="text-base font-semibold text-foreground leading-snug">{question.text}</h2>
+        <QuestionText text={question.text} size="base" />
       </div>
 
       {/* Question Diagram / Schematic Image */}

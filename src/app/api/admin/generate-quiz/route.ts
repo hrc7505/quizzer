@@ -9,7 +9,7 @@ import { authOptions, SessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ai, GEMINI_MODEL, describeAiError } from "@/lib/gemini";
 import { INTERNAL_TOPIC_TITLE } from "@/lib/constants";
-import { sanitizeImageText } from "@/lib/format";
+import { sanitizeImageText, stripNullBytes, sanitizeNullBytes, sanitizeQuestionText } from "@/lib/format";
 
 import fs from "fs";
 import path from "path";
@@ -55,7 +55,7 @@ function extractJson(text: string): unknown {
  * Handles numbered (e.g. "1.", "45)", "Q1:"), unnumbered questions, markdown, and inline options.
  */
 function extractQuestionBlocks(rawText: string): string[] {
-  const text = rawText.replace(/\r\n/g, "\n").trim();
+  const text = stripNullBytes(rawText).replace(/\r\n/g, "\n").trim();
   if (!text) return [];
 
   // 1. If text is formatted with double newlines separating question blocks
@@ -139,7 +139,7 @@ function chunkText(text: string, maxLength: number): string[] {
   const chunks: string[] = [];
   let currentChunk = "";
 
-  const sentences = text.split(/(?<=[.?!])\s+/);
+  const sentences = stripNullBytes(text).split(/(?<=[.?!])\s+/);
 
   for (const sentence of sentences) {
     if ((currentChunk.length + sentence.length) > maxLength && currentChunk.length > 0) {
@@ -157,7 +157,7 @@ function chunkText(text: string, maxLength: number): string[] {
 }
 
 function sanitizePdfText(text: string): string {
-  return text
+  return stripNullBytes(text)
     .split("\n")
     .map(line => sanitizeImageText(line))
     .filter(line => line.trim() !== "")
@@ -182,7 +182,7 @@ async function parsePdfBuffer(buffer: Buffer): Promise<string> {
       pdfParser.on("pdfParser_dataReady", () => {
         try {
           const text = pdfParser.getRawTextContent();
-          resolve(text || "");
+          resolve(stripNullBytes(text || ""));
         } catch (err) {
           reject(err);
         }
@@ -201,7 +201,7 @@ async function generateQuestionsBatch(prompt: string): Promise<GeneratedQuestion
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
 
-  const safePrompt = sanitizeImageText(prompt);
+  const safePrompt = sanitizeImageText(stripNullBytes(prompt));
 
   if (!ai) {
     throw new Error("AI service is not configured.");
@@ -239,7 +239,9 @@ async function generateQuestionsBatch(prompt: string): Promise<GeneratedQuestion
       throw new Error("Failed to generate content");
     }
 
-    return extractJson(resultText) as GeneratedQuestion[];
+    const rawJson = extractJson(resultText);
+    const sanitized = sanitizeNullBytes(rawJson) as GeneratedQuestion[];
+    return Array.isArray(sanitized) ? sanitized : [];
   } catch (err) {
     if (controller.signal.aborted) {
       throw new Error("AI content generation timed out. Try again with smaller input or a longer timeout.");
@@ -326,7 +328,7 @@ ${subBatch.join("\n\n")}`;
         where: { id: batchId },
         data: {
           status: "FAILED",
-          error: batchErrorMessage || "No valid questions could be extracted.",
+          error: stripNullBytes(batchErrorMessage || "No valid questions could be extracted."),
         },
       });
       return { success: false, error: batchErrorMessage || "No questions generated" };
@@ -353,9 +355,9 @@ ${subBatch.join("\n\n")}`;
       : 0;
     const quizOrder = existingQuizzesCount + 1;
 
-    const quizTitle = batch.totalBatches > 1
+    const quizTitle = stripNullBytes(batch.totalBatches > 1
       ? `${batch.title} - Part ${batch.batchIndex}`
-      : batch.title;
+      : batch.title);
 
     await prisma.$transaction(
       async (tx: Prisma.TransactionClient) => {
@@ -363,7 +365,7 @@ ${subBatch.join("\n\n")}`;
           data: {
             ...(batch.topicId ? { topics: { connect: { id: batch.topicId } } } : {}),
             title: quizTitle,
-            difficulty: batch.difficulty,
+            difficulty: stripNullBytes(batch.difficulty) || "Medium",
             quizOrder,
           },
         });
@@ -372,11 +374,11 @@ ${subBatch.join("\n\n")}`;
           data: parsedQuestions.map((q) => ({
             topicId: questionTopicId,
             quizId: quiz.id,
-            text: q.text,
-            options: q.options,
-            correctAnswer: q.correctAnswer,
-            hint: q.hint,
-            description: q.description,
+            text: sanitizeQuestionText(q.text),
+            options: (q.options || []).map((opt) => stripNullBytes(opt)),
+            correctAnswer: stripNullBytes(q.correctAnswer),
+            hint: stripNullBytes(q.hint || ""),
+            description: stripNullBytes(q.description || ""),
           })),
         });
 
@@ -415,10 +417,10 @@ export async function POST(req: Request) {
 
     const formData = await req.formData();
     const mode = formData.get("mode") as string;
-    let topicTitle = formData.get("topicTitle") as string;
-    const existingTopicId = formData.get("existingTopicId") as string;
-    const targetQuizId = formData.get("targetQuizId") as string;
-    const difficulty = formData.get("difficulty") as string;
+    let topicTitle = stripNullBytes(formData.get("topicTitle") as string || "");
+    const existingTopicId = stripNullBytes(formData.get("existingTopicId") as string || "");
+    const targetQuizId = stripNullBytes(formData.get("targetQuizId") as string || "");
+    const difficulty = stripNullBytes(formData.get("difficulty") as string || "Medium");
 
     if (!mode || (!topicTitle && !existingTopicId && !targetQuizId) || !difficulty) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -499,7 +501,7 @@ Provide a hint and a detailed description/explanation for the answer.${existingQ
       let fullText = "";
 
       if (mode === "text") {
-        fullText = formData.get("topicText") as string;
+        fullText = stripNullBytes(formData.get("topicText") as string || "");
         if (!fullText) return NextResponse.json({ error: "Missing topicText" }, { status: 400 });
       } else {
         const file = formData.get("file") as File;
@@ -542,9 +544,9 @@ Provide a hint and a detailed description/explanation for the answer.${existingQ
             prisma.quizBatch.create({
               data: {
                 topicId: existingTopicId || null,
-                title: topicTitle,
-                difficulty,
-                rawText: bunch.join("\n\n"),
+                title: stripNullBytes(topicTitle),
+                difficulty: stripNullBytes(difficulty) || "Medium",
+                rawText: stripNullBytes(bunch.join("\n\n")),
                 batchIndex: idx + 1,
                 totalBatches,
                 status: "PENDING",
@@ -617,11 +619,11 @@ ${chunk}`;
           data: allGeneratedQuestions.map((q) => ({
             topicId: questionTopicId,
             quizId: targetQuiz.id,
-            text: q.text,
-            options: q.options,
-            correctAnswer: q.correctAnswer,
-            hint: q.hint,
-            description: q.description,
+            text: sanitizeQuestionText(q.text),
+            options: (q.options || []).map((opt) => stripNullBytes(opt)),
+            correctAnswer: stripNullBytes(q.correctAnswer),
+            hint: stripNullBytes(q.hint || ""),
+            description: stripNullBytes(q.description || ""),
           })),
         });
       } catch (saveErr) {
@@ -662,8 +664,8 @@ ${chunk}`;
           const quiz = await tx.quiz.create({
             data: {
               ...(existingTopicId ? { topics: { connect: { id: existingTopicId } } } : {}),
-              title: (existingQuizzesCount > 0 || numQuizzes > 1) ? `${topicTitle} - Part ${currentQuizIndex}` : topicTitle,
-              difficulty,
+              title: stripNullBytes((existingQuizzesCount > 0 || numQuizzes > 1) ? `${topicTitle} - Part ${currentQuizIndex}` : topicTitle),
+              difficulty: stripNullBytes(difficulty) || "Medium",
               quizOrder: currentQuizIndex,
             }
           });
@@ -672,11 +674,11 @@ ${chunk}`;
             data: chunk.map((q) => ({
               topicId: questionTopicId,
               quizId: quiz.id,
-              text: q.text,
-              options: q.options,
-              correctAnswer: q.correctAnswer,
-              hint: q.hint,
-              description: q.description,
+              text: sanitizeQuestionText(q.text),
+              options: (q.options || []).map((opt) => stripNullBytes(opt)),
+              correctAnswer: stripNullBytes(q.correctAnswer),
+              hint: stripNullBytes(q.hint || ""),
+              description: stripNullBytes(q.description || ""),
             })),
           });
         });

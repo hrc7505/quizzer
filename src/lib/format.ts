@@ -19,11 +19,52 @@ export function difficultyColor(difficulty: string): "success" | "warning" | "da
 }
 
 /**
- * Strips bracketed file extension noise like [png], [jpg] from question text.
+ * Strips null bytes (\u0000 / 0x00) and other invalid PostgreSQL UTF-8 control characters from a string.
+ * PostgreSQL rejects \u0000 in TEXT/VARCHAR fields because C-strings are null-terminated.
+ *
+ * @param text The input string to sanitize.
+ * @returns The sanitized string with null bytes removed.
+ */
+export function stripNullBytes(text?: string | null): string {
+  if (!text || typeof text !== "string") return "";
+  return text.replace(/\0/g, "").replace(/\u0000/g, "").replace(/\\u0000/g, "");
+}
+
+/**
+ * Recursively strips null bytes from objects, arrays, and strings.
+ *
+ * @param value The value (string, object, array, etc.) to sanitize.
+ * @returns The sanitized structure with all string null bytes stripped.
+ */
+export function sanitizeNullBytes<T>(value: T): T {
+  if (typeof value === "string") {
+    return stripNullBytes(value) as unknown as T;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeNullBytes(item)) as unknown as T;
+  }
+  if (value !== null && typeof value === "object") {
+    const cleaned: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value)) {
+      cleaned[k] = sanitizeNullBytes(v);
+    }
+    return cleaned as T;
+  }
+  return value;
+}
+
+/**
+ * Strips bracketed file extension noise like [png], [jpg] and null bytes from question text.
+ *
+ * @param text Candidate question text.
+ * @returns Cleaned question text string.
  */
 export function sanitizeQuestionText(text?: string | null): string {
   if (!text) return "";
   return text
+    .replace(/\0/g, "")
+    .replace(/\u0000/g, "")
+    .replace(/\\u0000/g, "")
     .replace(/\[\s*(png|jpg|jpeg|gif|bmp|webp|svg)\s*\]/gi, "")
     .trim();
 }

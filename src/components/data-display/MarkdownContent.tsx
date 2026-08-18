@@ -103,33 +103,33 @@ function StepCardItem({ children }: { children: React.ReactNode }) {
   return (
     <li
       className={cn(
-        "flex items-start gap-3.5 p-4 sm:p-5 rounded-2xl border text-foreground/90 text-xs sm:text-sm leading-relaxed shadow-xs transition-all",
+        "flex items-start gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-xl border text-foreground/90 text-xs sm:text-sm leading-relaxed shadow-2xs transition-all",
         isConclusion
-          ? "bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/30"
+          ? "bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/25"
           : isConcept
           ? "bg-indigo-500/5 dark:bg-indigo-500/10 border-indigo-500/20"
-          : "bg-card border-border/80 hover:border-border"
+          : "bg-card/75 dark:bg-zinc-900/60 border-border/60"
       )}
     >
       <div
         className={cn(
-          "h-6 w-6 rounded-lg flex items-center justify-center shrink-0 mt-0.5 font-bold shadow-2xs",
+          "h-5 w-5 min-w-[20px] rounded-md flex items-center justify-center shrink-0 mt-0.5 font-bold shadow-2xs",
           isConclusion
             ? "bg-emerald-500 text-white"
             : isConcept
             ? "bg-indigo-500 text-white"
-            : "bg-primary/10 text-primary"
+            : "bg-primary/10 text-primary border border-primary/20"
         )}
       >
         {isConclusion ? (
-          <Check className="h-3.5 w-3.5 stroke-[2.5]" />
+          <Check className="h-3 w-3 stroke-[2.5]" />
         ) : isConcept ? (
-          <BookOpen className="h-3.5 w-3.5" />
+          <BookOpen className="h-3 w-3" />
         ) : (
-          <Layers className="h-3.5 w-3.5" />
+          <Layers className="h-3 w-3" />
         )}
       </div>
-      <div className="flex-1 min-w-0 space-y-2 [&_p]:my-1.5 [&_p]:leading-relaxed">
+      <div className="flex-1 min-w-0 space-y-1 [&_p]:my-0.5 [&_p]:leading-relaxed text-xs sm:text-sm">
         {children}
       </div>
     </li>
@@ -151,9 +151,9 @@ export const MarkdownContent = React.memo(function MarkdownContent({
   return (
     <div
       className={cn(
-        "markdown-content text-xs sm:text-sm text-foreground/90 break-words font-normal leading-relaxed select-text space-y-3",
+        "markdown-content text-xs sm:text-sm text-foreground/90 break-words font-normal leading-relaxed select-text space-y-2",
         // KaTeX display block formatting
-        "[&_.katex-display]:my-3.5 [&_.katex-display]:p-3.5 [&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden [&_.katex-display]:rounded-xl [&_.katex-display]:bg-secondary/40 [&_.katex-display]:border [&_.katex-display]:border-border/50 [&_.katex-display]:text-center [&_.katex-display]:shadow-2xs",
+        "[&_.katex-display]:my-2.5 [&_.katex-display]:p-2.5 [&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden [&_.katex-display]:rounded-xl [&_.katex-display]:bg-secondary/40 [&_.katex-display]:border [&_.katex-display]:border-border/50 [&_.katex-display]:text-center [&_.katex-display]:shadow-2xs",
         "[&_.katex-html]:overflow-x-auto [&_.katex-html]:overflow-y-hidden",
         className
       )}
@@ -163,18 +163,18 @@ export const MarkdownContent = React.memo(function MarkdownContent({
         rehypePlugins={[rehypeKatex]}
         components={{
           ul: ({ children }) => (
-            <ul className="flex flex-col gap-3.5 my-2 list-none p-0 m-0">
+            <ul className="flex flex-col gap-2 my-1.5 list-none p-0 m-0">
               {children}
             </ul>
           ),
           ol: ({ children }) => (
-            <ol className="flex flex-col gap-3.5 my-2 list-none p-0 m-0">
+            <ol className="flex flex-col gap-2 my-1.5 list-none p-0 m-0">
               {children}
             </ol>
           ),
           li: ({ children }) => <StepCardItem>{children}</StepCardItem>,
           p: ({ children }) => (
-            <p className="my-1.5 leading-relaxed text-foreground/90">{children}</p>
+            <p className="my-1 leading-relaxed text-foreground/90">{children}</p>
           ),
           strong: ({ children }) => (
             <strong className="font-semibold text-foreground">{children}</strong>

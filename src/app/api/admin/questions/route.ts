@@ -3,6 +3,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
 import { revalidateQuizAndRelated } from "@/lib/quiz-routing";
+import { sanitizeQuestionText, stripNullBytes } from "@/lib/format";
 
 /**
  * GET /api/admin/questions
@@ -60,17 +61,21 @@ export async function POST(req: Request) {
       topicId = fallbackTopic.id;
     }
 
+    const sanitizedOptions = Array.isArray(options)
+      ? options.map((opt: unknown) => stripNullBytes(String(opt)))
+      : [];
+
     const question = await prisma.question.create({
       data: {
         quizId,
         topicId,
-        text,
+        text: sanitizeQuestionText(text),
         imageUrl: imageUrl || null,
         invertInDark: typeof invertInDark === "boolean" ? invertInDark : true,
-        options,
-        correctAnswer,
-        hint: hint || "",
-        description: description || ""
+        options: sanitizedOptions,
+        correctAnswer: stripNullBytes(correctAnswer),
+        hint: stripNullBytes(hint || ""),
+        description: stripNullBytes(description || "")
       }
     });
 

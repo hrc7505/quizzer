@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Link as LinkIcon, MoreHorizontal, Sparkles, Pencil, ListOrdered, Trash2 } from "lucide-react";
+import { Link as LinkIcon, MoreHorizontal, Sparkles, Pencil, ListOrdered, Trash2, Layers } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -32,6 +32,7 @@ export interface QuizRowProps {
   onOpenEditDialog: (quiz: Quiz) => void;
   onDeleteQuiz: (quiz: Quiz) => void;
   onAppendQuestions?: (quiz: Quiz) => void;
+  onFindDuplicates?: (quiz: Quiz) => void;
 }
 
 export const QuizRow = React.memo(function QuizRow({
@@ -43,6 +44,7 @@ export const QuizRow = React.memo(function QuizRow({
   onOpenEditDialog,
   onDeleteQuiz,
   onAppendQuestions,
+  onFindDuplicates,
 }: QuizRowProps) {
   return (
     <tr
@@ -125,6 +127,12 @@ export const QuizRow = React.memo(function QuizRow({
                 <ListOrdered className="h-3.5 w-3.5 text-muted-foreground" />
                 <span>Manage Questions</span>
               </DropdownItem>
+              {onFindDuplicates && (
+                <DropdownItem onClick={() => onFindDuplicates(quiz)} className="gap-2 text-amber-600 dark:text-amber-400 font-medium">
+                  <Layers className="h-3.5 w-3.5 text-amber-500" />
+                  <span>Find Duplicates</span>
+                </DropdownItem>
+              )}
               {onAppendQuestions && (
                 <DropdownItem onClick={() => onAppendQuestions(quiz)} className="gap-2 text-primary font-medium">
                   <Sparkles className="h-3.5 w-3.5 text-primary" />

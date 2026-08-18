@@ -65,6 +65,7 @@ export function GenerateQuizForm({
   const [topicText, setTopicText] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [difficulty, setDifficulty] = useState("Medium");
+  const [padTo30, setPadTo30] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
@@ -123,6 +124,7 @@ export function GenerateQuizForm({
         difficulty,
         topicText: mode === "text" ? topicText : undefined,
         file: mode === "pdf" ? file : undefined,
+        padTo30,
       };
 
       const data = await QuizService.generateQuiz(payload as unknown as Record<string, unknown>);
@@ -338,6 +340,28 @@ export function GenerateQuizForm({
               <span className="text-[11px] sm:text-xs text-success font-medium">PDF ready to process</span>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Auto-pad to 30 questions checkbox (Default: false) */}
+      {(mode === "text" || mode === "pdf") && (
+        <div className="flex items-start gap-3 p-3 rounded-xl border border-border/70 bg-secondary/15">
+          <input
+            id="pad-to-30-checkbox"
+            type="checkbox"
+            checked={padTo30}
+            onChange={(e) => setPadTo30(e.target.checked)}
+            disabled={loading}
+            className="mt-0.5 h-4 w-4 rounded border-border text-primary focus:ring-primary cursor-pointer shrink-0"
+          />
+          <label htmlFor="pad-to-30-checkbox" className="flex flex-col gap-0.5 cursor-pointer select-none">
+            <span className="text-xs font-semibold text-foreground">
+              Auto-generate additional questions to reach 30 per quiz
+            </span>
+            <span className="text-[11px] text-muted-foreground/80 leading-relaxed">
+              When unchecked (default), quizzes will contain strictly your exact provided questions without AI additions.
+            </span>
+          </label>
         </div>
       )}
 

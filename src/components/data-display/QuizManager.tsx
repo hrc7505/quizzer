@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles, Download, GitMerge, CheckSquare, Square, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 import { GenerateQuizForm } from "@/components/forms/GenerateQuizForm";
 import { Alert } from "@/components/ui/Alert";
@@ -17,11 +18,13 @@ import { EditQuizBody, QuizDrawerBody } from "@/components/data-display/QuizMana
 import { QuestionEditorBody } from "@/components/data-display/QuestionEditorBody";
 import { DeleteConfirmDialogBody } from "@/components/feedback/DeleteConfirmDialogBody";
 import { MergeQuizzesDialogBody } from "@/components/data-display/MergeQuizzesDialogBody";
+import { DuplicateQuestionsDialogBody } from "@/components/data-display/DuplicateQuestionsDialogBody";
 import { downloadCSV } from "@/lib/csv-export";
 import { Pagination } from "@/components/data-display/Pagination";
 import { SearchFilterBar } from "@/components/data-display/SearchFilterBar";
 import { PageHeader } from "@/components/data-display/PageHeader";
 import { QuizRow } from "@/components/data-display/QuizRow";
+import { soundEffects } from "@/lib/services/sound-effects.service";
 
 interface TopicRef {
   id: string;
@@ -130,9 +133,15 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
 
   // Toggle single quiz selection
   const handleToggleSelect = useCallback((id: string) => {
-    setSelectedQuizIds(prev => 
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    );
+    setSelectedQuizIds(prev => {
+      const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+      if (next.length >= 2) {
+        soundEffects.playPopSound();
+      } else if (prev.length >= 2 && next.length < 2) {
+        soundEffects.playClearSound();
+      }
+      return next;
+    });
   }, []);
 
   // Toggle select all on current page
@@ -140,8 +149,10 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
     const pageIds = paginated.map(q => q.id);
     const allSelected = pageIds.every(id => selectedQuizIds.includes(id));
     if (allSelected) {
+      soundEffects.playClearSound();
       setSelectedQuizIds(prev => prev.filter(id => !pageIds.includes(id)));
     } else {
+      soundEffects.playPopSound();
       setSelectedQuizIds(prev => Array.from(new Set([...prev, ...pageIds])));
     }
   }, [paginated, selectedQuizIds]);
@@ -520,6 +531,21 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
     });
   };
 
+  // Open Find Duplicates Dialog
+  const handleOpenDuplicatesDialog = (quiz: Quiz) => {
+    dialog.open({
+      title: `Find Duplicates — ${quiz.title}`,
+      body: (
+        <DuplicateQuestionsDialogBody
+          quizId={quiz.id}
+          quizTitle={quiz.title}
+          onClose={() => dialog.close()}
+          onSuccess={fetchQuizzes}
+        />
+      ),
+    });
+  };
+
   // Open Merge Multiple Quizzes Dialog
   const handleOpenMergeDialog = () => {
     const selectedList = quizzes.filter(q => selectedQuizIds.includes(q.id));
@@ -647,9 +673,9 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
                 variant="outline"
                 size="sm"
                 onClick={handleOpenMergeDialog}
-                className="gap-1.5 font-semibold text-xs h-9 px-3.5 border-primary/40 text-primary bg-primary/5 hover:bg-primary/10 shadow-xs"
+                className="gap-1.5 font-semibold text-xs h-9 px-3.5 border-primary/40 text-primary bg-primary/5 hover:bg-primary/10 shadow-xs whitespace-nowrap shrink-0"
               >
-                <GitMerge className="h-3.5 w-3.5" />
+                <GitMerge className="h-3.5 w-3.5 shrink-0" />
                 <span>Merge Selected ({selectedQuizIds.length})</span>
               </Button>
             )}
@@ -735,6 +761,7 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
                     onOpenEditDialog={openEditDialog}
                     onDeleteQuiz={handleDeleteQuiz}
                     onAppendQuestions={handleOpenAppendDialog}
+                    onFindDuplicates={handleOpenDuplicatesDialog}
                   />
                 ))}
               </tbody>
@@ -753,35 +780,61 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
       )}
 
       {/* Floating Bottom Multi-Select Merge Action Bar */}
-      {selectedQuizIds.length >= 2 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-4 px-5 py-3 rounded-2xl bg-foreground text-background shadow-2xl border border-border/40 animate-in fade-in slide-in-from-bottom-4 duration-200">
-          <div className="flex items-center gap-2">
-            <span className="h-6 w-6 rounded-full bg-primary text-white font-bold text-xs flex items-center justify-center">
-              {selectedQuizIds.length}
-            </span>
-            <span className="text-xs font-semibold">quizzes selected</span>
-          </div>
-
-          <div className="h-4 w-px bg-background/20" />
-
-          <Button
-            size="sm"
-            onClick={handleOpenMergeDialog}
-            className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-bold h-8 px-4"
+      <AnimatePresence>
+        {selectedQuizIds.length >= 2 && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
+            exit={{ opacity: 0, y: 40, scale: 0.92, x: "-50%" }}
+            transition={{
+              type: "spring",
+              damping: 24,
+              stiffness: 420,
+              mass: 0.8,
+            }}
+            className="fixed bottom-4 sm:bottom-6 left-1/2 z-40 flex items-center justify-between sm:justify-start gap-2.5 sm:gap-4 px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-2xl bg-foreground text-background shadow-2xl border border-border/40 max-w-[calc(100vw-1.5rem)] sm:max-w-max select-none"
           >
-            <GitMerge className="h-3.5 w-3.5" />
-            <span>Merge into 1 Quiz</span>
-          </Button>
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              <motion.span
+                key={selectedQuizIds.length}
+                initial={{ scale: 1.35 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 500, damping: 15 }}
+                className="h-6 w-6 rounded-full bg-primary text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs"
+              >
+                {selectedQuizIds.length}
+              </motion.span>
+              <span className="text-xs font-semibold whitespace-nowrap">
+                <span className="hidden sm:inline">quizzes </span>selected
+              </span>
+            </div>
 
-          <button
-            onClick={() => setSelectedQuizIds([])}
-            className="text-background/70 hover:text-background text-xs flex items-center gap-1 ml-1 cursor-pointer"
-          >
-            <X className="h-3.5 w-3.5" />
-            <span>Clear</span>
-          </button>
-        </div>
-      )}
+            <div className="h-4 w-px bg-background/20 shrink-0" />
+
+            <Button
+              size="sm"
+              onClick={handleOpenMergeDialog}
+              className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-bold h-8 px-3 sm:px-4 shrink-0 whitespace-nowrap active:scale-95 transition-transform"
+            >
+              <GitMerge className="h-3.5 w-3.5 shrink-0" />
+              <span className="whitespace-nowrap">Merge into 1 Quiz</span>
+            </Button>
+
+            <button
+              onClick={() => {
+                soundEffects.playClearSound();
+                setSelectedQuizIds([]);
+              }}
+              className="text-background/70 hover:text-background text-xs flex items-center gap-1 shrink-0 cursor-pointer p-1 rounded-md transition-colors whitespace-nowrap active:scale-90"
+              title="Clear selection"
+              aria-label="Clear selection"
+            >
+              <X className="h-3.5 w-3.5 shrink-0" />
+              <span className="hidden sm:inline">Clear</span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

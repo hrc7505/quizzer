@@ -133,6 +133,7 @@ model QuizBatch {
   totalBatches Int       @default(1)
   status       String    @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
   error        String?
+  padTo30      Boolean   @default(false)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 

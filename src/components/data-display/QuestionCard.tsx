@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/utils/cn";
 import { sanitizeImageUrl } from "@/lib/format";
 import { MarkdownContent } from "@/components/data-display/MarkdownContent";
+import { QuestionText } from "@/components/data-display/QuestionText";
 import { ShimmerImage } from "@/components/ui/ShimmerImage";
 
 export interface QuestionCardData {
@@ -104,12 +105,13 @@ export function QuestionCard({
   return (
     <Card className={cn("p-5 border border-border/80 bg-card shadow-sm flex flex-col gap-4 rounded-xl", optionVariant === "badge" && "p-6 gap-5 rounded-2xl", className)}>
       <div className="flex items-start justify-between gap-4">
-        <h4 className={cn(
-          "text-xs font-bold text-foreground leading-snug",
-          optionVariant === "badge" && "text-sm"
-        )}>
-          {typeof index === "number" && `${index + 1}. `}{question.text}
-        </h4>
+        <div className="flex-1 min-w-0">
+          <QuestionText
+            text={question.text}
+            index={index}
+            size={optionVariant === "badge" ? "base" : "sm"}
+          />
+        </div>
         {(onEdit || onDelete) && (
           <div className="flex items-center gap-1.5 shrink-0 select-none">
             {onEdit && (

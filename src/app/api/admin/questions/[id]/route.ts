@@ -3,6 +3,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
 import { revalidateQuizAndRelated } from "@/lib/quiz-routing";
+import { sanitizeQuestionText, stripNullBytes } from "@/lib/format";
 
 /**
  * PUT /api/admin/questions/[id]
@@ -22,13 +23,13 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const question = await prisma.question.update({
       where: { id },
       data: {
-        text,
+        text: text !== undefined ? sanitizeQuestionText(text) : undefined,
         imageUrl: imageUrl !== undefined ? (imageUrl || null) : undefined,
         invertInDark: typeof invertInDark === "boolean" ? invertInDark : undefined,
-        options,
-        correctAnswer,
-        hint,
-        description
+        options: Array.isArray(options) ? options.map((opt: unknown) => stripNullBytes(String(opt))) : undefined,
+        correctAnswer: correctAnswer !== undefined ? stripNullBytes(correctAnswer) : undefined,
+        hint: hint !== undefined ? stripNullBytes(hint) : undefined,
+        description: description !== undefined ? stripNullBytes(description) : undefined
       }
     });
 

@@ -331,6 +331,12 @@ export function describeAiError(error: unknown): AiErrorResult {
       meta: { icon: DEFAULT_ERROR_ICON, variant: "danger" },
     };
   }
+  if (/invalid byte sequence.*0x00|invalid byte sequence for encoding|null byte/i.test(message)) {
+    return {
+      message: "The input contains invalid null byte characters (0x00). Please ensure pasted text is clean plain text.",
+      meta: { icon: DEFAULT_ERROR_ICON, variant: "warning" },
+    };
+  }
   return {
     message: message || "Failed to generate content",
     meta: { icon: DEFAULT_ERROR_ICON, variant: "danger" },

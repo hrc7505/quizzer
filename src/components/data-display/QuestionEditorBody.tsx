@@ -1,11 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Sparkles, Wand2 } from "lucide-react";
 
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
+import { Button } from "@/components/ui/Button";
+import { useToast } from "@/components/providers/ToastProvider";
+import { soundEffects } from "@/lib/services/sound-effects.service";
 
 export interface QuestionEditorForm {
   id: string;
@@ -41,8 +44,70 @@ export function QuestionEditorBody({
   descriptionRequired,
   loading,
 }: QuestionEditorBodyProps) {
+  const toast = useToast();
+  const [proofreading, setProofreading] = React.useState(false);
+
+  const handleAiProofread = async () => {
+    if (!form.text.trim()) {
+      toast.addToast({ type: "warning", message: "Please enter question text before proofreading." });
+      return;
+    }
+
+    setProofreading(true);
+    try {
+      const res = await fetch("/api/admin/questions/fix-language", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: form }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        toast.addToast({ type: "error", message: data.error });
+      } else if (data.question) {
+        onChange(prev => ({
+          ...prev,
+          text: data.question.text || prev.text,
+          options: Array.isArray(data.question.options) && data.question.options.length === 4 ? data.question.options : prev.options,
+          correctAnswer: data.question.correctAnswer || prev.correctAnswer,
+          hint: data.question.hint || prev.hint,
+          description: data.question.description || prev.description,
+        }));
+        soundEffects.playCorrectSound();
+        toast.addToast({ type: "success", message: "AI proofread & repaired Gujarati / language text!" });
+      }
+    } catch (err) {
+      console.error(err);
+      toast.addToast({ type: "error", message: "Failed to proofread language." });
+    } finally {
+      setProofreading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4 mt-3">
+      {/* AI Language Proofreading Toolbar */}
+      <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-primary/5 border border-primary/20">
+        <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+          <Wand2 className="h-4 w-4 shrink-0" />
+          <span>Fix Gujarati conjuncts (જોડાક્ષરો) & spelling with AI</span>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={proofreading || loading || !form.text.trim()}
+          onClick={handleAiProofread}
+          className="h-7 px-2.5 text-xs font-bold gap-1 text-primary border-primary/30 hover:bg-primary/10 shadow-2xs"
+        >
+          {proofreading ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : (
+            <Sparkles className="h-3 w-3" />
+          )}
+          <span>{proofreading ? "Proofreading…" : "AI Proofread"}</span>
+        </Button>
+      </div>
+
       {quizzes && onQuizChange && (
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Parent Quiz <span className="text-danger">*</span></label>

@@ -37,7 +37,7 @@ interface Particle {
   type: "confetti" | "spark" | "star";
 }
 
-interface Bubble {
+interface Balloon {
   id: number;
   x: number;
   y: number;
@@ -58,6 +58,7 @@ const CELEBRATION_COLORS = [
   "#06b6d4", // Cyan
   "#eab308", // Yellow
   "#ff4757", // Bright red
+  "#f97316", // Orange
 ];
 
 export function TelegramQuizCelebration({
@@ -67,7 +68,7 @@ export function TelegramQuizCelebration({
 }: TelegramQuizCelebrationProps) {
   const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
   const particlesRef = React.useRef<Particle[]>([]);
-  const bubblesRef = React.useRef<Bubble[]>([]);
+  const balloonsRef = React.useRef<Balloon[]>([]);
   const animationFrameRef = React.useRef<number | null>(null);
 
   // Auto-dismiss streak milestone toast after 2.6s
@@ -112,29 +113,29 @@ export function TelegramQuizCelebration({
     particlesRef.current.push(...newParticles);
   }, [burst]);
 
-  // Spawn bubbles when streak milestone is active
+  // Spawn floating balloons when streak milestone is active
   React.useEffect(() => {
     if (!milestone) return;
 
-    const newBubbles: Bubble[] = [];
-    const count = 18;
+    const newBalloons: Balloon[] = [];
+    const count = 16;
     for (let i = 0; i < count; i++) {
-      newBubbles.push({
+      newBalloons.push({
         id: Math.random(),
         x: Math.random() * (typeof window !== "undefined" ? window.innerWidth : 800),
-        y: typeof window !== "undefined" ? window.innerHeight + Math.random() * 100 : 800,
-        size: Math.random() * 24 + 14,
-        speed: Math.random() * 2.5 + 2,
-        wobbleSpeed: Math.random() * 0.05 + 0.02,
-        wobbleAmp: Math.random() * 30 + 15,
+        y: typeof window !== "undefined" ? window.innerHeight + Math.random() * 120 : 850,
+        size: Math.random() * 18 + 20, // Balloon radius 20-38px
+        speed: Math.random() * 2.2 + 2.4,
+        wobbleSpeed: Math.random() * 0.04 + 0.02,
+        wobbleAmp: Math.random() * 25 + 15,
         color: CELEBRATION_COLORS[Math.floor(Math.random() * CELEBRATION_COLORS.length)],
-        alpha: 0.85,
+        alpha: 0.95,
       });
     }
-    bubblesRef.current.push(...newBubbles);
+    balloonsRef.current.push(...newBalloons);
   }, [milestone]);
 
-  // Particle & Bubble Animation Loop
+  // Particle & Balloon Animation Loop
   React.useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -185,26 +186,63 @@ export function TelegramQuizCelebration({
         ctx.restore();
       }
 
-      // 2. Render Milestone Floating Bubbles
-      bubblesRef.current = bubblesRef.current.filter((b) => b.y > -60);
-      for (const b of bubblesRef.current) {
+      // 2. Render Milestone Floating Balloons
+      balloonsRef.current = balloonsRef.current.filter((b) => b.y > -120);
+      for (const b of balloonsRef.current) {
         b.y -= b.speed;
         const currentX = b.x + Math.sin(time * b.wobbleSpeed) * b.wobbleAmp;
+        const tiltAngle = Math.sin(time * b.wobbleSpeed) * 0.12;
 
         ctx.save();
         ctx.globalAlpha = b.alpha;
+        ctx.translate(currentX, b.y);
+        ctx.rotate(tiltAngle);
+
+        const radiusX = b.size * 0.85;
+        const radiusY = b.size * 1.1;
+
+        // A. Balloon Waving String
         ctx.beginPath();
-        ctx.arc(currentX, b.y, b.size, 0, Math.PI * 2);
-        ctx.fillStyle = b.color + "33"; // 20% opacity fill
-        ctx.fill();
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = b.color;
+        ctx.moveTo(0, radiusY);
+        const wave1 = Math.sin(time * 2) * 6;
+        const wave2 = Math.cos(time * 2) * 8;
+        ctx.bezierCurveTo(wave1, radiusY + 12, wave2, radiusY + 24, 0, radiusY + 36);
+        ctx.lineWidth = 1.2;
+        ctx.strokeStyle = "rgba(160, 160, 160, 0.6)";
         ctx.stroke();
 
-        // Bubble inner highlight reflection
+        // B. Balloon Knot
         ctx.beginPath();
-        ctx.arc(currentX - b.size * 0.3, b.y - b.size * 0.3, b.size * 0.25, 0, Math.PI * 2);
-        ctx.fillStyle = "#ffffff99";
+        ctx.moveTo(-b.size * 0.15, radiusY + b.size * 0.15);
+        ctx.lineTo(b.size * 0.15, radiusY + b.size * 0.15);
+        ctx.lineTo(0, radiusY - 1);
+        ctx.closePath();
+        ctx.fillStyle = b.color;
+        ctx.fill();
+
+        // C. Balloon Body (Egg/Teardrop shape via ellipse + curve)
+        ctx.beginPath();
+        ctx.ellipse(0, 0, radiusX, radiusY, 0, 0, Math.PI * 2);
+        
+        // 3D Spherical Radial Gradient
+        const grad = ctx.createRadialGradient(
+          -radiusX * 0.3,
+          -radiusY * 0.35,
+          radiusX * 0.1,
+          0,
+          0,
+          radiusY
+        );
+        grad.addColorStop(0, "#ffffff");
+        grad.addColorStop(0.2, b.color);
+        grad.addColorStop(1, b.color);
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        // D. Specular Glossy Highlight
+        ctx.beginPath();
+        ctx.ellipse(-radiusX * 0.35, -radiusY * 0.35, radiusX * 0.25, radiusY * 0.4, -0.4, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.55)";
         ctx.fill();
 
         ctx.restore();

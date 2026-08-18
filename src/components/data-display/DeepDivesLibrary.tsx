@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { QuestionText } from "@/components/data-display/QuestionText";
 
 interface QuestionSummary {
   id: string;
@@ -135,9 +136,9 @@ export function DeepDivesLibrary({ questions }: DeepDivesLibraryProps) {
                     )}
 
                     {/* Question text */}
-                    <h3 className="text-sm font-semibold text-foreground leading-snug line-clamp-3 group-hover:text-primary transition-colors">
-                      {q.text}
-                    </h3>
+                    <div className="line-clamp-3 group-hover:text-primary transition-colors">
+                      <QuestionText text={q.text} isCompact size="sm" />
+                    </div>
                   </div>
 
                   {/* Correct answer preview */}

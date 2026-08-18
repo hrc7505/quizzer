@@ -19,6 +19,7 @@ import { QuizScoreCard } from "@/components/data-display/QuizScoreCard";
 import { QuizLeaderboard } from "@/components/data-display/QuizLeaderboard";
 import { DetailedQuestionAccordion } from "@/components/data-display/DetailedQuestionAccordion";
 import { DeepDivePanel } from "@/components/data-display/DeepDivePanel";
+import { QuizScoreCelebration } from "@/components/feedback/QuizScoreCelebration";
 
 /**
  * QuizResults component renders the results screen after quiz completion,
@@ -209,6 +210,13 @@ export function QuizResults({ attempt }: QuizResultsProps) {
           </Dropdown>
         </div>
       </div>
+
+      {/* Dynamic Tier-Based Score Celebration & Animation */}
+      <QuizScoreCelebration
+        scorePercentage={attempt.scorePercentage}
+        totalQuestions={attempt.quiz.questions.length}
+        correctCount={attempt.correctCount}
+      />
 
       <div ref={resultRef} className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
         {/* Score Overview Card */}

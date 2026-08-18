@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { DeepDiveBodyProps } from "@/components/data-display/interfaces/DeepDiveBody.interface";
 import { MarkdownContent } from "@/components/data-display/MarkdownContent";
+import { QuestionText } from "@/components/data-display/QuestionText";
 
 /**
  * DeepDiveBody component displays the full detail of a deep dive,
@@ -20,22 +21,23 @@ export function DeepDiveBody({ question }: DeepDiveBodyProps) {
     if (diff === "easy") return "success";
     if (diff === "medium") return "warning";
     if (diff === "hard") return "danger";
-    return "default";
+    return "secondary";
   };
 
+  if (!question) {
+    return <NoData title="Question not found or has been removed." />;
+  }
+
   return (
-    <div className="flex flex-col gap-6 w-full py-2">
-      {/* Header card */}
-      <Card className="border-border/80 bg-card overflow-hidden shadow-xs p-0">
+    <div className="max-w-4xl mx-auto space-y-6">
+      <Card className="p-0 overflow-hidden border border-border/80 shadow-sm rounded-2xl">
         {/* Gradient banner */}
         <div className="bg-linear-to-br from-primary to-accent p-6 sm:p-7 flex items-start gap-4 text-primary-foreground">
           <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center shrink-0 shadow-xs border border-white/10">
             <Brain className="h-5 w-5 text-white" />
           </div>
-          <div className="min-w-0">
-            <h2 className="text-lg font-bold tracking-tight leading-snug text-white">
-              {question.text}
-            </h2>
+          <div className="min-w-0 flex-1">
+            <QuestionText text={question.text} size="lg" className="text-white [&_*]:text-white" />
           </div>
         </div>
 

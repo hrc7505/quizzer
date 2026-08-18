@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/utils/cn";
 import { sanitizeImageUrl } from "@/lib/format";
 import { MarkdownContent } from "@/components/data-display/MarkdownContent";
+import { QuestionText } from "@/components/data-display/QuestionText";
 import { ShimmerImage } from "@/components/ui/ShimmerImage";
 
 interface QuizQuestionCardProps {
@@ -47,7 +48,7 @@ function QuizQuestionCardInner({
   return (
     <Card className="p-6 sm:p-8 flex flex-col gap-6 border border-border/80 bg-card shadow-sm rounded-2xl">
       <div>
-        <h2 className="text-base font-semibold text-foreground leading-snug">{question.text}</h2>
+        <QuestionText text={question.text} size="base" />
       </div>
 
       {/* Question Diagram / Schematic Image */}
@@ -151,9 +152,9 @@ function QuizQuestionCardInner({
 
       {/* Explanation Box post answering */}
       {selectedOption && question.description && (
-        <div className="rounded-2xl border border-primary/20 bg-primary/5 dark:bg-primary/10 p-4 sm:p-5 flex flex-col gap-3.5 shadow-xs">
-          <div className="flex items-center gap-2 text-primary font-bold text-xs sm:text-sm tracking-tight">
-            <Sparkles className="h-4 w-4" />
+        <div className="rounded-xl border border-primary/20 bg-primary/5 dark:bg-primary/10 p-3 sm:p-3.5 flex flex-col gap-2 shadow-2xs">
+          <div className="flex items-center gap-1.5 text-primary font-bold text-xs">
+            <Sparkles className="h-3.5 w-3.5" />
             <span>Answer Explanation</span>
           </div>
           <MarkdownContent content={question.description} />

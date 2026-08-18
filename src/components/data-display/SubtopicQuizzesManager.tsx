@@ -2,7 +2,22 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, ArrowLeft, Search, Link as LinkIcon, MoreHorizontal, Unlink, Sparkles, HelpCircle, Layers } from "lucide-react";
+import {
+  Plus,
+  ArrowLeft,
+  Search,
+  Link as LinkIcon,
+  MoreHorizontal,
+  Unlink,
+  Sparkles,
+  HelpCircle,
+  Layers,
+  Square,
+  CheckSquare,
+  Trash2,
+  X,
+} from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -20,8 +35,10 @@ import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from "@/comp
 import { useDialog } from "@/components/providers/OverlayProvider";
 import { useToast } from "@/components/providers/ToastProvider";
 import { BatchQueueManager } from "@/components/data-display/BatchQueueManager";
+import { soundEffects } from "@/lib/services/sound-effects.service";
 import { difficultyColor } from "@/lib/format";
 import { api } from "@/lib/api";
+import { cn } from "@/utils/cn";
 
 import type {
   SubtopicQuizzesManagerProps,
@@ -33,7 +50,7 @@ import type {
  * SubtopicQuizzesManager component.
  * Manages the list of Quizzes attached to a specific Subtopic.
  * Supports direct AI quiz generation (auto-linked to subtopic), manual creation,
- * linking existing quizzes, contextual unlinking from the subtopic, and safe deletion.
+ * linking existing quizzes, multi-quiz bulk deletion, contextual unlinking, and safe deletion.
  */
 export function SubtopicQuizzesManager({
   subtopic: initialSubtopic,
@@ -53,12 +70,16 @@ export function SubtopicQuizzesManager({
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  // Linking state
+  // Multi-selection state for batch actions
   const [selectedQuizIds, setSelectedQuizIds] = useState<string[]>([]);
-  const selectedQuizIdsRef = useRef<string[]>([]);
+  const prevSelectedCountRef = useRef(0);
+
+  // Link picker state
+  const [linkModalSelectedIds, setLinkModalSelectedIds] = useState<string[]>([]);
+  const linkModalSelectedIdsRef = useRef<string[]>([]);
   useEffect(() => {
-    selectedQuizIdsRef.current = selectedQuizIds;
-  }, [selectedQuizIds]);
+    linkModalSelectedIdsRef.current = linkModalSelectedIds;
+  }, [linkModalSelectedIds]);
 
   /**
    * Refreshes the quizzes for this subtopic from the server.
@@ -93,6 +114,41 @@ export function SubtopicQuizzesManager({
   const paginatedQuizzes = useMemo(() => {
     return filteredQuizzes.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   }, [filteredQuizzes, currentPage, pageSize]);
+
+  const isAllCurrentPageSelected =
+    paginatedQuizzes.length > 0 &&
+    paginatedQuizzes.every((q) => selectedQuizIds.includes(q.id));
+
+  // Sound feedback on multi-selection
+  useEffect(() => {
+    if (selectedQuizIds.length > prevSelectedCountRef.current) {
+      soundEffects.playPopSound();
+    }
+    prevSelectedCountRef.current = selectedQuizIds.length;
+  }, [selectedQuizIds.length]);
+
+  const handleToggleSelectQuiz = (id: string) => {
+    setSelectedQuizIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleToggleSelectAll = () => {
+    if (isAllCurrentPageSelected) {
+      const pageIds = new Set(paginatedQuizzes.map((q) => q.id));
+      setSelectedQuizIds((prev) => prev.filter((id) => !pageIds.has(id)));
+    } else {
+      const newSelected = Array.from(
+        new Set([...selectedQuizIds, ...paginatedQuizzes.map((q) => q.id)])
+      );
+      setSelectedQuizIds(newSelected);
+    }
+  };
+
+  const handleClearSelection = () => {
+    soundEffects.playClearSound();
+    setSelectedQuizIds([]);
+  };
 
   const parentTopic = subtopic.parentTopics?.[0];
 
@@ -136,7 +192,7 @@ export function SubtopicQuizzesManager({
    * Opens the Link Existing Quizzes dialog.
    */
   const handleOpenLinkDialog = useCallback(() => {
-    setSelectedQuizIds(subtopic.quizzes.map((q) => q.id));
+    setLinkModalSelectedIds(subtopic.quizzes.map((q) => q.id));
     dialog.open({
       title: "Link Existing Quizzes",
       showClose: false,
@@ -146,16 +202,16 @@ export function SubtopicQuizzesManager({
           label="Quizzes"
           placeholder="Search quizzes..."
           items={unlinkedQuizzes}
-          selectedIds={selectedQuizIds}
-          onSelectionChange={setSelectedQuizIds}
-          selectionRef={selectedQuizIdsRef}
+          selectedIds={linkModalSelectedIds}
+          onSelectionChange={setLinkModalSelectedIds}
+          selectionRef={linkModalSelectedIdsRef}
           emptyHint="No unlinked quizzes found. You can generate a new quiz directly."
         />
       ),
       okText: "Save Links",
       onOk: async () => {
         setLoading(true);
-        const idsToSave = selectedQuizIdsRef.current;
+        const idsToSave = linkModalSelectedIdsRef.current;
         const res = await api.post(`/api/admin/topics/${subtopic.id}/link-quizzes`, { quizIds: idsToSave });
         if (res.success) {
           await refreshQuizzes();
@@ -166,7 +222,7 @@ export function SubtopicQuizzesManager({
         setLoading(false);
       },
     });
-  }, [dialog, subtopic.title, subtopic.id, subtopic.quizzes, unlinkedQuizzes, selectedQuizIds, refreshQuizzes, toast]);
+  }, [dialog, subtopic.title, subtopic.id, subtopic.quizzes, unlinkedQuizzes, linkModalSelectedIds, refreshQuizzes, toast]);
 
   /**
    * Opens the Edit Quiz dialog.
@@ -233,7 +289,93 @@ export function SubtopicQuizzesManager({
   );
 
   /**
-   * Deletes a quiz after displaying all link details.
+   * Bulk unlinks all selected quizzes from this subtopic.
+   */
+  const handleBulkUnlink = useCallback(() => {
+    if (selectedQuizIds.length === 0) return;
+    const selectedTitles = subtopic.quizzes
+      .filter((q) => selectedQuizIds.includes(q.id))
+      .map((q) => q.title);
+
+    dialog.confirm({
+      title: `Unlink ${selectedQuizIds.length} Quizzes from Subtopic`,
+      description: `Are you sure you want to unlink ${selectedQuizIds.length} selected quizzes (${selectedTitles.slice(0, 3).join(", ")}${selectedTitles.length > 3 ? "..." : ""}) from "${subtopic.title}"? The quizzes will remain in the database.`,
+      okText: `Unlink ${selectedQuizIds.length} Quizzes`,
+      onConfirm: async () => {
+        setLoading(true);
+        const nextQuizIds = subtopic.quizzes
+          .filter((q) => !selectedQuizIds.includes(q.id))
+          .map((q) => q.id);
+        const res = await api.post(`/api/admin/topics/${subtopic.id}/link-quizzes`, { quizIds: nextQuizIds });
+        if (res.success) {
+          soundEffects.playCorrectSound();
+          setSelectedQuizIds([]);
+          await refreshQuizzes();
+          toast.addToast({ type: "success", message: `Unlinked ${selectedTitles.length} quizzes from subtopic` });
+        } else {
+          setError(res.error || "Failed to unlink selected quizzes");
+        }
+        setLoading(false);
+      },
+    });
+  }, [dialog, selectedQuizIds, subtopic.quizzes, subtopic.title, subtopic.id, refreshQuizzes, toast]);
+
+  /**
+   * Bulk deletes all selected quizzes permanently.
+   */
+  const handleBulkDelete = useCallback(() => {
+    if (selectedQuizIds.length === 0) return;
+    const selectedList = subtopic.quizzes.filter((q) => selectedQuizIds.includes(q.id));
+
+    dialog.confirm({
+      title: `Delete ${selectedQuizIds.length} Quizzes`,
+      okText: `Delete ${selectedQuizIds.length} Quizzes`,
+      okVariant: "danger",
+      body: (
+        <DeleteConfirmDialogBody
+          title={`${selectedQuizIds.length} Selected Quizzes`}
+          itemType="Quizzes"
+          linkSummaries={[
+            { label: "Parent Subtopic", items: [subtopic.title] },
+            {
+              label: "Quizzes to Delete",
+              items: selectedList.map((q) => `${q.title} (${q._count?.questions || 0} questions)`),
+            },
+          ]}
+          consequenceMessage={`This will permanently delete all ${selectedQuizIds.length} selected quizzes, all their questions, and user score history.`}
+        />
+      ),
+      onConfirm: async () => {
+        setLoading(true);
+        try {
+          const res = await fetch("/api/admin/quizzes/bulk-delete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ids: selectedQuizIds }),
+          });
+          const data = await res.json();
+          if (!res.ok || data.error) {
+            throw new Error(data.error || "Bulk delete failed");
+          }
+          soundEffects.playCorrectSound();
+          setSelectedQuizIds([]);
+          await refreshQuizzes();
+          toast.addToast({
+            type: "success",
+            message: `Successfully deleted ${selectedList.length} quizzes.`,
+          });
+        } catch (err) {
+          console.error(err);
+          toast.addToast({ type: "error", message: "Failed to delete selected quizzes." });
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
+  }, [dialog, selectedQuizIds, subtopic.quizzes, subtopic.title, refreshQuizzes, toast]);
+
+  /**
+   * Deletes a single quiz.
    */
   const handleDelete = useCallback(
     (quiz: SubtopicQuizItem) => {
@@ -270,7 +412,7 @@ export function SubtopicQuizzesManager({
   );
 
   return (
-    <div className="flex flex-col gap-6 py-4 w-full">
+    <div className="flex flex-col gap-6 py-4 w-full relative">
       {error && (
         <Alert variant="danger" title="Error">
           {error}
@@ -329,7 +471,7 @@ export function SubtopicQuizzesManager({
         }
         description={
           subtopic.description ||
-          "Manage quizzes belonging to this subtopic. Click on any quiz to inspect and manage its questions."
+          "Manage quizzes belonging to this subtopic. Select multiple quizzes to bulk delete or unlink."
         }
         actions={
           <div className="flex items-center gap-2">
@@ -403,7 +545,20 @@ export function SubtopicQuizzesManager({
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="border-b border-border/40 text-muted-foreground font-bold bg-secondary/10 sticky top-0 z-10">
-                  <th scope="col" className="py-3.5 px-4 font-bold w-16 text-center">Order</th>
+                  <th scope="col" className="py-3.5 px-3 font-bold w-10 text-center">
+                    <button
+                      onClick={handleToggleSelectAll}
+                      className="text-muted-foreground hover:text-foreground cursor-pointer flex items-center justify-center mx-auto"
+                      title={isAllCurrentPageSelected ? "Deselect Page" : "Select Page"}
+                    >
+                      {isAllCurrentPageSelected ? (
+                        <CheckSquare className="h-4 w-4 text-primary" />
+                      ) : (
+                        <Square className="h-4 w-4" />
+                      )}
+                    </button>
+                  </th>
+                  <th scope="col" className="py-3.5 px-3 font-bold w-14 text-center">Order</th>
                   <th scope="col" className="py-3.5 px-4 font-bold max-w-sm">Title</th>
                   <th scope="col" className="py-3.5 px-4 font-bold text-center w-24">Difficulty</th>
                   <th scope="col" className="py-3.5 px-4 font-bold text-center w-24">Questions</th>
@@ -412,80 +567,101 @@ export function SubtopicQuizzesManager({
                 </tr>
               </thead>
               <tbody>
-                {paginatedQuizzes.map((quiz) => (
-                  <tr key={quiz.id} className="border-b border-border/20 hover:bg-secondary/20 transition-colors">
-                    <td className="py-3 px-4 text-center font-bold text-muted-foreground">
-                      #{quiz.quizOrder || 1}
-                    </td>
-                    <td className="py-3 px-4 font-semibold text-foreground">
-                      <button
-                        onClick={() => router.push(`/admin/manage/quizzes/${quiz.id}/questions`)}
-                        className="text-left font-semibold text-foreground hover:text-primary transition-colors cursor-pointer border-0 bg-transparent p-0 flex items-center gap-1.5 group"
-                      >
-                        <span>{quiz.title}</span>
-                        <span className="text-[11px] text-muted-foreground group-hover:text-primary font-normal">
-                          &rarr;
-                        </span>
-                      </button>
-                    </td>
-                    <td className="py-3 px-4 text-center select-none">
-                      <Badge
-                        variant={difficultyColor(quiz.difficulty)}
-                        className="capitalize font-bold text-[10px] px-2 py-0.5 animate-none"
-                      >
-                        {quiz.difficulty}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-4 text-center font-bold text-foreground/90">
-                      {quiz._count?.questions ?? 0}
-                    </td>
-                    <td className="py-3 px-4 text-center font-bold text-foreground/90">
-                      {quiz._count?.attempts ?? 0}
-                    </td>
-                    <td className="py-3 px-4 text-center select-none">
-                      <div className="flex items-center justify-center gap-1.5">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => router.push(`/admin/manage/quizzes/${quiz.id}/questions`)}
-                          title="Manage Questions"
-                          className="h-8 w-8 text-muted-foreground hover:bg-surface-hover hover:text-primary rounded-lg border border-border/50 bg-surface"
+                {paginatedQuizzes.map((quiz) => {
+                  const isSelected = selectedQuizIds.includes(quiz.id);
+                  return (
+                    <tr
+                      key={quiz.id}
+                      className={cn(
+                        "border-b border-border/20 hover:bg-secondary/20 transition-colors",
+                        isSelected && "bg-primary/5 dark:bg-primary/10"
+                      )}
+                    >
+                      <td className="py-3 px-3 text-center">
+                        <button
+                          onClick={() => handleToggleSelectQuiz(quiz.id)}
+                          className="text-muted-foreground hover:text-foreground cursor-pointer flex items-center justify-center mx-auto"
                         >
-                          <HelpCircle className="h-3.5 w-3.5" />
-                        </Button>
+                          {isSelected ? (
+                            <CheckSquare className="h-4 w-4 text-primary" />
+                          ) : (
+                            <Square className="h-4 w-4" />
+                          )}
+                        </button>
+                      </td>
+                      <td className="py-3 px-3 text-center font-bold text-muted-foreground">
+                        #{quiz.quizOrder || 1}
+                      </td>
+                      <td className="py-3 px-4 font-semibold text-foreground">
+                        <button
+                          onClick={() => router.push(`/admin/manage/quizzes/${quiz.id}/questions`)}
+                          className="text-left font-semibold text-foreground hover:text-primary transition-colors cursor-pointer border-0 bg-transparent p-0 flex items-center gap-1.5 group"
+                        >
+                          <span>{quiz.title}</span>
+                          <span className="text-[11px] text-muted-foreground group-hover:text-primary font-normal">
+                            &rarr;
+                          </span>
+                        </button>
+                      </td>
+                      <td className="py-3 px-4 text-center select-none">
+                        <Badge
+                          variant={difficultyColor(quiz.difficulty)}
+                          className="capitalize font-bold text-[10px] px-2 py-0.5 animate-none"
+                        >
+                          {quiz.difficulty}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4 text-center font-bold text-foreground/90">
+                        {quiz._count?.questions ?? 0}
+                      </td>
+                      <td className="py-3 px-4 text-center font-bold text-foreground/90">
+                        {quiz._count?.attempts ?? 0}
+                      </td>
+                      <td className="py-3 px-4 text-center select-none">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => router.push(`/admin/manage/quizzes/${quiz.id}/questions`)}
+                            title="Manage Questions"
+                            className="h-8 w-8 text-muted-foreground hover:bg-surface-hover hover:text-primary rounded-lg border border-border/50 bg-surface"
+                          >
+                            <HelpCircle className="h-3.5 w-3.5" />
+                          </Button>
 
-                        <Dropdown>
-                          <DropdownTrigger>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-muted-foreground hover:bg-surface-hover rounded-lg"
-                            >
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownTrigger>
-                          <DropdownContent align="right" className="w-52">
-                            <DropdownItem onClick={() => router.push(`/admin/manage/quizzes/${quiz.id}/questions`)}>
-                              Manage Questions
-                            </DropdownItem>
-                            <DropdownItem onClick={() => handleOpenEditQuiz(quiz)}>
-                              Edit Settings
-                            </DropdownItem>
-                            <DropdownItem onClick={() => handleUnlink(quiz)} className="text-warning">
-                              <span className="flex items-center gap-2">
-                                <Unlink className="h-3.5 w-3.5" />
-                                <span>Unlink from Subtopic</span>
-                              </span>
-                            </DropdownItem>
-                            <DropdownItem onClick={() => handleDelete(quiz)} className="text-danger">
-                              Delete Quiz
-                            </DropdownItem>
-                          </DropdownContent>
-                        </Dropdown>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          <Dropdown>
+                            <DropdownTrigger>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:bg-surface-hover rounded-lg"
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownTrigger>
+                            <DropdownContent align="right" className="w-52">
+                              <DropdownItem onClick={() => router.push(`/admin/manage/quizzes/${quiz.id}/questions`)}>
+                                Manage Questions
+                              </DropdownItem>
+                              <DropdownItem onClick={() => handleOpenEditQuiz(quiz)}>
+                                Edit Settings
+                              </DropdownItem>
+                              <DropdownItem onClick={() => handleUnlink(quiz)} className="text-warning">
+                                <span className="flex items-center gap-2">
+                                  <Unlink className="h-3.5 w-3.5" />
+                                  <span>Unlink from Subtopic</span>
+                                </span>
+                              </DropdownItem>
+                              <DropdownItem onClick={() => handleDelete(quiz)} className="text-danger">
+                                Delete Quiz
+                              </DropdownItem>
+                            </DropdownContent>
+                          </Dropdown>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -502,8 +678,77 @@ export function SubtopicQuizzesManager({
           />
         </Card>
       )}
+
+      {/* Floating Bottom Multi-Select Action Bar */}
+      <AnimatePresence>
+        {selectedQuizIds.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 40, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 40, scale: 0.96 }}
+            transition={{
+              type: "spring",
+              damping: 24,
+              stiffness: 420,
+              mass: 0.8,
+            }}
+            className="fixed bottom-6 inset-x-0 z-40 flex justify-center px-4 pointer-events-none"
+          >
+            <div className="pointer-events-auto flex items-center gap-3 bg-card/95 dark:bg-zinc-900/95 backdrop-blur-md border border-border shadow-2xl rounded-2xl p-2.5 sm:px-4 sm:py-3 max-w-xl w-full justify-between animate-in">
+              <div className="flex items-center gap-2.5">
+                <motion.div
+                  key={selectedQuizIds.length}
+                  initial={{ scale: 1.25 }}
+                  animate={{ scale: 1 }}
+                  transition={{ duration: 0.18 }}
+                >
+                  <Badge variant="info" className="px-2.5 py-1 text-xs font-bold shadow-xs">
+                    {selectedQuizIds.length} Selected
+                  </Badge>
+                </motion.div>
+                <span className="text-xs text-muted-foreground font-medium hidden sm:inline">
+                  Manage subtopic quizzes
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleBulkUnlink}
+                  disabled={loading}
+                  className="h-8.5 px-3 text-xs font-semibold gap-1.5 text-warning hover:text-warning"
+                >
+                  <Unlink className="h-3.5 w-3.5" />
+                  <span>Unlink Selected</span>
+                </Button>
+
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={handleBulkDelete}
+                  disabled={loading}
+                  className="h-8.5 px-3 text-xs font-semibold gap-1.5 shadow-xs"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  <span>Delete Selected</span>
+                </Button>
+
+                <button
+                  onClick={handleClearSelection}
+                  className="h-8.5 w-8.5 rounded-lg border border-border/80 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-surface transition-colors cursor-pointer"
+                  title="Deselect all"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
 export default SubtopicQuizzesManager;
+

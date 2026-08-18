@@ -293,6 +293,9 @@ export async function processBatchById(batchId: string): Promise<{ success: bool
     });
 
     if (!batch) return { success: false, error: "Batch not found" };
+    if (batch.status === "PAUSED") {
+      return { success: false, error: "Batch is paused" };
+    }
 
     await prisma.quizBatch.update({
       where: { id: batchId },
@@ -305,6 +308,15 @@ export async function processBatchById(batchId: string): Promise<{ success: bool
     let batchErrorMessage = "";
 
     for (let j = 0; j < rawQuestions.length; j += 30) {
+      // Re-check status before calling AI in case batch was paused in the meantime
+      const currentBatchStatus = await prisma.quizBatch.findUnique({
+        where: { id: batchId },
+        select: { status: true },
+      });
+      if (currentBatchStatus?.status === "PAUSED") {
+        return { success: false, error: "Batch paused by user" };
+      }
+
       const subBatch = rawQuestions.slice(j, j + 30);
       const isPaddingAllowed = batch.padTo30;
 
@@ -584,6 +596,8 @@ Provide a hint and a detailed description/explanation for the answer.${existingQ
         // 2. Start asynchronous processing in background using Next.js after()
         after(async () => {
           for (const b of batchRecords) {
+            const current = await prisma.quizBatch.findUnique({ where: { id: b.id } });
+            if (!current || current.status === "PAUSED") continue;
             await processBatchById(b.id);
             await new Promise((r) => setTimeout(r, 1500));
           }

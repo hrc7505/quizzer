@@ -15,6 +15,7 @@ import {
   Square,
   CheckSquare,
   Trash2,
+  GitMerge,
   X,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -24,12 +25,14 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
+import { FloatingActionBar } from "@/components/ui/FloatingActionBar";
 import { PageHeader } from "@/components/data-display/PageHeader";
 import { Pagination } from "@/components/data-display/Pagination";
 import { NoData } from "@/components/feedback/NoData";
 import { LinkPicker } from "@/components/data-display/LinkPicker";
 import { GenerateQuizForm } from "@/components/forms/GenerateQuizForm";
 import { EditQuizDialogBody, type QuizFormState } from "@/components/data-display/QuizManagerBodies";
+import { MergeQuizzesDialogBody } from "@/components/data-display/MergeQuizzesDialogBody";
 import { DeleteConfirmDialogBody } from "@/components/feedback/DeleteConfirmDialogBody";
 import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from "@/components/ui/Dropdown";
 import { useDialog } from "@/components/providers/OverlayProvider";
@@ -321,6 +324,72 @@ export function SubtopicQuizzesManager({
   }, [dialog, selectedQuizIds, subtopic.quizzes, subtopic.title, subtopic.id, refreshQuizzes, toast]);
 
   /**
+   * Opens the Merge Multiple Quizzes dialog for selected quizzes.
+   */
+  const handleOpenMergeDialog = useCallback(() => {
+    const selectedList = subtopic.quizzes.filter((q) => selectedQuizIds.includes(q.id));
+    if (selectedList.length < 2) {
+      toast.addToast({ type: "warning", message: "Please select at least 2 quizzes to merge." });
+      return;
+    }
+
+    const initialState = {
+      targetQuizId: selectedList[0].id,
+      targetTitle: selectedList[0].title,
+    };
+
+    dialog.open({
+      title: "Merge Quizzes",
+      body: (
+        <MergeQuizzesDialogBody
+          selectedQuizzes={selectedList}
+          initialForm={initialState}
+          onConfirm={async (finalForm) => {
+            const targetId = finalForm.targetQuizId || selectedList[0].id;
+            const sourceIds = selectedList.map((q) => q.id).filter((id) => id !== targetId);
+
+            setLoading(true);
+            try {
+              const res = await fetch("/api/admin/quizzes/merge", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  targetQuizId: targetId,
+                  sourceQuizIds: sourceIds,
+                  targetTitle: finalForm.targetTitle,
+                }),
+              });
+
+              const data = await res.json();
+              if (res.ok && !data.error) {
+                soundEffects.playCorrectSound();
+                setSelectedQuizIds([]);
+                await refreshQuizzes();
+                toast.addToast({
+                  type: "success",
+                  message: data.message || `Successfully merged ${selectedList.length} quizzes!`,
+                });
+              } else {
+                toast.addToast({
+                  type: "error",
+                  message: data.error || "Failed to merge quizzes",
+                });
+                throw new Error(data.error);
+              }
+            } catch (err) {
+              console.error("Merge error:", err);
+              toast.addToast({ type: "error", message: "An unexpected error occurred during merge" });
+              throw err;
+            } finally {
+              setLoading(false);
+            }
+          }}
+        />
+      ),
+    });
+  }, [dialog, subtopic.quizzes, selectedQuizIds, refreshQuizzes, toast]);
+
+  /**
    * Bulk deletes all selected quizzes permanently.
    */
   const handleBulkDelete = useCallback(() => {
@@ -474,7 +543,18 @@ export function SubtopicQuizzesManager({
           "Manage quizzes belonging to this subtopic. Select multiple quizzes to bulk delete or unlink."
         }
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {selectedQuizIds.length >= 2 && (
+              <Button
+                variant="primary"
+                size="sm"
+                className="gap-1.5 font-semibold text-xs h-9 px-3.5 shadow-xs"
+                onClick={handleOpenMergeDialog}
+              >
+                <GitMerge className="h-3.5 w-3.5" />
+                <span>Merge ({selectedQuizIds.length})</span>
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -680,72 +760,50 @@ export function SubtopicQuizzesManager({
       )}
 
       {/* Floating Bottom Multi-Select Action Bar */}
-      <AnimatePresence>
-        {selectedQuizIds.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 40, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 40, scale: 0.96 }}
-            transition={{
-              type: "spring",
-              damping: 24,
-              stiffness: 420,
-              mass: 0.8,
-            }}
-            className="fixed bottom-6 inset-x-0 z-40 flex justify-center px-4 pointer-events-none"
+      <FloatingActionBar
+        isOpen={selectedQuizIds.length > 0}
+        count={selectedQuizIds.length}
+        subtitle="Manage subtopic quizzes"
+        onClear={handleClearSelection}
+      >
+        {selectedQuizIds.length >= 2 && (
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={handleOpenMergeDialog}
+            disabled={loading}
+            className="flex-1 sm:flex-none h-8.5 px-3 text-xs font-semibold gap-1.5 shadow-xs"
+            title="Merge selected quizzes into 1 quiz"
           >
-            <div className="pointer-events-auto flex items-center gap-3 bg-card/95 dark:bg-zinc-900/95 backdrop-blur-md border border-border shadow-2xl rounded-2xl p-2.5 sm:px-4 sm:py-3 max-w-xl w-full justify-between animate-in">
-              <div className="flex items-center gap-2.5">
-                <motion.div
-                  key={selectedQuizIds.length}
-                  initial={{ scale: 1.25 }}
-                  animate={{ scale: 1 }}
-                  transition={{ duration: 0.18 }}
-                >
-                  <Badge variant="info" className="px-2.5 py-1 text-xs font-bold shadow-xs">
-                    {selectedQuizIds.length} Selected
-                  </Badge>
-                </motion.div>
-                <span className="text-xs text-muted-foreground font-medium hidden sm:inline">
-                  Manage subtopic quizzes
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleBulkUnlink}
-                  disabled={loading}
-                  className="h-8.5 px-3 text-xs font-semibold gap-1.5 text-warning hover:text-warning"
-                >
-                  <Unlink className="h-3.5 w-3.5" />
-                  <span>Unlink Selected</span>
-                </Button>
-
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={handleBulkDelete}
-                  disabled={loading}
-                  className="h-8.5 px-3 text-xs font-semibold gap-1.5 shadow-xs"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  <span>Delete Selected</span>
-                </Button>
-
-                <button
-                  onClick={handleClearSelection}
-                  className="h-8.5 w-8.5 rounded-lg border border-border/80 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-surface transition-colors cursor-pointer"
-                  title="Deselect all"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          </motion.div>
+            <GitMerge className="h-3.5 w-3.5 shrink-0" />
+            <span>Merge ({selectedQuizIds.length})</span>
+          </Button>
         )}
-      </AnimatePresence>
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleBulkUnlink}
+          disabled={loading}
+          className="flex-1 sm:flex-none h-8.5 px-3 text-xs font-semibold gap-1.5 text-warning hover:text-warning"
+          title="Unlink selected quizzes from this subtopic"
+        >
+          <Unlink className="h-3.5 w-3.5 shrink-0" />
+          <span>Unlink</span>
+        </Button>
+
+        <Button
+          variant="danger"
+          size="sm"
+          onClick={handleBulkDelete}
+          disabled={loading}
+          className="flex-1 sm:flex-none h-8.5 px-3 text-xs font-semibold gap-1.5 shadow-xs"
+          title="Delete selected quizzes permanently"
+        >
+          <Trash2 className="h-3.5 w-3.5 shrink-0" />
+          <span>Delete</span>
+        </Button>
+      </FloatingActionBar>
     </div>
   );
 }

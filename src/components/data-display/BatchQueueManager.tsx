@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Spinner } from "@/components/ui/Spinner";
 import { Alert } from "@/components/ui/Alert";
+import { FloatingActionBar } from "@/components/ui/FloatingActionBar";
 import { useToast } from "@/components/providers/ToastProvider";
 import { soundEffects } from "@/lib/services/sound-effects.service";
 import { cn } from "@/utils/cn";
@@ -776,60 +777,22 @@ export function BatchQueueManager({
       )}
 
       {/* Floating Bottom Multi-Select Action Bar for Batches */}
-      <AnimatePresence>
-        {selectedBatchIds.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 40, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 40, scale: 0.96 }}
-            transition={{
-              type: "spring",
-              damping: 24,
-              stiffness: 420,
-              mass: 0.8,
-            }}
-            className="fixed bottom-6 inset-x-0 z-40 flex justify-center px-4 pointer-events-none"
-          >
-            <div className="pointer-events-auto flex items-center gap-3 bg-card/95 dark:bg-zinc-900/95 backdrop-blur-md border border-border shadow-2xl rounded-2xl p-2.5 sm:px-4 sm:py-3 max-w-xl w-full justify-between animate-in">
-              <div className="flex items-center gap-2.5">
-                <motion.div
-                  key={selectedBatchIds.length}
-                  initial={{ scale: 1.25 }}
-                  animate={{ scale: 1 }}
-                  transition={{ duration: 0.18 }}
-                >
-                  <Badge variant="info" className="px-2.5 py-1 text-xs font-bold shadow-xs">
-                    {selectedBatchIds.length} Selected
-                  </Badge>
-                </motion.div>
-                <span className="text-xs text-muted-foreground font-medium hidden sm:inline">
-                  Batch queue actions
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={handleBulkDeleteSelected}
-                  className="h-8.5 px-3 text-xs font-semibold gap-1.5 shadow-xs"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  <span>Discard Selected ({selectedBatchIds.length})</span>
-                </Button>
-
-                <button
-                  onClick={handleClearSelection}
-                  className="h-8.5 w-8.5 rounded-lg border border-border/80 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-surface transition-colors cursor-pointer"
-                  title="Deselect all"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <FloatingActionBar
+        isOpen={selectedBatchIds.length > 0}
+        count={selectedBatchIds.length}
+        subtitle="Batch queue actions"
+        onClear={handleClearSelection}
+      >
+        <Button
+          variant="danger"
+          size="sm"
+          onClick={handleBulkDeleteSelected}
+          className="flex-1 sm:flex-none h-8.5 px-3 text-xs font-semibold gap-1.5 shadow-xs"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+          <span>Discard Selected ({selectedBatchIds.length})</span>
+        </Button>
+      </FloatingActionBar>
     </div>
   );
 }

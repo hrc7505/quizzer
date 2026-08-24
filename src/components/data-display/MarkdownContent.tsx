@@ -2,11 +2,12 @@
 
 import * as React from "react";
 import ReactMarkdown from "react-markdown";
-import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
-import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
-import { Check, Sparkles, Lightbulb, BookOpen, Layers } from "lucide-react";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import { BookOpen, Check, Layers } from "lucide-react";
+
 import { cn } from "@/utils/cn";
 
 export interface MarkdownContentProps {
@@ -144,9 +145,9 @@ export const MarkdownContent = React.memo(function MarkdownContent({
   content,
   className,
 }: MarkdownContentProps) {
-  if (!content) return null;
+  const normalized = React.useMemo(() => normalizeMathMarkdown(content || ""), [content]);
 
-  const normalized = React.useMemo(() => normalizeMathMarkdown(content), [content]);
+  if (!content) return null;
 
   return (
     <div
@@ -195,7 +196,7 @@ export const MarkdownContent = React.memo(function MarkdownContent({
 
             return (
               <code
-                className="bg-secondary/80 text-foreground px-1.5 py-0.5 rounded-md font-mono text-[11px] border border-border/50"
+                className="inline-block px-2 py-0.5 mx-0.5 rounded-md font-mono text-[11.5px] sm:text-xs font-medium bg-secondary/80 dark:bg-zinc-800/90 text-foreground dark:text-zinc-100 border border-border/90 dark:border-zinc-700 shadow-2xs select-text"
                 {...props}
               >
                 {children}

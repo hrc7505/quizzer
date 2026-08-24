@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/utils/cn";
 import { sanitizeImageUrl } from "@/lib/format";
 import { MarkdownContent } from "@/components/data-display/MarkdownContent";
+import { OptionText } from "@/components/data-display/OptionText";
 import { QuestionText } from "@/components/data-display/QuestionText";
 import { ShimmerImage } from "@/components/ui/ShimmerImage";
 
@@ -82,7 +83,9 @@ function DetailedQuestionAccordionInner({
             <span className="font-bold text-[10px] uppercase tracking-wider text-success">
               ✓ Correct Answer
             </span>
-            <span className="text-foreground font-semibold text-xs sm:text-sm leading-relaxed">{question.correctAnswer}</span>
+            <span className="text-foreground font-semibold text-xs sm:text-sm leading-relaxed">
+              <OptionText text={question.correctAnswer} />
+            </span>
           </div>
 
           {!isCorrect && answer && (
@@ -90,7 +93,9 @@ function DetailedQuestionAccordionInner({
               <span className="font-bold text-[10px] uppercase tracking-wider text-danger">
                 ✗ Your Answer
               </span>
-              <span className="text-foreground font-semibold text-xs sm:text-sm leading-relaxed">{answer.selectedAnswer}</span>
+              <span className="text-foreground font-semibold text-xs sm:text-sm leading-relaxed">
+                <OptionText text={answer.selectedAnswer} />
+              </span>
             </div>
           )}
 

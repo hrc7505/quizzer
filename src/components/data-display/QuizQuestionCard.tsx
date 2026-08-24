@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, memo } from "react";
-import { Sparkles, Check, Lightbulb, X, Loader2, ZoomIn } from "lucide-react";
+import { Sparkles, Lightbulb, X, Loader2, ZoomIn } from "lucide-react";
 
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/utils/cn";
 import { sanitizeImageUrl } from "@/lib/format";
 import { MarkdownContent } from "@/components/data-display/MarkdownContent";
+import { OptionText } from "@/components/data-display/OptionText";
 import { QuestionText } from "@/components/data-display/QuestionText";
 import { ShimmerImage } from "@/components/ui/ShimmerImage";
 
@@ -144,7 +145,7 @@ function QuizQuestionCardInner({
               )}
               aria-pressed={isSelected}
             >
-              {opt}
+              <OptionText text={opt} />
             </button>
           );
         })}

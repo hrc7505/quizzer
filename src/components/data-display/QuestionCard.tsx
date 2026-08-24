@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/utils/cn";
 import { sanitizeImageUrl } from "@/lib/format";
 import { MarkdownContent } from "@/components/data-display/MarkdownContent";
+import { OptionText } from "@/components/data-display/OptionText";
 import { QuestionText } from "@/components/data-display/QuestionText";
 import { ShimmerImage } from "@/components/ui/ShimmerImage";
 
@@ -74,7 +75,7 @@ function OptionGrid({ question, optionVariant }: { question: QuestionCardData; o
           >
             {optionVariant === "badge" ? (
               <span className={cn(
-                "inline-flex items-center justify-center w-5 h-5 rounded-full font-bold text-[9px] border",
+                "inline-flex items-center justify-center w-5 h-5 rounded-full font-bold text-[9px] border shrink-0",
                 isCorrect
                   ? "bg-success text-white border-success/10"
                   : "bg-secondary text-muted-foreground/80 border-border/80"
@@ -82,9 +83,9 @@ function OptionGrid({ question, optionVariant }: { question: QuestionCardData; o
                 {oIdx + 1}
               </span>
             ) : (
-              <span className="opacity-75">{oIdx + 1}.</span>
+              <span className="opacity-75 shrink-0">{oIdx + 1}.</span>
             )}
-            <span className="truncate">{opt} {isCorrect && "✓"}</span>
+            <span className="truncate flex-1"><OptionText text={opt} /> {isCorrect && "✓"}</span>
           </div>
         );
       })}

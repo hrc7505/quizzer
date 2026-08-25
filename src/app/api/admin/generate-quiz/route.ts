@@ -137,7 +137,7 @@ function extractQuestionBlocks(rawText: string): string[] {
     if (remaining) blocks.push(remaining);
   }
 
-  return blocks.length >= 2 ? blocks : [text];
+  return blocks.length > 0 ? blocks : [text];
 }
 
 function chunkText(text: string, maxLength: number): string[] {
@@ -202,6 +202,32 @@ async function parsePdfBuffer(buffer: Buffer): Promise<string> {
   }
 }
 
+/**
+ * Checks whether an AI-generated question is an unwanted placeholder/dummy item.
+ */
+function isPlaceholderQuestion(q: GeneratedQuestion): boolean {
+  if (!q || !q.text) return true;
+  const lowerText = q.text.toLowerCase().trim();
+  if (
+    lowerText.includes("placeholder question") ||
+    lowerText.includes("maintain count") ||
+    lowerText.startsWith("placeholder") ||
+    lowerText.includes("dummy question") ||
+    lowerText.includes("sample question")
+  ) {
+    return true;
+  }
+  // Check dummy options like ["Option A", "Option B", "Option C", "Option D"]
+  if (
+    Array.isArray(q.options) &&
+    q.options.length >= 2 &&
+    q.options.every((opt) => /^Option\s+[A-D]$/i.test(opt.trim()))
+  ) {
+    return true;
+  }
+  return false;
+}
+
 async function generateQuestionsBatch(prompt: string): Promise<GeneratedQuestion[]> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
@@ -218,7 +244,7 @@ async function generateQuestionsBatch(prompt: string): Promise<GeneratedQuestion
       contents: safePrompt,
       config: {
         systemInstruction:
-          "You are a precise multilingual exam question processor. When processing regional languages such as Gujarati (ગુજરાતી) or Hindi (હિન્દી), you MUST preserve verbatim terminology, exact conjuncts (જોડાક્ષરો), grammar, and spelling from the input text without translation, paraphrasing, or substitution of words.",
+          "You are a precise multilingual exam question processor. When processing regional languages such as Gujarati (ગુજરાતી) or Hindi (હિન્દી), you MUST preserve verbatim terminology, exact conjuncts (જોડાક્ષરો), grammar, and spelling from the input text without translation, paraphrasing, or substitution of words.\n\nCRITICAL COUNT INSTRUCTION:\n- When asked to parse N questions, output an array with EXACTLY N questions. NEVER generate dummy, filler, or placeholder questions like 'Placeholder question to maintain count'. Only output the actual real questions provided.\n\nCODE, MATH, AND MATCHING FORMATTING:\n- When question text, statements, or options contain programming code snippets (C, C++, Java, Python, JS, SQL, HTML, etc.), wrap them in fenced markdown with the language identifier (e.g. ```c ... ```) and preserve exact indentation and punctuation.\n- When questions or options contain mathematical formulas, equations, or scientific notation, use standard LaTeX syntax ($...$ for inline, $$...$$ for block display).\n- When questions are 'Match the following' / entity relationship questions (e.g. 'Match List-I with List-II', 'જોડકાં જોડો'), structure the text with 'List-I:' followed by lettered items (a), (b), (c)... and 'List-II:' followed by numbered items (1), (2), (3)...",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.ARRAY,
@@ -248,7 +274,10 @@ async function generateQuestionsBatch(prompt: string): Promise<GeneratedQuestion
 
     const rawJson = extractJson(resultText);
     const sanitized = sanitizeNullBytes(rawJson) as GeneratedQuestion[];
-    return Array.isArray(sanitized) ? sanitized : [];
+    const validQuestions = Array.isArray(sanitized)
+      ? sanitized.filter((q) => !isPlaceholderQuestion(q))
+      : [];
+    return validQuestions;
   } catch (err) {
     if (controller.signal.aborted) {
       throw new Error("AI content generation timed out. Try again with smaller input or a longer timeout.");
@@ -326,15 +355,37 @@ Your task is to parse and extract EVERY SINGLE question into the structured JSON
 
 Formatting rules:
 1. Clean the question text by removing any leading overall question numbers (e.g. "49. ").
-2. For multi-statement questions (e.g. questions containing statements 1., 2., 3. or (i), (ii), (iii) or Assertion-Reason / કથન-કારણ), ALWAYS format the question text with newlines (\\n) separating the premise and each numbered statement. NEVER merge statements into a single paragraph.
-3. Extract the 4 options and trim any leading option letters like "(a)", "(b)", "A.", "B)" so only the clean option text remains.
-4. Identify and set the correct answer (matching one of the 4 cleaned option strings exactly).
-5. Provide a helpful hint and a detailed technical explanation for why the answer is correct.
-6. CRITICAL VERBATIM ACCURACY: Do NOT rephrase, modernize, translate, or substitute any words in Gujarati/Indic regional text. Keep all authentic terminology, conjuncts (જોડાક્ષર), questions, and options EXACTLY verbatim as provided in the source text.
+2. CODE DETECTION & FORMATTING:
+   - When question text, statements, or options contain programming code, functions, or algorithms (e.g., C, C++, Python, Java, JavaScript, SQL, HTML/CSS), ALWAYS format them into a fenced Markdown code block with the specific language identifier (e.g. \`\`\`c ... \`\`\`, \`\`\`python ... \`\`\`, \`\`\`sql ... \`\`\`).
+   - Preserve exact code indentation, whitespace, semicolons, brackets, and line breaks.
+   - For short inline identifiers, variable/type declarations, prototypes, or functions (e.g., \`int a;\`, \`int *f();\`, \`char (*(*x()))();\`, \`int *\`, \`printf()\`), ALWAYS wrap them in inline backticks \`...\`.
+3. MATH, EXPONENTS & EQUATIONS DETECTION:
+   - When mathematical formulas, superscripts/exponents (e.g. $2^n$, $2^n - 1$, $2^n - 2$, $2(2^n - 2)$, $x^2$), subscripts ($x_i$), fractions ($\frac{a}{b}$), relational inequalities ($n \ge 2$, $x \le 5$, $\neq$), or matrices appear, ALWAYS format them in standard LaTeX math notation ($...$ for inline and options, $$...$$ for block display).
+   - In options containing mathematical formulas (e.g., $2^n$, $2^n - 1$), ALWAYS wrap them in single dollar signs like \`$2^n$\`, \`$2^n - 1$\`, \`$2(2^n - 2)$\`. NEVER leave raw unescaped carets like \`2^n\`.
+   - Fix OCR symbol misreadings (e.g., convert "n ∝ 2" or "n \propto 2" to "$n \ge 2$").
+4. MATCH THE FOLLOWING & ENTITY RELATIONS:
+   - When parsing 'Match the following' questions (or questions showing relationships between concepts/algorithms/entities, 'List-I with List-II', 'જોડકાં જોડો'):
+     - Format the text with clear lists:
+       List-I:
+       (a) Entity 1
+       (b) Entity 2
+       (c) Entity 3
+       (d) Entity 4
+       List-II:
+       (1) Target 1
+       (2) Target 2
+       (3) Target 3
+       (4) Target 4
+     - Options should represent clean matching pairs (e.g. "a-3, b-1, c-2, d-4").
+5. For multi-statement questions (e.g. questions containing statements 1., 2., 3. or (i), (ii), (iii) or Assertion-Reason / કથન-કારણ), ALWAYS format the question text with newlines (\\n) separating the premise and each numbered statement. NEVER merge statements into a single paragraph.
+6. Extract the 4 options and trim any leading option letters like "(a)", "(b)", "A.", "B)" so only the clean option text remains.
+7. Identify and set the correct answer (matching one of the 4 cleaned option strings exactly).
+8. Provide a helpful hint and a detailed technical explanation for why the answer is correct (formatted in markdown with code blocks and LaTeX math where applicable).
+9. CRITICAL VERBATIM ACCURACY: Do NOT rephrase, modernize, translate, or substitute any words in Gujarati/Indic regional text. Keep all authentic terminology, conjuncts (જોડાક્ષર), questions, and options EXACTLY verbatim as provided in the source text.
 ${
   isPaddingAllowed
-    ? `7. PADDING ALLOWED: If fewer than 30 questions are provided, you may generate complementary questions on "${batch.title}" to reach 30 questions.`
-    : `7. STRICT QUESTION COUNT: Return EXACTLY the ${subBatch.length} question(s) provided in the source text. DO NOT generate, fabricate, or add ANY new questions to pad the count. Return exactly ${subBatch.length} items in the JSON array.`
+    ? `10. PADDING ALLOWED: If fewer than 30 questions are provided, you may generate complementary questions on "${batch.title}" to reach 30 questions. DO NOT generate dummy/placeholder questions.`
+    : `10. STRICT QUESTION COUNT: Return EXACTLY the ${subBatch.length} question(s) provided in the source text. DO NOT generate, fabricate, or add ANY new questions to pad the count. DO NOT output placeholder questions like 'Placeholder question to maintain count'. Return exactly ${subBatch.length} items in the JSON array.`
 }
 
 Difficulty level: ${batch.difficulty}.
@@ -344,7 +395,8 @@ ${subBatch.join("\n\n")}`;
 
       try {
         const batchRes = await generateQuestionsBatch(sanitizeImageText(prompt));
-        const filteredRes = isPaddingAllowed ? batchRes : batchRes.slice(0, subBatch.length);
+        const realQuestions = batchRes.filter((q) => !isPlaceholderQuestion(q));
+        const filteredRes = isPaddingAllowed ? realQuestions : realQuestions.slice(0, subBatch.length);
         parsedQuestions.push(...filteredRes);
       } catch (err) {
         console.warn(`Batch AI generation failure for batch ${batch.id}:`, err);
@@ -525,7 +577,11 @@ Difficulty level: ${difficulty}.
 Provide up to 30 distinct questions covering different aspects of the topic.
 Each question must have exactly 4 options.
 One option must be the correct answer (matching the string exactly).
-Provide a hint and a detailed description/explanation for the answer.${existingQuestionsText}`;
+Provide a hint and a detailed description/explanation for the answer.
+
+Formatting rules:
+1. When questions or options involve programming code, algorithms, or queries, format them using fenced Markdown code blocks with appropriate language tags (e.g. \`\`\`c, \`\`\`python, \`\`\`sql) and preserve exact indentation.
+2. When questions or options involve mathematical formulas or equations, format them using LaTeX math delimiters ($...$ or $$...$$).${existingQuestionsText}`;
 
       allGeneratedQuestions = await generateQuestionsBatch(sanitizeImageText(prompt));
 
@@ -557,9 +613,11 @@ Provide a hint and a detailed description/explanation for the answer.${existingQ
       }
 
       const questionBlocks = extractQuestionBlocks(fullText);
+      const optionInlinePattern = /(?:[A-Da-d][\.\)]|\([A-Da-d]\))/;
+      const isQuestionBank = questionBlocks.length > 1 || (questionBlocks.length === 1 && optionInlinePattern.test(questionBlocks[0]));
 
-      if (questionBlocks.length >= 2) {
-        // User pasted a question bank: group into 30-question bunches (each bunch = 1 Quiz)
+      if (isQuestionBank) {
+        // User pasted questions: group into 30-question bunches (each bunch = 1 Quiz)
         const bunches: string[][] = [];
         for (let i = 0; i < questionBlocks.length; i += 30) {
           bunches.push(questionBlocks.slice(i, i + 30));
@@ -624,7 +682,11 @@ Generate up to 10 comprehensive multiple-choice questions based on the key conce
 Difficulty level: ${difficulty}.
 Each question must have exactly 4 options.
 One option must be the correct answer (matching the string exactly).
-Provide a hint and a detailed description/explanation for why the answer is correct.${existingQuestionsText}
+Provide a hint and a detailed description/explanation for why the answer is correct.
+
+Formatting rules:
+1. When questions or options involve programming code or scripts, format them using fenced Markdown code blocks (e.g. \`\`\`c, \`\`\`python, \`\`\`java).
+2. When questions or options involve math or scientific equations, format them using LaTeX ($...$ or $$...$$).${existingQuestionsText}
 
 Text content to analyze:
 ${chunk}`;

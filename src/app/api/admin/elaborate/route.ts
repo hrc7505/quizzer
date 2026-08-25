@@ -54,9 +54,13 @@ Your response should include:
 3. Why the other options are incorrect.
 4. Practical takeaways or memory rules.
 5. Suggested search-intent keywords for video tutorials and online web links (e.g. "Search YouTube for: [keyword]").
+
+Formatting rules:
+- Format code snippets using fenced Markdown code blocks with language identifiers (e.g. \`\`\`c, \`\`\`python, \`\`\`java).
+- Format mathematical formulas using standard LaTeX syntax ($...$ for inline, $$...$$ for block display).
 `;
 
-    const contents: any[] = [];
+    const contents: Array<string | { inlineData: { mimeType: string; data: string } }> = [];
     if (imageData) {
       contents.push({
         inlineData: {

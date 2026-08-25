@@ -11,15 +11,29 @@ export interface FormattedStatement {
   raw: string;
 }
 
+export interface MatchingColumn {
+  /** Title of the column, e.g. "List I", "List II", "Column A" */
+  title?: string;
+  /** Items within this column */
+  items: FormattedStatement[];
+}
+
 export interface ParsedQuestionData {
   /** The introductory premise or question statement */
   premise: string;
   /** Extracted sub-statements for multi-statement / assertion-reason questions */
   statements: FormattedStatement[];
+  /** Matching columns for 'Match the following' / pair relation questions */
+  matchingColumns?: {
+    left: MatchingColumn;
+    right: MatchingColumn;
+  } | null;
   /** Trailing question prompt if present (e.g. "Which of the above is correct?") */
   prompt: string;
   /** Whether the question is recognized as a multi-statement question */
   isMultiStatement: boolean;
+  /** Whether the question is a pair matching question */
+  isMatching: boolean;
 }
 
 export interface QuestionTextProps {

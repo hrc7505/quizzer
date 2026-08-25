@@ -1,36 +1,21 @@
 "use client";
 
-import { useState, memo } from "react";
-import { Sparkles, Check, Lightbulb, X, Loader2, ZoomIn } from "lucide-react";
+import { memo } from "react";
+import { Lightbulb, Loader2 } from "lucide-react";
 
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/utils/cn";
-import { sanitizeImageUrl } from "@/lib/format";
-import { MarkdownContent } from "@/components/data-display/MarkdownContent";
+import { QuestionImage } from "@/components/data-display/QuestionImage";
+import { AnswerCallout } from "@/components/data-display/AnswerCallout";
+import { OptionText } from "@/components/data-display/OptionText";
 import { QuestionText } from "@/components/data-display/QuestionText";
-import { ShimmerImage } from "@/components/ui/ShimmerImage";
+import type { QuizQuestionCardProps } from "@/components/data-display/interfaces/QuizQuestionCard.interface";
 
-interface QuizQuestionCardProps {
-  question: {
-    id: string;
-    text: string;
-    imageUrl?: string | null;
-    invertInDark?: boolean;
-    hint?: string | null;
-    description?: string | null;
-    options: string[];
-    correctAnswer: string;
-  };
-  selectedOption: string | null;
-  showHint: boolean;
-  onOptionClick: (option: string, origin?: { x: number; y: number }) => void;
-  onToggleHint: () => void;
-  onNext: () => void;
-  isSubmitting: boolean;
-  isLastQuestion: boolean;
-}
-
+/**
+ * QuizQuestionCard — interactive active question interface for quizzes.
+ * Provides instant feedback on selection, zoomable diagram lightbox, hints, and explanations.
+ */
 function QuizQuestionCardInner({
   question,
   selectedOption,
@@ -41,80 +26,22 @@ function QuizQuestionCardInner({
   isSubmitting,
   isLastQuestion,
 }: QuizQuestionCardProps) {
-  const [isZoomed, setIsZoomed] = useState(false);
-  const shouldInvert = question.invertInDark !== false;
-  const safeImageUrl = sanitizeImageUrl(question.imageUrl);
-
   return (
-    <Card className="p-6 sm:p-8 flex flex-col gap-6 border border-border/80 bg-card shadow-sm rounded-2xl">
-      <div>
+    <Card className="p-6 sm:p-8 flex flex-col gap-6 border border-border/80 bg-card shadow-sm rounded-2xl min-w-0 max-w-full">
+      <div className="min-w-0">
         <QuestionText text={question.text} size="base" />
       </div>
 
-      {/* Question Diagram / Schematic Image */}
-      {safeImageUrl && (
-        <div className="flex flex-col gap-2">
-          <div
-            onClick={() => setIsZoomed(true)}
-            className="group relative flex items-center justify-center p-3 sm:p-4 rounded-xl border border-border/70 bg-card/60 dark:bg-zinc-950/80 overflow-hidden cursor-zoom-in hover:border-primary/50 transition-colors"
-          >
-            <ShimmerImage
-              src={safeImageUrl}
-              alt="Question diagram"
-              invertInDark={shouldInvert}
-              containerClassName="min-h-[160px] w-full max-w-xl"
-              className="max-h-64 sm:max-h-72 w-auto object-contain transition-transform duration-200 group-hover:scale-[1.01]"
-              loading="eager"
-            />
-            <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-background/80 backdrop-blur-xs text-[11px] font-semibold text-muted-foreground px-2 py-1 rounded-md border border-border/60 shadow-xs opacity-0 group-hover:opacity-100 transition-opacity z-20">
-              <ZoomIn className="h-3.5 w-3.5" />
-              <span>Enlarge</span>
-            </div>
-          </div>
-
-          {/* Lightbox Zoom Modal */}
-          {isZoomed && (
-            <div
-              role="dialog"
-              aria-modal="true"
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 sm:p-8 animate-fade-in"
-              onClick={() => setIsZoomed(false)}
-            >
-              <div
-                className="relative max-w-4xl max-h-[90vh] w-full flex flex-col items-center justify-center bg-card border border-border/80 rounded-2xl p-4 sm:p-6 shadow-2xl overflow-hidden"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="w-full flex items-center justify-between pb-3 border-b border-border/40 mb-3">
-                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                    Question Diagram
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setIsZoomed(false)}
-                    className="p-1 rounded-lg hover:bg-surface-hover text-muted-foreground hover:text-foreground cursor-pointer"
-                    aria-label="Close image preview"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-                <div className="max-h-[75vh] w-full overflow-auto flex items-center justify-center bg-card/60 dark:bg-zinc-950/80 p-4 rounded-xl border border-border/40">
-                  <img
-                    src={safeImageUrl}
-                    alt="Question diagram full view"
-                    className={cn(
-                      "max-h-[70vh] max-w-full object-contain",
-                      shouldInvert && "dark:invert"
-                    )}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      {/* Question Diagram / Schematic Image with Lightbox Zoom */}
+      <QuestionImage
+        src={question.imageUrl}
+        invertInDark={question.invertInDark !== false}
+        variant="interactive"
+        loading="eager"
+      />
 
       {/* Answer Options */}
-      <div className="flex flex-col gap-3" role="group" aria-label="Answer options">
+      <div className="flex flex-col gap-3 min-w-0" role="group" aria-label="Answer options">
         {question.options.map((opt: string, i: number) => {
           const isSelected = selectedOption === opt;
           const isCorrectAnswer = question.correctAnswer === opt;
@@ -139,12 +66,12 @@ function QuizQuestionCardInner({
               onClick={(e) => onOptionClick(opt, { x: e.clientX, y: e.clientY })}
               disabled={!!selectedOption}
               className={cn(
-                "w-full text-left p-4 rounded-xl border text-xs leading-relaxed transition-all cursor-pointer select-none active:scale-[0.99] duration-100 outline-hidden font-medium",
+                "w-full text-left p-4 rounded-xl border text-xs leading-relaxed transition-all cursor-pointer select-none active:scale-[0.99] duration-100 outline-hidden font-medium min-w-0 break-words",
                 optionClass
               )}
               aria-pressed={isSelected}
             >
-              {opt}
+              <OptionText text={opt} />
             </button>
           );
         })}
@@ -152,71 +79,57 @@ function QuizQuestionCardInner({
 
       {/* Explanation Box post answering */}
       {selectedOption && question.description && (
-        <div className="rounded-xl border border-primary/20 bg-primary/5 dark:bg-primary/10 p-3 sm:p-3.5 flex flex-col gap-2 shadow-2xs">
-          <div className="flex items-center gap-1.5 text-primary font-bold text-xs">
-            <Sparkles className="h-3.5 w-3.5" />
-            <span>Answer Explanation</span>
-          </div>
-          <MarkdownContent content={question.description} />
-        </div>
+        <AnswerCallout
+          variant="explanation"
+          title="Answer Explanation"
+          text={question.description}
+        />
       )}
 
-      {/* Controls bar */}
-      <div className="flex items-center justify-between mt-2 relative select-none">
-        {question.hint ? (
-          <div className="relative">
+      {/* Hint Box */}
+      {showHint && question.hint && !selectedOption && (
+        <AnswerCallout
+          variant="hint"
+          text={question.hint}
+        />
+      )}
+
+      {/* Action Footer */}
+      <div className="flex items-center justify-between gap-3 pt-2 border-t border-border/40">
+        <div>
+          {question.hint && !selectedOption && (
             <Button
+              type="button"
               variant="ghost"
-              size="icon"
-              className={cn(
-                "h-10 w-10 border border-border/80 bg-surface rounded-lg",
-                showHint && "bg-secondary text-primary"
-              )}
+              size="sm"
               onClick={onToggleHint}
-              aria-label="Hint"
+              className="gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground h-9"
             >
-              <Lightbulb className="h-4 w-4" />
+              <Lightbulb className="h-3.5 w-3.5 text-warning" />
+              <span>{showHint ? "Hide Hint" : "Need a Hint?"}</span>
             </Button>
-
-            {showHint && (
-              <div className="absolute left-0 bottom-12 z-20 w-64 bg-card border border-border/80 p-4 rounded-xl shadow-lg animate-slide-in-bottom">
-                <div className="flex items-center justify-between border-b border-border/40 pb-1.5 mb-2">
-                  <span className="font-bold text-xs flex items-center gap-1.5 text-primary">
-                    <Lightbulb className="h-3.5 w-3.5" />
-                    <span>Hint</span>
-                  </span>
-                  <button
-                    onClick={onToggleHint}
-                    className="text-muted-foreground/60 hover:text-foreground cursor-pointer"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-                <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
-                  {question.hint}
-                </p>
-              </div>
-            )}
-          </div>
-        ) : (
-          <span />
-        )}
-
-        <Button
-          variant="primary"
-          disabled={!selectedOption || isSubmitting}
-          onClick={onNext}
-          className="h-10 px-5 font-bold gap-2 text-xs shadow-xs min-w-[120px]"
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Finishing...</span>
-            </>
-          ) : (
-            <span>{isLastQuestion ? "Finish Quiz" : "Next Question"}</span>
           )}
-        </Button>
+        </div>
+
+        {selectedOption && (
+          <Button
+            type="button"
+            variant="primary"
+            size="default"
+            onClick={onNext}
+            disabled={isSubmitting}
+            className="gap-2 font-bold px-6 h-10 shadow-md ml-auto"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Completing...</span>
+              </>
+            ) : (
+              <span>{isLastQuestion ? "View Results" : "Next Question →"}</span>
+            )}
+          </Button>
+        )}
       </div>
     </Card>
   );

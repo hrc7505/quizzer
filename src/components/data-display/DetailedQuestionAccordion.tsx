@@ -7,24 +7,15 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/utils/cn";
-import { sanitizeImageUrl } from "@/lib/format";
-import { MarkdownContent } from "@/components/data-display/MarkdownContent";
-import { OptionText } from "@/components/data-display/OptionText";
+import { QuestionImage } from "@/components/data-display/QuestionImage";
+import { AnswerCallout } from "@/components/data-display/AnswerCallout";
 import { QuestionText } from "@/components/data-display/QuestionText";
-import { ShimmerImage } from "@/components/ui/ShimmerImage";
+import type { DetailedQuestionAccordionProps } from "@/components/data-display/interfaces/DetailedQuestionAccordion.interface";
 
-import type { QuestionData, UserAnswerData } from "@/components/data-display/interfaces/QuizResults.interface";
-
-interface DetailedQuestionAccordionProps {
-  question: QuestionData;
-  index: number;
-  answer?: UserAnswerData;
-  elaborations: Record<string, { loading: boolean; data?: string; error?: string }>;
-  activeElaborationId: string | null;
-  handleElaborate: (id: string) => void;
-  onOpenFullPage: string;
-}
-
+/**
+ * DetailedQuestionAccordion — compact collapsible question review row for quiz results.
+ * Displays correct/wrong statuses, formatted equations, option chips, and deep-dive actions.
+ */
 function DetailedQuestionAccordionInner({
   question,
   index,
@@ -36,19 +27,18 @@ function DetailedQuestionAccordionInner({
 }: DetailedQuestionAccordionProps) {
   const [isOpen, setIsOpen] = useState(false);
   const isCorrect = answer?.isCorrect;
-  const safeImageUrl = sanitizeImageUrl(question.imageUrl);
 
   return (
-    <div className="border border-border/80 rounded-xl overflow-hidden bg-card shadow-2xs transition-colors">
+    <div className="border border-border/80 rounded-xl overflow-hidden bg-card shadow-2xs transition-colors min-w-0 max-w-full">
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between gap-4 p-4 text-left hover:bg-surface-hover transition-colors duration-150 cursor-pointer"
+        className="w-full flex items-center justify-between gap-4 p-4 text-left hover:bg-surface-hover transition-colors duration-150 cursor-pointer min-w-0"
       >
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <Badge
             variant={isCorrect ? "success" : "danger"}
-            className="h-7 w-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 px-0"
+            className="h-7 w-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 px-0 select-none"
           >
             {index + 1}
           </Badge>
@@ -56,59 +46,48 @@ function DetailedQuestionAccordionInner({
             <QuestionText text={question.text} isCompact size="sm" />
           </div>
         </div>
-        <div className="shrink-0 text-muted-foreground/60">
+        <div className="shrink-0 text-muted-foreground/60 select-none">
           {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </div>
       </button>
 
       {isOpen && (
-        <div className="p-4 sm:p-5 bg-secondary/10 border-t border-border/50 flex flex-col gap-4 text-xs">
-          <div className="pb-2 border-b border-border/40">
+        <div className="p-4 sm:p-5 bg-secondary/10 border-t border-border/50 flex flex-col gap-4 text-xs min-w-0 max-w-full">
+          <div className="pb-2 border-b border-border/40 min-w-0">
             <QuestionText text={question.text} size="base" />
           </div>
-          {safeImageUrl && (
-            <div className="flex flex-col items-center justify-center p-3 rounded-xl border border-border/70 bg-card/60 dark:bg-zinc-950/80 overflow-hidden">
-              <ShimmerImage
-                src={safeImageUrl}
-                alt="Question diagram"
-                invertInDark={question.invertInDark !== false}
-                containerClassName="min-h-[140px] w-full max-w-lg"
-                className="max-h-60 w-auto object-contain"
-                loading="lazy"
-              />
-            </div>
-          )}
 
-          <div className="flex flex-col gap-1.5 bg-success/10 border border-success/20 p-3 rounded-xl">
-            <span className="font-bold text-[10px] uppercase tracking-wider text-success">
-              ✓ Correct Answer
-            </span>
-            <span className="text-foreground font-semibold text-xs sm:text-sm leading-relaxed">
-              <OptionText text={question.correctAnswer} />
-            </span>
-          </div>
+          {/* Diagram / Schematic Image */}
+          <QuestionImage
+            src={question.imageUrl}
+            invertInDark={question.invertInDark !== false}
+            variant="display"
+          />
 
+          {/* Correct Answer Banner */}
+          <AnswerCallout
+            variant="correct"
+            text={question.correctAnswer}
+          />
+
+          {/* Incorrect User Choice Banner */}
           {!isCorrect && answer && (
-            <div className="flex flex-col gap-1.5 bg-danger/10 border border-danger/20 p-3 rounded-xl">
-              <span className="font-bold text-[10px] uppercase tracking-wider text-danger">
-                ✗ Your Answer
-              </span>
-              <span className="text-foreground font-semibold text-xs sm:text-sm leading-relaxed">
-                <OptionText text={answer.selectedAnswer} />
-              </span>
-            </div>
+            <AnswerCallout
+              variant="incorrect"
+              text={answer.selectedAnswer}
+            />
           )}
 
+          {/* Explanation Callout */}
           {question.description && (
-            <div className="flex flex-col gap-1.5 bg-card/80 border border-border/60 p-3 rounded-xl">
-              <span className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground">
-                Explanation
-              </span>
-              <MarkdownContent content={question.description} className="text-xs sm:text-sm" />
-            </div>
+            <AnswerCallout
+              variant="explanation"
+              text={question.description}
+            />
           )}
 
-          <div className="flex items-center gap-2 mt-1">
+          {/* Deep Dive Action Footer */}
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
             <Button
               variant="outline"
               size="sm"

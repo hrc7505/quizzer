@@ -1,9 +1,68 @@
 /**
- * Shared formatting and sanitization utilities.
+ * Shared formatting, sanitization, and text processing utilities.
  */
+
+// ==========================================
+// Precompiled Regular Expressions
+// ==========================================
+
+const NULL_BYTE_REGEX = /\0/g;
+const NULL_BYTE_UNICODE_REGEX = /\u0000/g;
+const NULL_BYTE_LITERAL_REGEX = /\\u0000/g;
+
+const FILE_EXT_NOISE_REGEX = /\[\s*(png|jpg|jpeg|gif|bmp|webp|svg)\s*\]/gi;
+const SAFE_RELATIVE_PATH_REGEX = /^\/[a-zA-Z0-9_\-./%]+$/;
+const SAFE_DATA_IMAGE_REGEX = /^data:image\/(png|jpeg|jpg|webp|gif|svg\+xml);base64,[a-zA-Z0-9+/=]+$/i;
+
+const LATEX_FRAC_REGEX = /\\frac(?=[{\s])/g;
+const LATEX_BRACKET_BLOCK_REGEX = /\\\[([\s\S]*?)\\\]/g;
+const LATEX_PAREN_INLINE_REGEX = /\\\(([\s\S]*?)\\\)/g;
+const CODE_FENCE_BLOCK_REGEX = /```[\s\S]*?```/;
+
+const CODE_SIGNATURES: Array<{ lang: string; pattern: RegExp }> = [
+  {
+    lang: "c",
+    pattern: /(?:#\s*include\s*<[^>]+>|int\s+main\s*\([^)]*\)|void\s+main\s*\([^)]*\)|void\s*\*?\w+\s*=|printf\s*\(\s*"|scanf\s*\(\s*"|#\s*define\s+\w+)/,
+  },
+  {
+    lang: "cpp",
+    pattern: /(?:#\s*include\s*<iostream>|std::cout|std::cin|cout\s*<<|cin\s*>>|namespace\s+\w+|template\s*<)/,
+  },
+  {
+    lang: "java",
+    pattern: /(?:public\s+class\s+\w+|public\s+static\s+void\s+main|System\.out\.print(?:ln)?)/,
+  },
+  {
+    lang: "python",
+    pattern: /(?:def\s+\w+\s*\([^)]*\)\s*:|import\s+\w+|from\s+\w+\s+import\s+\w+|if\s+__name__\s*==\s*['"]__main__['"])/,
+  },
+  {
+    lang: "sql",
+    pattern: /(?:SELECT\s+.+\s+FROM\s+\w+|CREATE\s+TABLE\s+\w+|INSERT\s+INTO\s+\w+|ALTER\s+TABLE\s+\w+)/i,
+  },
+  {
+    lang: "html",
+    pattern: /(?:<!DOCTYPE\s+html>|<html(?:\s+[^>]*)?>[\s\S]*<\/html>|<div(?:\s+[^>]*)?>[\s\S]*<\/div>)/i,
+  },
+];
+
+const CODE_SEGMENTS_SPLIT_REGEX = /(`+[^`]+`+)/g;
+const C_DECLARATION_REGEX = /(?<![A-Za-z0-9_`])((?:const\s+|static\s+|volatile\s+)?(?:int|char|float|double|void|long|short|unsigned|signed|bool|size_t|struct\s+\w+)\s+(?:\*|\(\s*\*|[a-zA-Z_])[a-zA-Z0-9_\s*()[\],]*;)/g;
+const FUNCTION_CALL_REGEX = /(?<![A-Za-z0-9_`])((?:printf|scanf|sizeof|malloc|calloc|free|strlen|strcpy)\s*\([^)\n]*\))/g;
+const POINTER_TYPE_REGEX = /(?<![A-Za-z0-9_`])((?:int|char|float|double|void|long|short|unsigned)\s*\*(?:\s*\*)*)(?![A-Za-z0-9_`])/g;
+
+const MATH_SEGMENTS_SPLIT_REGEX = /(\$\$[\s\S]*?\$\$|\$[^\$\n]+\$|`+[^`]+`+)/g;
+const OCR_PROPORTIONAL_REGEX = /\b([a-zA-Z])\s*(?:\\propto|∝)\s*(\d+)\b/g;
+const PAREN_INEQUALITY_REGEX = /(?<![$\w`])\(\s*([a-zA-Z])\s*(?:\\ge|\\le|\\geq|\\leq|>=|<=|>|<|!=|==)\s*(\d+)\s*\)(?![$\w`])/g;
+const STANDALONE_INEQUALITY_REGEX = /(?<![$\w`])\b([a-zA-Z])\s*(?:\\ge|\\le|\\geq|\\leq|>=|<=)\s*(\d+)\b(?![$\w`])/g;
+const CARET_EXPRESSION_REGEX = /(?<![$\w`])(\d*\([a-zA-Z0-9\s+\-*/]*\^[a-zA-Z0-9\s+\-*/]*\)\b|\b[a-zA-Z0-9]+\^[a-zA-Z0-9{}]+(?:\s*[+\-*/]\s*\d+)?)(?![$\w`])/g;
+const GREEK_LATEX_COMMAND_REGEX = /(?<![$\w`])(\\(?:theta|alpha|beta|gamma|delta|lambda|sigma|omega|Omega|Theta|infty|sqrt|log|ln|sin|cos|tan)\b(?:\s*[({[].*?[)}\]])?)(?![$\w`])/g;
 
 /**
  * Maps a difficulty level to a Badge variant.
+ *
+ * @param difficulty The difficulty string (e.g. "Easy", "Medium", "Hard").
+ * @returns The matching badge variant.
  */
 export function difficultyColor(difficulty: string): "success" | "warning" | "danger" | "secondary" {
   switch (difficulty.toLowerCase()) {
@@ -27,7 +86,10 @@ export function difficultyColor(difficulty: string): "success" | "warning" | "da
  */
 export function stripNullBytes(text?: string | null): string {
   if (!text || typeof text !== "string") return "";
-  return text.replace(/\0/g, "").replace(/\u0000/g, "").replace(/\\u0000/g, "");
+  return text
+    .replace(NULL_BYTE_REGEX, "")
+    .replace(NULL_BYTE_UNICODE_REGEX, "")
+    .replace(NULL_BYTE_LITERAL_REGEX, "");
 }
 
 /**
@@ -61,11 +123,8 @@ export function sanitizeNullBytes<T>(value: T): T {
  */
 export function sanitizeQuestionText(text?: string | null): string {
   if (!text) return "";
-  return text
-    .replace(/\0/g, "")
-    .replace(/\u0000/g, "")
-    .replace(/\\u0000/g, "")
-    .replace(/\[\s*(png|jpg|jpeg|gif|bmp|webp|svg)\s*\]/gi, "")
+  return stripNullBytes(text)
+    .replace(FILE_EXT_NOISE_REGEX, "")
     .trim();
 }
 
@@ -85,13 +144,13 @@ export function sanitizeImageUrl(url?: string | null): string {
 
   // Allow safe relative paths (e.g. /uploads/image.png)
   if (trimmed.startsWith("/") && !trimmed.startsWith("//") && !trimmed.includes("\\")) {
-    if (/^\/[a-zA-Z0-9_\-./%]+$/.test(trimmed)) {
+    if (SAFE_RELATIVE_PATH_REGEX.test(trimmed)) {
       return encodeURI(trimmed);
     }
   }
 
   // Allow safe data:image base64
-  if (/^data:image\/(png|jpeg|jpg|webp|gif|svg\+xml);base64,[a-zA-Z0-9+/=]+$/i.test(trimmed)) {
+  if (SAFE_DATA_IMAGE_REGEX.test(trimmed)) {
     return trimmed;
   }
 
@@ -109,6 +168,21 @@ export function sanitizeImageUrl(url?: string | null): string {
 }
 
 /**
+ * Normalizes LaTeX expressions to standard display math delimiters ($$, $)
+ * and converts `\frac` to full-height `\dfrac` for clear rendering.
+ *
+ * @param text Raw LaTeX/markdown text.
+ * @returns Text with normalized LaTeX delimiters.
+ */
+export function normalizeMathDelimiters(text: string): string {
+  if (!text) return "";
+  return text
+    .replace(LATEX_FRAC_REGEX, "\\dfrac")
+    .replace(LATEX_BRACKET_BLOCK_REGEX, "\n$$\n$1\n$$\n")
+    .replace(LATEX_PAREN_INLINE_REGEX, "$$$1$$");
+}
+
+/**
  * Automatically detects unfenced programming code snippets and mathematical formulas
  * in question text, converting them into standard Markdown code blocks or LaTeX formulas.
  *
@@ -120,45 +194,16 @@ export function autoFormatCodeAndMath(rawText: string): string {
 
   let text = rawText.trim();
 
-  // Normalize LaTeX expressions
-  text = text.replace(/\\frac(?=[{\s])/g, "\\dfrac");
-  text = text.replace(/\\\[([\s\S]*?)\\\]/g, "\n$$\n$1\n$$\n");
-  text = text.replace(/\\\(([\s\S]*?)\\\)/g, "$$$1$$");
+  // 1. Normalize LaTeX expressions
+  text = normalizeMathDelimiters(text);
 
-  // If text already has fenced code blocks (``` ... ```), return formatted text directly
-  if (/```[\s\S]*?```/.test(text)) {
+  // 2. If text already has fenced code blocks (``` ... ```), return formatted text directly
+  if (CODE_FENCE_BLOCK_REGEX.test(text)) {
     return text;
   }
 
-  // Pattern detection for un-fenced programming code
-  const codeSignatures: Array<{ lang: string; pattern: RegExp }> = [
-    {
-      lang: "c",
-      pattern: /(?:#\s*include\s*<[^>]+>|int\s+main\s*\([^)]*\)|void\s+main\s*\([^)]*\)|void\s*\*?\w+\s*=|printf\s*\(\s*"|scanf\s*\(\s*"|#\s*define\s+\w+)/,
-    },
-    {
-      lang: "cpp",
-      pattern: /(?:#\s*include\s*<iostream>|std::cout|std::cin|cout\s*<<|cin\s*>>|namespace\s+\w+|template\s*<)/,
-    },
-    {
-      lang: "java",
-      pattern: /(?:public\s+class\s+\w+|public\s+static\s+void\s+main|System\.out\.print(?:ln)?)/,
-    },
-    {
-      lang: "python",
-      pattern: /(?:def\s+\w+\s*\([^)]*\)\s*:|import\s+\w+|from\s+\w+\s+import\s+\w+|if\s+__name__\s*==\s*['"]__main__['"])/,
-    },
-    {
-      lang: "sql",
-      pattern: /(?:SELECT\s+.+\s+FROM\s+\w+|CREATE\s+TABLE\s+\w+|INSERT\s+INTO\s+\w+|ALTER\s+TABLE\s+\w+)/i,
-    },
-    {
-      lang: "html",
-      pattern: /(?:<!DOCTYPE\s+html>|<html(?:\s+[^>]*)?>[\s\S]*<\/html>|<div(?:\s+[^>]*)?>[\s\S]*<\/div>)/i,
-    },
-  ];
-
-  for (const sig of codeSignatures) {
+  // 3. Pattern detection for un-fenced programming code blocks
+  for (const sig of CODE_SIGNATURES) {
     const match = sig.pattern.exec(text);
     if (match && match.index !== undefined) {
       // Check if there is an introductory premise before the code
@@ -184,8 +229,8 @@ export function autoFormatCodeAndMath(rawText: string): string {
     }
   }
 
-  // Detect and wrap inline code declarations & expressions in backticks
-  const codeSegments = text.split(/(`+[^`]+`+)/g);
+  // 4. Detect and wrap inline code declarations & expressions in backticks
+  const codeSegments = text.split(CODE_SEGMENTS_SPLIT_REGEX);
   text = codeSegments
     .map((seg, i) => {
       // Skip already backticked segments
@@ -193,30 +238,21 @@ export function autoFormatCodeAndMath(rawText: string): string {
 
       let processed = seg;
 
-      // 1. C/C++/Java declarations with semicolons: e.g. int *f( ); or char (*(*x( )))( ); or int a;
-      processed = processed.replace(
-        /(?<![A-Za-z0-9_`])((?:const\s+|static\s+|volatile\s+)?(?:int|char|float|double|void|long|short|unsigned|signed|bool|size_t|struct\s+\w+)\s+(?:\*|\(\s*\*|[a-zA-Z_])[\w\s\*\(\)\[\],]*;)/g,
-        "`$1`"
-      );
+      // C/C++/Java declarations with semicolons: e.g. int *f( ); or char (*(*x( )))( ); or int a;
+      processed = processed.replace(C_DECLARATION_REGEX, "`$1`");
 
-      // 2. Function calls or pointer syntax: printf(...), scanf(...), sizeof(...), malloc(...)
-      processed = processed.replace(
-        /(?<![A-Za-z0-9_`])((?:printf|scanf|sizeof|malloc|calloc|free|strlen|strcpy)\s*\([^)]*\))/g,
-        "`$1`"
-      );
+      // Function calls: printf(...), scanf(...), sizeof(...), malloc(...)
+      processed = processed.replace(FUNCTION_CALL_REGEX, "`$1`");
 
-      // 3. Pointer types: "int *", "char *", "void *"
-      processed = processed.replace(
-        /(?<![A-Za-z0-9_`])((?:int|char|float|double|void|long|short|unsigned)\s*\*(?:\s*\*)*)(?![A-Za-z0-9_`])/g,
-        "`$1`"
-      );
+      // Pointer types: "int *", "char *", "void *"
+      processed = processed.replace(POINTER_TYPE_REGEX, "`$1`");
 
       return processed;
     })
     .join("");
 
-  // Detect and wrap mathematical expressions (exponents, inequalities, greek symbols) in $...$
-  const mathSegments = text.split(/(\$\$[\s\S]*?\$\$|\$[^\$\n]+\$|`+[^`]+`+)/g);
+  // 5. Detect and wrap mathematical expressions (exponents, inequalities, greek symbols) in $...$
+  const mathSegments = text.split(MATH_SEGMENTS_SPLIT_REGEX);
   text = mathSegments
     .map((seg, i) => {
       // Skip segments already wrapped in math ($) or code (`)
@@ -224,41 +260,28 @@ export function autoFormatCodeAndMath(rawText: string): string {
 
       let processed = seg;
 
-      // 1. Fix common OCR misrecognitions: "n \propto 2" or "n ∝ 2" -> "n \ge 2"
-      processed = processed.replace(/\b([a-zA-Z])\s*(?:\\propto|∝)\s*(\d+)\b/g, "$1 \\ge $2");
+      // Fix common OCR misrecognitions: "n \propto 2" or "n ∝ 2" -> "n \ge 2"
+      processed = processed.replace(OCR_PROPORTIONAL_REGEX, "$1 \\ge $2");
 
-      // 2. Wrap parenthesized inequalities: e.g. (n >= 2), (n \ge 2) -> ($n \ge 2$)
-      processed = processed.replace(
-        /(?<![$\w`])\(\s*([a-zA-Z])\s*(?:\\ge|\\le|\\geq|\\leq|>=|<=|>|<|!=|==)\s*(\d+)\s*\)(?![$\w`])/g,
-        (_match, variable, num) => {
-          return `($${variable} \\ge ${num}$)`;
-        }
-      );
+      // Wrap parenthesized inequalities: e.g. (n >= 2), (n \ge 2) -> ($n \ge 2$)
+      processed = processed.replace(PAREN_INEQUALITY_REGEX, (_match, variable, num) => {
+        return `($${variable} \\ge ${num}$)`;
+      });
 
-      // 3. Standalone inequalities without parens: e.g. n >= 2 -> $n \ge 2$
-      processed = processed.replace(
-        /(?<![$\w`])\b([a-zA-Z])\s*(?:\\ge|\\le|\\geq|\\leq|>=|<=)\s*(\d+)\b(?![$\w`])/g,
-        (_match, variable, num) => {
-          return `$${variable} \\ge ${num}$`;
-        }
-      );
+      // Standalone inequalities without parens: e.g. n >= 2 -> $n \ge 2$
+      processed = processed.replace(STANDALONE_INEQUALITY_REGEX, (_match, variable, num) => {
+        return `$${variable} \\ge ${num}$`;
+      });
 
-      // 4. Complex expressions with exponents like 2(2^n - 2), (2^n - 1), 2^n - 1, 2^n - 2, 2^{n+1}, x^2
-      // MUST contain a caret (^) to ensure general English parentheticals like "(also known as...)" are never matched
-      processed = processed.replace(
-        /(?<![$\w`])(\d*\([a-zA-Z0-9\s\+\-\*\/]*\^[a-zA-Z0-9\s\+\-\*\/]*\)\b|\b[a-zA-Z0-9]+\^[a-zA-Z0-9\{\}]+(?:\s*[\+\-\*\/]\s*\d+)?)(?![$\w`])/g,
-        (_match, expr) => {
-          return `$${expr.trim()}$`;
-        }
-      );
+      // Complex expressions with exponents like 2(2^n - 2), (2^n - 1), 2^n - 1, 2^n - 2, 2^{n+1}, x^2
+      processed = processed.replace(CARET_EXPRESSION_REGEX, (_match, expr) => {
+        return `$${expr.trim()}$`;
+      });
 
-      // 5. Wrap standalone Greek or LaTeX math commands (e.g. \theta(n+e), \Omega(n), \log n, \sqrt{n})
-      processed = processed.replace(
-        /(?<![$\w`])(\\(?:theta|alpha|beta|gamma|delta|lambda|sigma|omega|Omega|Theta|infty|sqrt|log|ln|sin|cos|tan)\b(?:\s*[\(\{\[].*?[\)\}\]])?)(?![$\w`])/g,
-        (_match, expr) => {
-          return `$${expr.trim()}$`;
-        }
-      );
+      // Wrap standalone Greek or LaTeX math commands (e.g. \theta(n+e), \Omega(n), \log n, \sqrt{n})
+      processed = processed.replace(GREEK_LATEX_COMMAND_REGEX, (_match, expr) => {
+        return `$${expr.trim()}$`;
+      });
 
       return processed;
     })
@@ -267,5 +290,53 @@ export function autoFormatCodeAndMath(rawText: string): string {
   return text;
 }
 
+const PAIR_LOOKAHEAD_SPLIT_REGEX = /[,;\s]+(?=[a-dA-D1-9]\s*[-–—→>])/;
+const COMMA_SPLIT_REGEX = /\s*,\s*/;
+const MATCHING_PAIR_TEST_REGEX = /^[(\[]?[a-dA-D1-9][)\]]?\s*[-–—→>:=]\s*[(\[]?[a-dA-D1-9ivxIVX]+[)\]]?$/;
+const MATCHING_PAIR_CAPTURE_REGEX = /^([(\[]?[a-dA-D1-9][)\]]?)\s*[-–—→>:=]\s*([(\[]?[a-dA-D1-9ivxIVX]+[)\]]?)$/;
+const BRACKET_STRIP_REGEX = /[()[\]]/g;
 
+/**
+ * Checks if a string contains pair-matching options (e.g. "a-3, b-1, c-2, d-4" or "A->3, B->1")
+ * and extracts cleanly structured left/right pairs.
+ *
+ * @param text The candidate option text string.
+ * @returns Array of structured pairs or null if not a matching format.
+ */
+export function parseMatchingPairs(text: string): Array<{ left: string; right: string }> | null {
+  if (!text) return null;
+  const trimmed = text.trim();
 
+  // Split on pair boundary lookahead
+  const parts = trimmed.split(PAIR_LOOKAHEAD_SPLIT_REGEX).map((p) => p.trim()).filter(Boolean);
+
+  if (parts.length < 2) {
+    // Try comma-separated split
+    const commaParts = trimmed.split(COMMA_SPLIT_REGEX);
+    if (commaParts.length >= 2 && commaParts.every((p) => MATCHING_PAIR_TEST_REGEX.test(p.trim()))) {
+      return commaParts.map((p) => {
+        const match = p.match(MATCHING_PAIR_CAPTURE_REGEX);
+        return {
+          left: match ? match[1].replace(BRACKET_STRIP_REGEX, "").trim() : p,
+          right: match ? match[2].replace(BRACKET_STRIP_REGEX, "").trim() : "",
+        };
+      });
+    }
+    return null;
+  }
+
+  const pairs: Array<{ left: string; right: string }> = [];
+  for (const part of parts) {
+    const match = part.match(MATCHING_PAIR_CAPTURE_REGEX);
+    if (match) {
+      pairs.push({
+        left: match[1].replace(BRACKET_STRIP_REGEX, "").trim(),
+        right: match[2].replace(BRACKET_STRIP_REGEX, "").trim(),
+      });
+    } else {
+      return null;
+    }
+  }
+
+  return pairs.length >= 2 ? pairs : null;
+}

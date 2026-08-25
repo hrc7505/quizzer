@@ -21,6 +21,7 @@ interface OverlayContextValue {
       okText?: string;
       cancelText?: string;
       okVariant?: "primary" | "danger";
+      busyText?: string;
       onConfirm: () => void | Promise<void>;
     }) => Promise<boolean>;
   };
@@ -91,15 +92,20 @@ export function OverlayProvider({ children }: OverlayProviderProps) {
       close: closeDialog,
       update: config =>
         setDialogConfig(prev => (prev ? { ...prev, ...config } : null)),
-      confirm: ({ title, description, body, okText = "Confirm", cancelText = "Cancel", okVariant = "danger", onConfirm }) =>
+      confirm: ({ title, description, body, okText = "Confirm", cancelText = "Cancel", okVariant, busyText, onConfirm }) =>
         new Promise<boolean>(resolve => {
+          const titleStr = typeof title === "string" ? title.toLowerCase() : "";
+          const resolvedVariant: "primary" | "danger" =
+            okVariant || (titleStr.includes("delete") || titleStr.includes("remove") ? "danger" : "primary");
+
           setDialogConfig({
             title,
             showClose: true,
             body: body || (description ? <p className="text-sm text-muted-foreground leading-relaxed">{description}</p> : null),
             okText,
             cancelText,
-            okVariant,
+            okVariant: resolvedVariant,
+            busyText,
             onOk: async () => {
               await onConfirm();
               resolve(true);

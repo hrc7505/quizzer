@@ -18,6 +18,7 @@ import { QuestionDialogBody, type QuestionForm } from "@/components/data-display
 import { GenerateQuizForm } from "@/components/forms/GenerateQuizForm";
 import { DuplicateQuestionsDialogBody } from "@/components/data-display/DuplicateQuestionsDialogBody";
 import { TranslateQuizDialogBody } from "@/components/data-display/TranslateQuizDialogBody";
+import { ProofreadQuizDialogBody } from "@/components/data-display/ProofreadQuizDialogBody";
 import { soundEffects } from "@/lib/services/sound-effects.service";
 
 interface Question {
@@ -331,36 +332,24 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
       return;
     }
 
-    dialog.confirm({
-      title: `AI Proofread & Fix ${currentLangLabel} Language`,
-      description: `AI will proofread all ${displayedQuestions.length} ${currentLangLabel} questions in "${quiz.title}", repairing grammar, typos, OCR artifacts, and script rendering while strictly preserving authentic exam terminology.`,
-      okText: "Start Proofreading",
-      onConfirm: async () => {
-        setProofreadingAll(true);
-        try {
-          const res = await fetch("/api/admin/questions/fix-language", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ quizId: quiz.id, language: activeLangTab }),
-          });
-          const data = await res.json();
-          if (data.error) {
-            toast.addToast({ type: "error", message: data.error });
-          } else {
-            soundEffects.playCorrectSound();
+    dialog.open({
+      title: `AI Proofread — ${quiz.title}`,
+      body: (
+        <ProofreadQuizDialogBody
+          quizId={quiz.id}
+          quizTitle={quiz.title}
+          language={activeLangTab}
+          questionCount={displayedQuestions.length}
+          onSuccess={async () => {
+            await refreshQuiz();
             toast.addToast({
               type: "success",
-              message: data.message || `Successfully proofread ${data.updatedCount} questions.`,
+              message: `Successfully proofread ${displayedQuestions.length} ${currentLangLabel} questions!`,
             });
-            await refreshQuiz();
-          }
-        } catch (err) {
-          console.error(err);
-          toast.addToast({ type: "error", message: "Failed to proofread quiz questions." });
-        } finally {
-          setProofreadingAll(false);
-        }
-      },
+          }}
+          onClose={() => dialog.close()}
+        />
+      ),
     });
   };
 

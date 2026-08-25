@@ -3,6 +3,23 @@ import fs from "fs/promises";
 import path from "path";
 
 /**
+ * Safely parse JSON strings returned by AI, automatically fixing unescaped LaTeX backslashes
+ */
+function safeJsonParse<T>(raw: string, fallback: T): T {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    try {
+      // Fix unescaped backslashes (e.g. LaTeX \Omega, \frac, \Delta) that are not valid JSON escapes
+      const sanitized = raw.replace(/\\([^"\\\/bfnrtu])/g, "\\\\$1");
+      return JSON.parse(sanitized);
+    } catch {
+      return fallback;
+    }
+  }
+}
+
+/**
  * Safely extracts an image payload from a base64 Data URI or local filesystem path
  * and converts it into a base64 payload and MIME type suitable for Gemini vision models.
  * 
@@ -199,8 +216,8 @@ Respond ONLY with a valid JSON object matching this exact structure:
         const rawText = response.text || "";
         const jsonMatch = rawText.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
-          if (parsed.explanation) {
+          const parsed = safeJsonParse<any>(jsonMatch[0], null);
+          if (parsed && parsed.explanation) {
             return {
               explanation: String(parsed.explanation).trim(),
               hint: parsed.hint ? String(parsed.hint).trim() : "",
@@ -218,7 +235,8 @@ Respond ONLY with a valid JSON object matching this exact structure:
 }
 
 /**
- * Translates structured explanation points and hint into a target language (en, gu, hi).
+ * Translates an existing explanation and hint into the requested target language (en, gu, or hi)
+ * while preserving mathematical equations (LaTeX), markdown format, and technical accuracy.
  */
 export async function translateExplanationAndHint(params: {
   explanation: string;
@@ -226,7 +244,10 @@ export async function translateExplanationAndHint(params: {
   targetLanguage: "en" | "gu" | "hi";
 }): Promise<{ explanation: string; hint: string }> {
   const { explanation, hint, targetLanguage } = params;
-  if (!explanation && !hint) return { explanation: "", hint: "" };
+
+  if (!explanation && !hint) {
+    return { explanation, hint };
+  }
 
   const langName =
     targetLanguage === "gu"
@@ -235,19 +256,19 @@ export async function translateExplanationAndHint(params: {
       ? "Hindi (हिन्दी)"
       : "English";
 
-  const prompt = `You are an expert multilingual academic editor. Translate the following structured explanation and hint into ${langName}.
+  const prompt = `You are a master academic translator specializing in engineering and competitive exam topics.
+Translate the following explanation and hint into natural, authentic ${langName}.
 
-CRITICAL PRESERVATION RULES:
-1. Translate all explanatory text and step headers into natural, authentic academic ${langName}.
-2. Strictly maintain the bullet points and structured format (- **Concept Overview:**, - **Step 1 — ...:**, - **Conclusion:**).
-3. NEVER translate or alter mathematical formulas, symbols, or LaTeX expressions (e.g. $term$, $$\\frac{a}{b}$$). Keep them identical.
-4. NEVER translate or alter code snippets (\`\`\`c ... \`\`\`, \`printf\`). Keep verbatim.
+CRITICAL INSTRUCTIONS:
+1. Translate all explanatory text and conceptual explanations thoroughly into authentic ${langName}.
+2. PRESERVE ALL LaTeX mathematical formulas EXACTLY as they are (e.g. $V_A$, $4\\,\\Omega$, $$\\frac{a}{b}$$). Do NOT translate formula variable names or numbers.
+3. PRESERVE ALL Markdown structure (bullet points, bold titles like **Concept Overview:**, **Step 1 — ...**, **Conclusion:**).
+4. Code snippets must stay inside triple-backtick markdown blocks.
 
-Input to translate:
-Explanation:
+Input Explanation:
 ${explanation}
 
-Hint:
+Input Hint:
 ${hint}
 
 Respond ONLY with a valid JSON object matching:
@@ -269,7 +290,7 @@ Respond ONLY with a valid JSON object matching:
     const rawText = response.text || "";
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
+      const parsed = safeJsonParse(jsonMatch[0], { explanation, hint });
       return {
         explanation: String(parsed.explanation || explanation).trim(),
         hint: String(parsed.hint || hint).trim(),

@@ -2,14 +2,13 @@ import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 
-const normalizeDatabaseUrl = (url?: string) => {
-  if (!url) return url;
-  return url.replace(/sslmode=(prefer|require|verify-ca)(?=&|$)/gi, "sslmode=verify-full");
-};
-
 const prismaClientSingleton = () => {
-  const connectionString = normalizeDatabaseUrl(process.env.DATABASE_URL);
-  const pool = new Pool({ connectionString });
+  const connectionString = process.env.DATABASE_URL;
+  const isSsl = connectionString?.includes("sslmode") || process.env.NODE_ENV === "production";
+  const pool = new Pool({
+    connectionString,
+    ssl: isSsl ? { rejectUnauthorized: false } : undefined,
+  });
   const adapter = new PrismaPg(pool);
   
   return new PrismaClient({ adapter });

@@ -100,25 +100,29 @@ model Quiz {
 }
 
 model Question {
-  id            String   @id @default(uuid())
-  topicId       String
-  quizId        String?
-  language      String   @default("en")
-  text          String
-  imageUrl      String?
-  invertInDark  Boolean  @default(true)
-  options       String[]
-  correctAnswer String
-  hint          String
-  description   String
-  elaboration   String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @default(now()) @updatedAt
-  quiz          Quiz?    @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  topic         Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  id               String     @id @default(uuid())
+  topicId          String
+  quizId           String?
+  sourceQuestionId String?
+  sourceQuestion   Question?  @relation("QuestionTranslations", fields: [sourceQuestionId], references: [id], onDelete: Cascade)
+  translations     Question[] @relation("QuestionTranslations")
+  language         String     @default("en")
+  text             String
+  imageUrl         String?
+  invertInDark     Boolean    @default(true)
+  options          String[]
+  correctAnswer    String
+  hint             String
+  description      String
+  elaboration      String?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @default(now()) @updatedAt
+  quiz             Quiz?      @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  topic            Topic      @relation(fields: [topicId], references: [id], onDelete: Cascade)
 
   @@index([quizId])
   @@index([quizId, language])
+  @@index([sourceQuestionId])
   @@index([topicId])
   @@index([language])
 }

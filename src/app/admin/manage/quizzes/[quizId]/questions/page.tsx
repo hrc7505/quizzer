@@ -28,7 +28,7 @@ export default async function ManageQuizQuestionsPage({ params }: ManageQuizQues
     where: { id: quizId },
     include: {
       questions: {
-        orderBy: { id: "asc" }
+        orderBy: { createdAt: "asc" }
       },
       topics: {
         select: { id: true, title: true }

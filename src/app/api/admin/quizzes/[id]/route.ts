@@ -12,7 +12,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       include: {
         topics: true,
         questions: {
-          orderBy: { id: "asc" }
+          orderBy: { createdAt: "asc" }
         }
       }
     });

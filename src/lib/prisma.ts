@@ -15,18 +15,22 @@ const prismaClientSingleton = () => {
   return new PrismaClient({ adapter });
 }
 
-type PrismaClientSingleton = ReturnType<typeof prismaClientSingleton>
+type PrismaClientSingleton = ReturnType<typeof prismaClientSingleton>;
+
+const PRISMA_SCHEMA_VERSION = "v2_source_question_id";
 
 const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClientSingleton | undefined
-}
+  prisma: PrismaClientSingleton | undefined;
+  prismaSchemaVersion: string | undefined;
+};
 
 function getPrismaClient(): PrismaClientSingleton {
   if (
     !globalForPrisma.prisma ||
-    !(globalForPrisma.prisma as unknown as { quizBatch?: unknown }).quizBatch
+    globalForPrisma.prismaSchemaVersion !== PRISMA_SCHEMA_VERSION
   ) {
     globalForPrisma.prisma = prismaClientSingleton();
+    globalForPrisma.prismaSchemaVersion = PRISMA_SCHEMA_VERSION;
   }
   return globalForPrisma.prisma;
 }
@@ -35,4 +39,5 @@ export const prisma = getPrismaClient();
 
 if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;
+  globalForPrisma.prismaSchemaVersion = PRISMA_SCHEMA_VERSION;
 }

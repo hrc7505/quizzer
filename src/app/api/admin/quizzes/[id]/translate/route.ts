@@ -280,6 +280,7 @@ export async function POST(
           const origQ = slice.find((q) => q.id === tq.id) || slice[idx];
           return {
             quizId,
+            sourceQuestionId: origQ?.id || null,
             topicId: origQ?.topicId || quiz.topics[0]?.id || "",
             language: targetLanguage,
             text: sanitizeQuestionText(tq.text),
@@ -353,6 +354,7 @@ export async function POST(
         const origQ = sourceQuestions.find((q) => q.id === tq.id) || sourceQuestions[idx];
         return {
           quizId,
+          sourceQuestionId: origQ?.id || null,
           topicId: origQ?.topicId || quiz.topics[0]?.id || "",
           language: targetLanguage,
           text: sanitizeQuestionText(tq.text),

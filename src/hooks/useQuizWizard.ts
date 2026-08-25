@@ -10,6 +10,8 @@ import type { LeaderboardEntry } from "@/lib/services/attempt.service";
 
 interface QuizWizardQuestion {
   id: string;
+  sourceQuestionId?: string | null;
+  language?: string;
   text: string;
   imageUrl?: string | null;
   invertInDark?: boolean;

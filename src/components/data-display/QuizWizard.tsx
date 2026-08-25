@@ -16,6 +16,7 @@ import { cn } from "@/utils/cn";
 
 interface QuizWizardQuestion {
   id: string;
+  sourceQuestionId?: string | null;
   language?: string;
   text: string;
   imageUrl?: string | null;
@@ -24,6 +25,7 @@ interface QuizWizardQuestion {
   description?: string | null;
   options: string[];
   correctAnswer: string;
+  createdAt?: Date | string;
 }
 
 interface QuizWizardQuiz {
@@ -39,7 +41,7 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
     return d ? new Date(d).getTime() : 0;
   };
 
-  // Group questions strictly by explicit language track or text detection if untagged
+  // 1. Base canonical English questions
   const enQuestions = quiz.questions
     .filter(
       (q) =>
@@ -48,22 +50,54 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
     )
     .sort((a, b) => getTime(a) - getTime(b));
 
-  const guQuestions = quiz.questions
-    .filter((q) => q.language === "gu" || (!q.language && /[\u0A80-\u0AFF]/.test(q.text)))
-    .sort((a, b) => getTime(a) - getTime(b));
+  // 2. Build Gujarati track strictly paired by sourceQuestionId to match English sequence 1-to-1
+  const guMap = new Map<string, QuizWizardQuestion>();
+  const guUnmapped: QuizWizardQuestion[] = [];
+  for (const q of quiz.questions) {
+    if (q.language === "gu" || (!q.language && /[\u0A80-\u0AFF]/.test(q.text))) {
+      if (q.sourceQuestionId) {
+        guMap.set(q.sourceQuestionId, q);
+      } else {
+        guUnmapped.push(q);
+      }
+    }
+  }
 
-  const hiQuestions = quiz.questions
-    .filter((q) => q.language === "hi")
-    .sort((a, b) => getTime(a) - getTime(b));
+  const guQuestions =
+    enQuestions.length > 0 && (guMap.size > 0 || guUnmapped.length > 0)
+      ? enQuestions.map((enQ, idx) => guMap.get(enQ.id) || guUnmapped[idx] || enQ)
+      : quiz.questions
+          .filter((q) => q.language === "gu" || (!q.language && /[\u0A80-\u0AFF]/.test(q.text)))
+          .sort((a, b) => getTime(a) - getTime(b));
+
+  // 3. Build Hindi track strictly paired by sourceQuestionId to match English sequence 1-to-1
+  const hiMap = new Map<string, QuizWizardQuestion>();
+  const hiUnmapped: QuizWizardQuestion[] = [];
+  for (const q of quiz.questions) {
+    if (q.language === "hi" || (!q.language && /[\u0900-\u097F]/.test(q.text))) {
+      if (q.sourceQuestionId) {
+        hiMap.set(q.sourceQuestionId, q);
+      } else {
+        hiUnmapped.push(q);
+      }
+    }
+  }
+
+  const hiQuestions =
+    enQuestions.length > 0 && (hiMap.size > 0 || hiUnmapped.length > 0)
+      ? enQuestions.map((enQ, idx) => hiMap.get(enQ.id) || hiUnmapped[idx] || enQ)
+      : quiz.questions
+          .filter((q) => q.language === "hi")
+          .sort((a, b) => getTime(a) - getTime(b));
 
   const availableLanguages = [
     ...(enQuestions.length > 0
       ? [{ code: "en", label: "English", flag: "🇺🇸", count: enQuestions.length }]
       : []),
-    ...(guQuestions.length > 0
+    ...(guQuestions.length > 0 && guMap.size + guUnmapped.length > 0
       ? [{ code: "gu", label: "ગુજરાતી", flag: "🇮🇳", count: guQuestions.length }]
       : []),
-    ...(hiQuestions.length > 0
+    ...(hiQuestions.length > 0 && hiMap.size + hiUnmapped.length > 0
       ? [{ code: "hi", label: "हिन्दी", flag: "🇮🇳", count: hiQuestions.length }]
       : []),
   ];

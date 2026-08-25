@@ -22,6 +22,7 @@ import { soundEffects } from "@/lib/services/sound-effects.service";
 
 interface Question {
   id: string;
+  sourceQuestionId?: string | null;
   language?: string;
   text: string;
   imageUrl?: string | null;
@@ -30,6 +31,7 @@ interface Question {
   correctAnswer: string;
   hint?: string | null;
   description?: string | null;
+  createdAt?: Date | string;
 }
 
 interface QuizDetail {
@@ -252,9 +254,59 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
     });
   };
 
-  const enQuestions = quiz.questions.filter((q) => q.language === "en" || (!q.language && !/[\u0A80-\u0AFF]/.test(q.text) && !/[\u0900-\u097F]/.test(q.text)));
-  const guQuestions = quiz.questions.filter((q) => q.language === "gu" || (!q.language && /[\u0A80-\u0AFF]/.test(q.text)));
-  const hiQuestions = quiz.questions.filter((q) => q.language === "hi");
+  const getTime = (q: Question) => {
+    const d = q.createdAt;
+    return d ? new Date(d).getTime() : 0;
+  };
+
+  // 1. Base canonical English questions ordered by creation time
+  const enQuestions = quiz.questions
+    .filter(
+      (q) =>
+        q.language === "en" ||
+        (!q.language && !/[\u0A80-\u0AFF]/.test(q.text) && !/[\u0900-\u097F]/.test(q.text))
+    )
+    .sort((a, b) => getTime(a) - getTime(b));
+
+  // 2. Build Gujarati track strictly paired by sourceQuestionId to match English sequence 1-to-1
+  const guMap = new Map<string, Question>();
+  const guUnmapped: Question[] = [];
+  for (const q of quiz.questions) {
+    if (q.language === "gu" || (!q.language && /[\u0A80-\u0AFF]/.test(q.text))) {
+      if (q.sourceQuestionId) {
+        guMap.set(q.sourceQuestionId, q);
+      } else {
+        guUnmapped.push(q);
+      }
+    }
+  }
+
+  const guQuestions =
+    enQuestions.length > 0 && (guMap.size > 0 || guUnmapped.length > 0)
+      ? enQuestions.map((enQ, idx) => guMap.get(enQ.id) || guUnmapped[idx] || enQ)
+      : quiz.questions
+          .filter((q) => q.language === "gu" || (!q.language && /[\u0A80-\u0AFF]/.test(q.text)))
+          .sort((a, b) => getTime(a) - getTime(b));
+
+  // 3. Build Hindi track strictly paired by sourceQuestionId to match English sequence 1-to-1
+  const hiMap = new Map<string, Question>();
+  const hiUnmapped: Question[] = [];
+  for (const q of quiz.questions) {
+    if (q.language === "hi" || (!q.language && /[\u0900-\u097F]/.test(q.text))) {
+      if (q.sourceQuestionId) {
+        hiMap.set(q.sourceQuestionId, q);
+      } else {
+        hiUnmapped.push(q);
+      }
+    }
+  }
+
+  const hiQuestions =
+    enQuestions.length > 0 && (hiMap.size > 0 || hiUnmapped.length > 0)
+      ? enQuestions.map((enQ, idx) => hiMap.get(enQ.id) || hiUnmapped[idx] || enQ)
+      : quiz.questions
+          .filter((q) => q.language === "hi")
+          .sort((a, b) => getTime(a) - getTime(b));
 
   const [activeLangTab, setActiveLangTab] = useState<string>(() => {
     if (enQuestions.length > 0) return "en";
@@ -328,119 +380,122 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
         </Alert>
       )}
 
-      {/* Back navigation & breadcrumbs */}
-      <div className="flex flex-col gap-3 select-none">
-        <Button
-          variant="ghost"
-          onClick={() => router.back()}
-          className="w-fit gap-1.5 h-8 px-3 font-semibold text-xs border border-border/40 hover:bg-surface-hover"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          <span>Back</span>
-        </Button>
-
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold flex-wrap">
-          <span>Manage Quizzes</span>
-          <span>/</span>
-          <span className="text-foreground flex items-center gap-1.5">
-            <span>{quiz.title}</span>
-          </span>
-          <span>/</span>
-          <span>Questions</span>
+      {/* Top Breadcrumbs & Back Navigation */}
+      <div className="flex items-center justify-between gap-3 select-none flex-wrap">
+        <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground flex-wrap">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.back()}
+            className="h-7 px-2.5 -ml-1 gap-1 text-xs text-muted-foreground hover:text-foreground rounded-lg border border-border/50 hover:bg-surface-hover"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>Back</span>
+          </Button>
+          <span className="text-border">/</span>
+          <button
+            type="button"
+            onClick={() => router.push("/admin/manage/quizzes")}
+            className="hover:text-foreground transition-colors cursor-pointer"
+          >
+            Manage Quizzes
+          </button>
+          <span className="text-border">/</span>
+          <span className="text-foreground font-bold truncate max-w-xs">{quiz.title}</span>
+          <span className="text-border">/</span>
+          <span className="text-muted-foreground">Questions</span>
         </div>
       </div>
 
-      {/* Header section */}
-      <PageHeader
-        title={`${quiz.title} Questions`}
-        badge={
-          <div className="flex items-center gap-1.5">
-            {guQuestions.length > 0 && (
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 select-none">
-                🇮🇳 GU
-              </span>
-            )}
-            {hiQuestions.length > 0 && (
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20 select-none">
-                🇮🇳 HI
-              </span>
-            )}
-            {enQuestions.length > 0 && (
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 select-none">
-                🇺🇸 EN
-              </span>
-            )}
-            <Badge variant={difficultyColor(quiz.difficulty)} className="capitalize font-bold text-[10px] px-2 py-0.5 select-none animate-none">
-              {quiz.difficulty}
-            </Badge>
-          </div>
-        }
-        description="Compose, modify, or translate questions across language tracks for this quiz."
-        actions={
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button
-              variant="outline"
-              className="h-9 px-3 sm:px-4 font-semibold text-xs gap-1.5 shadow-xs text-muted-foreground hover:text-foreground"
-              onClick={handleOpenDuplicates}
-              title="Scan and remove duplicate questions"
-            >
-              <Layers className="h-3.5 w-3.5 text-amber-500" />
-              <span>Find Duplicates</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="h-9 px-3 sm:px-4 font-semibold text-xs gap-1.5 shadow-xs text-indigo-600 dark:text-indigo-400 border-indigo-500/30 hover:bg-indigo-500/5"
-              onClick={handleOpenTranslateDialog}
-              title="Generate a Gujarati or Hindi translation for this quiz"
-            >
-              <Languages className="h-3.5 w-3.5 text-indigo-500" />
-              <span>Localize with AI</span>
-            </Button>
-            <Button
-              variant="outline"
-              disabled={proofreadingAll || displayedQuestions.length === 0}
-              className="h-9 px-3 sm:px-4 font-semibold text-xs gap-1.5 shadow-xs text-primary border-primary/30 hover:bg-primary/5"
-              onClick={handleAiProofreadQuiz}
-              title={`Fix ${currentLangLabel} spelling, grammar, and typos`}
-            >
-              {proofreadingAll ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Wand2 className="h-3.5 w-3.5 text-primary" />
+      {/* Hero Header & Action Toolbar */}
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-4 border-b border-border/70">
+        <div className="flex flex-col gap-1.5 min-w-0">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground truncate">
+              {quiz.title}
+            </h1>
+            <div className="flex items-center gap-1.5">
+              {guQuestions.length > 0 && (
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 select-none">
+                  🇮🇳 GU
+                </span>
               )}
-              <span>{proofreadBtnLabel}</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="h-9 px-3 sm:px-4 font-semibold text-xs gap-1.5 shadow-xs"
-              onClick={handleOpenAiAppend}
-            >
-              <Sparkles className="h-3.5 w-3.5 text-primary" />
-              <span>AI Generate More</span>
-            </Button>
-            <Button
-              variant="primary"
-              className="h-9 px-3 sm:px-4 font-semibold text-xs gap-1.5 shadow-xs"
-              onClick={handleOpenAdd}
-            >
-              <Plus className="h-3.5 w-3.5" />
-              <span>Add Question</span>
-            </Button>
+              {hiQuestions.length > 0 && (
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20 select-none">
+                  🇮🇳 HI
+                </span>
+              )}
+              {enQuestions.length > 0 && (
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 select-none">
+                  🇺🇸 EN
+                </span>
+              )}
+              <Badge variant={difficultyColor(quiz.difficulty)} className="capitalize font-bold text-[11px] px-2.5 py-0.5 select-none animate-none rounded-md">
+                {quiz.difficulty}
+              </Badge>
+            </div>
           </div>
-        }
-        titleClassName="text-2xl"
-      />
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Compose, modify, or translate questions across language tracks for this quiz.
+          </p>
+        </div>
 
-      {/* Language Switcher Tabs */}
-      <div className="flex items-center justify-between gap-3 flex-wrap border-b border-border/60 pb-3">
-        <div className="flex items-center gap-1.5 p-1 bg-surface-hover/70 dark:bg-surface rounded-xl border border-border/60 select-none">
+        {/* Action Group */}
+        <div className="flex items-center gap-2 flex-wrap shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 px-3 font-semibold text-xs gap-1.5 shadow-2xs text-muted-foreground hover:text-foreground rounded-xl border-border/70"
+            onClick={handleOpenDuplicates}
+            title="Scan and remove duplicate questions"
+          >
+            <Layers className="h-3.5 w-3.5 text-amber-500" />
+            <span className="hidden sm:inline">Find</span> Duplicates
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 px-3.5 font-semibold text-xs gap-1.5 shadow-2xs text-indigo-600 dark:text-indigo-400 border-indigo-500/30 hover:bg-indigo-500/10 rounded-xl"
+            onClick={handleOpenTranslateDialog}
+            title="Generate a Gujarati or Hindi translation for this quiz"
+          >
+            <Languages className="h-3.5 w-3.5 text-indigo-500" />
+            <span>Localize with AI</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 px-3.5 font-semibold text-xs gap-1.5 shadow-2xs rounded-xl text-foreground hover:bg-surface-hover"
+            onClick={handleOpenAiAppend}
+          >
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            <span>AI Generate More</span>
+          </Button>
+
+          <Button
+            variant="primary"
+            size="sm"
+            className="h-9 px-4 font-semibold text-xs gap-1.5 shadow-xs rounded-xl"
+            onClick={handleOpenAdd}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span>Add Question</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Language Switcher Tabs & Contextual Proofread Bar */}
+      <div className="flex items-center justify-between gap-3 flex-wrap bg-surface/50 p-1.5 rounded-2xl border border-border/70">
+        <div className="flex items-center gap-1.5 select-none flex-wrap">
           <button
             type="button"
             onClick={() => setActiveLangTab("en")}
             className={cn(
-              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer",
+              "px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer",
               activeLangTab === "en"
-                ? "bg-card shadow-xs text-foreground ring-1 ring-border/40"
+                ? "bg-card shadow-xs text-foreground ring-1 ring-border/50"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -460,9 +515,9 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
             type="button"
             onClick={() => setActiveLangTab("gu")}
             className={cn(
-              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer",
+              "px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer",
               activeLangTab === "gu"
-                ? "bg-card shadow-xs text-foreground ring-1 ring-border/40"
+                ? "bg-card shadow-xs text-foreground ring-1 ring-border/50"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -484,9 +539,9 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
             type="button"
             onClick={() => setActiveLangTab("hi")}
             className={cn(
-              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer",
+              "px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer",
               activeLangTab === "hi"
-                ? "bg-card shadow-xs text-foreground ring-1 ring-border/40"
+                ? "bg-card shadow-xs text-foreground ring-1 ring-border/50"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -505,9 +560,29 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
           </button>
         </div>
 
-        <span className="text-xs text-muted-foreground font-medium">
-          Showing {displayedQuestions.length} {currentLangLabel} questions
-        </span>
+        <div className="flex items-center gap-2.5 px-2">
+          {displayedQuestions.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={proofreadingAll}
+              className="h-8 px-3 font-semibold text-xs gap-1.5 shadow-2xs text-primary border-primary/30 hover:bg-primary/10 rounded-xl"
+              onClick={handleAiProofreadQuiz}
+              title={`Fix ${currentLangLabel} spelling, grammar, and typos`}
+            >
+              {proofreadingAll ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Wand2 className="h-3 w-3 text-primary" />
+              )}
+              <span>{proofreadBtnLabel}</span>
+            </Button>
+          )}
+
+          <span className="text-xs text-muted-foreground font-medium hidden sm:inline">
+            Showing {displayedQuestions.length} {currentLangLabel} questions
+          </span>
+        </div>
       </div>
 
       {/* Questions list */}

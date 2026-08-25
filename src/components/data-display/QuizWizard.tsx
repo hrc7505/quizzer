@@ -16,6 +16,8 @@ import { cn } from "@/utils/cn";
 
 interface QuizWizardQuestion {
   id: string;
+  sourceQuestionId?: string | null;
+  language?: string;
   text: string;
   imageUrl?: string | null;
   invertInDark?: boolean;
@@ -23,6 +25,7 @@ interface QuizWizardQuestion {
   description?: string | null;
   options: string[];
   correctAnswer: string;
+  createdAt?: Date | string;
 }
 
 interface QuizWizardQuiz {
@@ -33,7 +36,91 @@ interface QuizWizardQuiz {
 }
 
 export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
-  const [state, actions] = useQuizWizard(quiz);
+  const getTime = (q: unknown) => {
+    const d = (q as { createdAt?: Date | string })?.createdAt;
+    return d ? new Date(d).getTime() : 0;
+  };
+
+  // 1. Base canonical English questions
+  const enQuestions = quiz.questions
+    .filter(
+      (q) =>
+        q.language === "en" ||
+        (!q.language && !/[\u0A80-\u0AFF]/.test(q.text) && !/[\u0900-\u097F]/.test(q.text))
+    )
+    .sort((a, b) => getTime(a) - getTime(b));
+
+  // 2. Build Gujarati track strictly paired by sourceQuestionId to match English sequence 1-to-1
+  const guMap = new Map<string, QuizWizardQuestion>();
+  const guUnmapped: QuizWizardQuestion[] = [];
+  for (const q of quiz.questions) {
+    if (q.language === "gu" || (!q.language && /[\u0A80-\u0AFF]/.test(q.text))) {
+      if (q.sourceQuestionId) {
+        guMap.set(q.sourceQuestionId, q);
+      } else {
+        guUnmapped.push(q);
+      }
+    }
+  }
+
+  const guQuestions =
+    enQuestions.length > 0 && (guMap.size > 0 || guUnmapped.length > 0)
+      ? enQuestions.map((enQ, idx) => guMap.get(enQ.id) || guUnmapped[idx] || enQ)
+      : quiz.questions
+          .filter((q) => q.language === "gu" || (!q.language && /[\u0A80-\u0AFF]/.test(q.text)))
+          .sort((a, b) => getTime(a) - getTime(b));
+
+  // 3. Build Hindi track strictly paired by sourceQuestionId to match English sequence 1-to-1
+  const hiMap = new Map<string, QuizWizardQuestion>();
+  const hiUnmapped: QuizWizardQuestion[] = [];
+  for (const q of quiz.questions) {
+    if (q.language === "hi" || (!q.language && /[\u0900-\u097F]/.test(q.text))) {
+      if (q.sourceQuestionId) {
+        hiMap.set(q.sourceQuestionId, q);
+      } else {
+        hiUnmapped.push(q);
+      }
+    }
+  }
+
+  const hiQuestions =
+    enQuestions.length > 0 && (hiMap.size > 0 || hiUnmapped.length > 0)
+      ? enQuestions.map((enQ, idx) => hiMap.get(enQ.id) || hiUnmapped[idx] || enQ)
+      : quiz.questions
+          .filter((q) => q.language === "hi")
+          .sort((a, b) => getTime(a) - getTime(b));
+
+  const availableLanguages = [
+    ...(enQuestions.length > 0
+      ? [{ code: "en", label: "English", flag: "🇺🇸", count: enQuestions.length }]
+      : []),
+    ...(guQuestions.length > 0 && guMap.size + guUnmapped.length > 0
+      ? [{ code: "gu", label: "ગુજરાતી", flag: "🇮🇳", count: guQuestions.length }]
+      : []),
+    ...(hiQuestions.length > 0 && hiMap.size + hiUnmapped.length > 0
+      ? [{ code: "hi", label: "हिन्दी", flag: "🇮🇳", count: hiQuestions.length }]
+      : []),
+  ];
+
+  const [selectedLang, setSelectedLang] = useState<string>(() => {
+    return availableLanguages[0]?.code || "en";
+  });
+
+  const activeQuestions =
+    selectedLang === "gu" && guQuestions.length > 0
+      ? guQuestions
+      : selectedLang === "hi" && hiQuestions.length > 0
+      ? hiQuestions
+      : enQuestions.length > 0
+      ? enQuestions
+      : quiz.questions;
+
+  const activeQuiz = {
+    ...quiz,
+    questions: activeQuestions,
+  };
+
+  const [state, actions] = useQuizWizard(activeQuiz);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(soundEffects.isEnabled());
 
@@ -78,7 +165,10 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
   if (!state.isPlaying) {
     return (
       <QuizLobby
-        quiz={quiz}
+        quiz={activeQuiz}
+        availableLanguages={availableLanguages}
+        selectedLanguage={selectedLang}
+        onSelectLanguage={setSelectedLang}
         authWarning={state.authWarning}
         activeAttempt={state.activeAttempt}
         leaderboard={state.leaderboard}
@@ -98,7 +188,30 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
 
       {/* Quiz Top Header */}
       <div className="flex items-center justify-between border-b border-border/80 pb-4 select-none gap-3">
-        <h1 className="text-lg font-bold text-foreground truncate pr-6">{quiz.title}</h1>
+        <div className="flex items-center gap-2 min-w-0 pr-2">
+          <h1 className="text-lg font-bold text-foreground truncate">{quiz.title}</h1>
+          {availableLanguages.length > 1 && (
+            <div className="flex items-center gap-1 p-0.5 bg-surface-hover rounded-lg border border-border/60 shrink-0">
+              {availableLanguages.map((l) => (
+                <button
+                  key={l.code}
+                  type="button"
+                  onClick={() => setSelectedLang(l.code)}
+                  className={cn(
+                    "px-2 py-0.5 text-[10px] font-bold rounded-md transition-all cursor-pointer",
+                    selectedLang === l.code
+                      ? "bg-card shadow-2xs text-foreground ring-1 ring-border/40"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                  title={`Switch to ${l.label}`}
+                >
+                  <span>{l.flag}</span>
+                  <span className="ml-1 hidden sm:inline">{l.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <div className="flex items-center gap-2 shrink-0">
           {/* Consecutive Correct Streak Badge */}
           {state.streakCount >= 2 && (

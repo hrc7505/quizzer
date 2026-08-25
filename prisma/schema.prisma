@@ -22,6 +22,7 @@ model Account {
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 model Session {
@@ -30,6 +31,8 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model User {
@@ -43,6 +46,8 @@ model User {
   accounts      Account[]
   attempts      QuizAttempt[]
   sessions      Session[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @default(now()) @updatedAt
 }
 
 model VerificationToken {
@@ -58,45 +63,68 @@ model Exam {
   title       String
   description String?
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
   topics      Topic[]  @relation("ExamTopics")
 }
 
 model Topic {
-  id          String     @id @default(uuid())
-  title       String
-  createdAt   DateTime   @default(now())
-  description String?
-  questions   Question[]
-  exams       Exam[]     @relation("ExamTopics")
-  parentTopics Topic[]  @relation("TopicHierarchy")
-  subtopics    Topic[]  @relation("TopicHierarchy")
-  quizzes      Quiz[]   @relation("TopicQuizzes")
+  id           String     @id @default(uuid())
+  title        String
+  language     String     @default("en")
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @default(now()) @updatedAt
+  description  String?
+  questions    Question[]
+  exams        Exam[]     @relation("ExamTopics")
+  parentTopics Topic[]    @relation("TopicHierarchy")
+  subtopics    Topic[]    @relation("TopicHierarchy")
+  quizzes      Quiz[]     @relation("TopicQuizzes")
+
+  @@index([language])
 }
 
 model Quiz {
   id         String        @id @default(uuid())
   title      String
-  quizOrder  Int
+  language   String        @default("en")
+  quizOrder  Int           @default(1)
   difficulty String        @default("Medium")
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @default(now()) @updatedAt
   questions  Question[]
   attempts   QuizAttempt[]
   topics     Topic[]       @relation("TopicQuizzes")
+
+  @@index([language])
+  @@index([difficulty])
 }
 
 model Question {
-  id            String   @id @default(uuid())
-  topicId       String
-  quizId        String?
-  text          String
-  imageUrl      String?
-  invertInDark  Boolean  @default(true)
-  options       String[]
-  correctAnswer String
-  hint          String
-  description   String
-  elaboration   String?
-  quiz          Quiz?    @relation(fields: [quizId], references: [id])
-  topic         Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  id               String     @id @default(uuid())
+  topicId          String
+  quizId           String?
+  sourceQuestionId String?
+  sourceQuestion   Question?  @relation("QuestionTranslations", fields: [sourceQuestionId], references: [id], onDelete: Cascade)
+  translations     Question[] @relation("QuestionTranslations")
+  language         String     @default("en")
+  text             String
+  imageUrl         String?
+  invertInDark     Boolean    @default(true)
+  options          String[]
+  correctAnswer    String
+  hint             String
+  description      String
+  elaboration      String?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @default(now()) @updatedAt
+  quiz             Quiz?      @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  topic            Topic      @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@index([quizId])
+  @@index([quizId, language])
+  @@index([sourceQuestionId])
+  @@index([topicId])
+  @@index([language])
 }
 
 model QuizAttempt {
@@ -112,6 +140,9 @@ model QuizAttempt {
   quiz            Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
   user            User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
   answers         UserAnswer[]
+
+  @@index([quizId, completed])
+  @@index([userId])
 }
 
 model UserAnswer {
@@ -121,12 +152,16 @@ model UserAnswer {
   selectedAnswer String
   isCorrect      Boolean
   attempt        QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@index([attemptId])
+  @@index([questionId])
 }
 
 model QuizBatch {
   id           String    @id @default(uuid())
   topicId      String?
   title        String
+  language     String    @default("en")
   difficulty   String    @default("Medium")
   rawText      String    @db.Text
   batchIndex   Int       @default(1)
@@ -135,9 +170,9 @@ model QuizBatch {
   error        String?
   padTo30      Boolean   @default(false)
   createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  updatedAt    DateTime  @default(now()) @updatedAt
 
   @@index([status])
   @@index([topicId])
+  @@index([language])
 }
-

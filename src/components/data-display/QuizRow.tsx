@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Link as LinkIcon, MoreHorizontal, Sparkles, Pencil, ListOrdered, Trash2, Layers } from "lucide-react";
+import { Link as LinkIcon, MoreHorizontal, Sparkles, Pencil, ListOrdered, Trash2, Layers, Languages } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -14,9 +14,11 @@ interface TopicRef {
   parentTopics?: { id: string }[];
 }
 
-interface Quiz {
+export interface Quiz {
   id: string;
   title: string;
+  language?: string;
+  availableLanguages?: string[];
   difficulty: string;
   quizOrder: number;
   topics: TopicRef[];
@@ -33,6 +35,7 @@ export interface QuizRowProps {
   onDeleteQuiz: (quiz: Quiz) => void;
   onAppendQuestions?: (quiz: Quiz) => void;
   onFindDuplicates?: (quiz: Quiz) => void;
+  onTranslateQuiz?: (quiz: Quiz) => void;
 }
 
 export const QuizRow = React.memo(function QuizRow({
@@ -45,7 +48,13 @@ export const QuizRow = React.memo(function QuizRow({
   onDeleteQuiz,
   onAppendQuestions,
   onFindDuplicates,
+  onTranslateQuiz,
 }: QuizRowProps) {
+  const languages =
+    quiz.availableLanguages && quiz.availableLanguages.length > 0
+      ? quiz.availableLanguages
+      : [quiz.language || "en"];
+
   return (
     <tr
       key={quiz.id}
@@ -68,12 +77,31 @@ export const QuizRow = React.memo(function QuizRow({
         #{quiz.quizOrder}
       </td>
       <td className="py-3 px-4">
-        <button
-          onClick={() => onSelectQuiz(quiz.id)}
-          className="text-left font-semibold text-foreground hover:text-primary transition-colors cursor-pointer block max-w-sm truncate border-0 bg-transparent p-0"
-        >
-          {quiz.title}
-        </button>
+        <div className="flex items-center gap-2 max-w-sm">
+          <div className="flex items-center gap-1 shrink-0">
+            {languages.includes("en") && (
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 select-none">
+                🇺🇸 EN
+              </span>
+            )}
+            {languages.includes("gu") && (
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 select-none">
+                🇮🇳 GU
+              </span>
+            )}
+            {languages.includes("hi") && (
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20 select-none">
+                🇮🇳 HI
+              </span>
+            )}
+          </div>
+          <button
+            onClick={() => onSelectQuiz(quiz.id)}
+            className="text-left font-semibold text-foreground hover:text-primary transition-colors cursor-pointer block truncate border-0 bg-transparent p-0"
+          >
+            {quiz.title}
+          </button>
+        </div>
       </td>
       <td className="py-3 px-4 text-center select-none">
         <Badge variant={difficultyColor(quiz.difficulty)} className="capitalize font-bold text-[10px] px-2 py-0.5 animate-none">
@@ -127,6 +155,12 @@ export const QuizRow = React.memo(function QuizRow({
                 <ListOrdered className="h-3.5 w-3.5 text-muted-foreground" />
                 <span>Manage Questions</span>
               </DropdownItem>
+              {onTranslateQuiz && (
+                <DropdownItem onClick={() => onTranslateQuiz(quiz)} className="gap-2 text-indigo-600 dark:text-indigo-400 font-medium">
+                  <Languages className="h-3.5 w-3.5 text-indigo-500" />
+                  <span>Localize with AI</span>
+                </DropdownItem>
+              )}
               {onFindDuplicates && (
                 <DropdownItem onClick={() => onFindDuplicates(quiz)} className="gap-2 text-amber-600 dark:text-amber-400 font-medium">
                   <Layers className="h-3.5 w-3.5 text-amber-500" />

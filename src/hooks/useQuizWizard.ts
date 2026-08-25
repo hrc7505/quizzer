@@ -10,6 +10,8 @@ import type { LeaderboardEntry } from "@/lib/services/attempt.service";
 
 interface QuizWizardQuestion {
   id: string;
+  sourceQuestionId?: string | null;
+  language?: string;
   text: string;
   imageUrl?: string | null;
   invertInDark?: boolean;
@@ -94,8 +96,9 @@ export function useQuizWizard(quiz: QuizWizardQuiz): [QuizWizardState, QuizWizar
   const [error, setError] = useState<string | null>(null);
 
   const questions = quiz.questions || [];
-  const currentQuestion = questions[currentIndex] || null;
-  const progress = questions.length > 0 ? currentIndex / questions.length : 0;
+  const safeIndex = questions.length > 0 ? Math.min(currentIndex, questions.length - 1) : 0;
+  const currentQuestion = questions[safeIndex] || null;
+  const progress = questions.length > 0 ? Math.min(1, safeIndex / questions.length) : 0;
 
   // Initial Load
   useEffect(() => {
@@ -351,12 +354,13 @@ export function useQuizWizard(quiz: QuizWizardQuiz): [QuizWizardState, QuizWizar
         const res = await AttemptService.completeAttempt(attemptId, timeTaken);
         if (res.success) {
           router.push(`/quiz/results/${res.attemptId}`);
+          // Keep isSubmitting active during page transition
         } else {
           setError("Failed to submit attempt");
+          setIsSubmitting(false);
         }
       } catch {
         setError("An error occurred while finalizing quiz.");
-      } finally {
         setIsSubmitting(false);
       }
     }

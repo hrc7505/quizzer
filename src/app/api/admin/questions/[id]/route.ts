@@ -1,9 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { revalidatePath, revalidateTag } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
 import { revalidateQuizAndRelated } from "@/lib/quiz-routing";
 import { sanitizeQuestionText, stripNullBytes } from "@/lib/format";
+import { translateExplanationAndHint } from "@/lib/services/ai-explain.service";
 
 /**
  * PUT /api/admin/questions/[id]
@@ -13,7 +14,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   try {
     const { id } = await params;
     const body = await req.json();
-    const { text, imageUrl, invertInDark, options, correctAnswer, hint, description } = body;
+    const { text, imageUrl, invertInDark, options, correctAnswer, hint, description, language } = body;
 
     const existing = await prisma.question.findUnique({
       where: { id },
@@ -23,6 +24,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const question = await prisma.question.update({
       where: { id },
       data: {
+        language: language !== undefined ? language : undefined,
         text: text !== undefined ? sanitizeQuestionText(text) : undefined,
         imageUrl: imageUrl !== undefined ? (imageUrl || null) : undefined,
         invertInDark: typeof invertInDark === "boolean" ? invertInDark : undefined,
@@ -32,6 +34,47 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         description: description !== undefined ? stripNullBytes(description) : undefined
       }
     });
+
+    // If description or hint changed, propagate translated version to linked language questions asynchronously in background
+    if (description !== undefined || hint !== undefined) {
+      const rootId = existing?.sourceQuestionId || existing?.id;
+      if (rootId && existing?.quizId) {
+        after(async () => {
+          try {
+            const linkedQuestions = await prisma.question.findMany({
+              where: {
+                id: { not: id },
+                quizId: existing.quizId,
+                OR: [{ id: rootId }, { sourceQuestionId: rootId }],
+              },
+            });
+
+            for (const sibling of linkedQuestions) {
+              try {
+                const targetLang = (sibling.language || "en") as "en" | "gu" | "hi";
+                const translated = await translateExplanationAndHint({
+                  explanation: description !== undefined ? description : sibling.description,
+                  hint: hint !== undefined ? hint : sibling.hint,
+                  targetLanguage: targetLang,
+                });
+
+                await prisma.question.update({
+                  where: { id: sibling.id },
+                  data: {
+                    description: translated.explanation,
+                    hint: translated.hint,
+                  },
+                });
+              } catch (err) {
+                console.warn(`Failed to sync translated explanation to question ${sibling.id}:`, err);
+              }
+            }
+          } catch (err) {
+            console.warn("Background multilingual translation notice:", err);
+          }
+        });
+      }
+    }
 
     if (existing?.quiz?.topics[0]) {
       revalidatePath(`/topics/${existing.quiz.topics[0].id}`, "page");

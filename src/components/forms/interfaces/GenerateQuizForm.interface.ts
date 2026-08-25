@@ -38,6 +38,7 @@ export interface GenerateQuizPayload {
   targetQuizId?: string;
   targetQuizTitle?: string;
   difficulty: string;
+  language?: string;
   topicText?: string;
   file?: File | null;
   /** Whether AI should auto-pad incomplete quizzes with extra generated questions to reach 30 (default: false) */

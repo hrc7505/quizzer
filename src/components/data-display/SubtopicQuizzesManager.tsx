@@ -38,6 +38,7 @@ import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from "@/comp
 import { useDialog } from "@/components/providers/OverlayProvider";
 import { useToast } from "@/components/providers/ToastProvider";
 import { BatchQueueManager } from "@/components/data-display/BatchQueueManager";
+import { useBatchLiveSync } from "@/hooks/useBatchLiveSync";
 import { soundEffects } from "@/lib/services/sound-effects.service";
 import { difficultyColor } from "@/lib/format";
 import { api } from "@/lib/api";
@@ -155,6 +156,18 @@ export function SubtopicQuizzesManager({
 
   const parentTopic = subtopic.parentTopics?.[0];
 
+  // Live background batch tracking to keep quizzes synchronized without manual reloads
+  const batchSync = useBatchLiveSync({
+    topicId: subtopic.id,
+    onRefresh: refreshQuizzes,
+    onComplete: () => {
+      toast.addToast({
+        type: "success",
+        message: "Background quiz generation completed! Quizzes updated.",
+      });
+    },
+  });
+
   /**
    * Opens the Generate Quiz dialog pre-targeted to this subtopic.
    */
@@ -165,15 +178,23 @@ export function SubtopicQuizzesManager({
       body: (
         <GenerateQuizForm
           initialTopicId={subtopic.id}
-          onSuccess={async () => {
+          onSuccess={async (result) => {
             await refreshQuizzes();
             dialog.close();
-            toast.addToast({ type: "success", message: "Quiz generated successfully" });
+            if (result?.isBatched) {
+              batchSync.triggerSync();
+              toast.addToast({
+                type: "info",
+                message: `Created ${result.batchesCreated} background batch(es). Quizzes will update live automatically!`,
+              });
+            } else {
+              toast.addToast({ type: "success", message: "Quiz generated successfully" });
+            }
           }}
         />
       ),
     });
-  }, [dialog, subtopic.id, subtopic.title, refreshQuizzes, toast]);
+  }, [dialog, subtopic.id, subtopic.title, refreshQuizzes, toast, batchSync]);
 
   /**
    * Opens the Batch Queue dialog panel for this subtopic.

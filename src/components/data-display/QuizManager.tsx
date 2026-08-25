@@ -20,8 +20,10 @@ import { QuestionEditorBody } from "@/components/data-display/QuestionEditorBody
 import { DeleteConfirmDialogBody } from "@/components/feedback/DeleteConfirmDialogBody";
 import { MergeQuizzesDialogBody } from "@/components/data-display/MergeQuizzesDialogBody";
 import { DuplicateQuestionsDialogBody } from "@/components/data-display/DuplicateQuestionsDialogBody";
+import { TranslateQuizDialogBody } from "@/components/data-display/TranslateQuizDialogBody";
 import { downloadCSV } from "@/lib/csv-export";
 import { Pagination } from "@/components/data-display/Pagination";
+import { useBatchLiveSync } from "@/hooks/useBatchLiveSync";
 import { SearchFilterBar } from "@/components/data-display/SearchFilterBar";
 import { PageHeader } from "@/components/data-display/PageHeader";
 import { QuizRow } from "@/components/data-display/QuizRow";
@@ -36,6 +38,7 @@ interface TopicRef {
 interface Quiz {
   id: string;
   title: string;
+  language?: string;
   difficulty: string;
   quizOrder: number;
   topics: TopicRef[];
@@ -173,11 +176,26 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
   }, [filtered, toast]);
 
   // Refresh quizzes list
-  const fetchQuizzes = async () => {
-    const res = await fetch("/api/admin/quizzes");
-    const data = await res.json();
-    if (Array.isArray(data)) setQuizzes(data);
-  };
+  const fetchQuizzes = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/quizzes");
+      const data = await res.json();
+      if (Array.isArray(data)) setQuizzes(data);
+    } catch (e) {
+      console.error("Failed to fetch quizzes:", e);
+    }
+  }, []);
+
+  // Background batch monitoring to auto-update quizzes table live without manual reload
+  const batchSync = useBatchLiveSync({
+    onRefresh: fetchQuizzes,
+    onComplete: () => {
+      toast.addToast({
+        type: "success",
+        message: "Background quiz generation completed! Quizzes updated.",
+      });
+    },
+  });
 
   // Re-fetch active quiz questions in drawer
   const fetchActiveQuizDetail = async (id: string) => {
@@ -501,10 +519,18 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
       title: "Generate Quiz with AI",
       body: (
         <GenerateQuizForm
-          onSuccess={async () => {
+          onSuccess={async (result) => {
             dialog.close();
             await fetchQuizzes();
-            toast.addToast({ type: "success", message: "New quiz created successfully!" });
+            if (result?.isBatched) {
+              batchSync.triggerSync();
+              toast.addToast({
+                type: "info",
+                message: `Created ${result.batchesCreated} background batch(es). Quizzes will update live automatically!`,
+              });
+            } else {
+              toast.addToast({ type: "success", message: "New quiz created successfully!" });
+            }
           }}
         />
       ),
@@ -519,13 +545,21 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
         <GenerateQuizForm
           targetQuizId={quiz.id}
           targetQuizTitle={quiz.title}
-          onSuccess={async () => {
+          onSuccess={async (result) => {
             dialog.close();
             await fetchQuizzes();
-            toast.addToast({
-              type: "success",
-              message: `Appended questions to "${quiz.title}"!`,
-            });
+            if (result?.isBatched) {
+              batchSync.triggerSync();
+              toast.addToast({
+                type: "info",
+                message: `Created ${result.batchesCreated} background batch(es). Questions will update live automatically!`,
+              });
+            } else {
+              toast.addToast({
+                type: "success",
+                message: `Appended questions to "${quiz.title}"!`,
+              });
+            }
           }}
         />
       ),
@@ -542,6 +576,32 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
           quizTitle={quiz.title}
           onClose={() => dialog.close()}
           onSuccess={fetchQuizzes}
+        />
+      ),
+    });
+  };
+
+  // Open Localize / Translate Quiz Dialog
+  const handleOpenTranslateDialog = (quiz: Quiz) => {
+    dialog.open({
+      title: `Localize Quiz — ${quiz.title}`,
+      body: (
+        <TranslateQuizDialogBody
+          quizId={quiz.id}
+          quizTitle={quiz.title}
+          currentLanguage={quiz.language || "en"}
+          questionCount={quiz._count?.questions || 0}
+          onClose={() => dialog.close()}
+          onSuccess={async (res) => {
+            await fetchQuizzes();
+            toast.addToast({
+              type: "success",
+              message:
+                res.mode === "clone"
+                  ? `Created companion quiz in ${res.language.toUpperCase()}`
+                  : `Translated quiz to ${res.language.toUpperCase()}`,
+            });
+          }}
         />
       ),
     });
@@ -813,6 +873,7 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
                     onDeleteQuiz={handleDeleteQuiz}
                     onAppendQuestions={handleOpenAppendDialog}
                     onFindDuplicates={handleOpenDuplicatesDialog}
+                    onTranslateQuiz={handleOpenTranslateDialog}
                   />
                 ))}
               </tbody>

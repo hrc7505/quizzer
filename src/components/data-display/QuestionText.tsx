@@ -10,6 +10,7 @@ import { ArrowLeftRight } from "lucide-react";
 
 import { CodeBlock } from "@/components/data-display/CodeBlock";
 import { autoFormatCodeAndMath } from "@/lib/format";
+import { useTranslation } from "@/contexts/LanguageContext";
 import { cn } from "@/utils/cn";
 
 import type {
@@ -316,6 +317,7 @@ export function QuestionText({
   size = "base",
   isCompact = false,
 }: QuestionTextProps) {
+  const { t } = useTranslation();
   const parsed = React.useMemo(() => parseQuestionText(text), [text]);
 
   const textSizeClass =
@@ -348,11 +350,11 @@ export function QuestionText({
         {parsed.isMatching ? (
           <span className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 select-none">
             <ArrowLeftRight className="h-2.5 w-2.5" />
-            Match Pairs
+            {t("matchPairs", "Match Pairs")}
           </span>
         ) : (
           <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 select-none">
-            {parsed.statements.length} Statements
+            {parsed.statements.length} {t("statements", "Statements")}
           </span>
         )}
       </div>
@@ -384,7 +386,7 @@ export function QuestionText({
                   {left.title || "List I"}
                 </span>
                 <span className="text-[10px] text-muted-foreground font-semibold select-none">
-                  {left.items.length} Items
+                  {left.items.length} {t("items", "Items")}
                 </span>
               </div>
               <div className="flex flex-col gap-2 mt-1">
@@ -412,7 +414,7 @@ export function QuestionText({
                   {right.title || "List II"}
                 </span>
                 <span className="text-[10px] text-muted-foreground font-semibold select-none">
-                  {right.items.length} Matches
+                  {right.items.length} {t("matches", "Matches")}
                 </span>
               </div>
               <div className="flex flex-col gap-2 mt-1">

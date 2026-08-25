@@ -6,6 +6,7 @@ import { SessionProvider } from "next-auth/react";
 
 import { OverlayProvider } from "@/components/providers/OverlayProvider";
 import { ToastProvider } from "@/components/providers/ToastProvider";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 
 // React 19 introduces a strict dev warning for inline <script> tags rendered by components.
 // next-themes uses an inline script tag to prevent flash of unstyled theme (FOUC) on load.
@@ -24,7 +25,8 @@ if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
 }
 
 /**
- * Root providers wrapper for authentication, theme management, toast notifications, and modal overlays.
+ * Root providers wrapper for authentication, theme management, toast notifications,
+ * multi-language context, and modal overlays.
  *
  * @param props.children The application component tree to wrap with context providers.
  */
@@ -32,9 +34,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <ToastProvider>
-          <OverlayProvider>{children}</OverlayProvider>
-        </ToastProvider>
+        <LanguageProvider>
+          <ToastProvider>
+            <OverlayProvider>{children}</OverlayProvider>
+          </ToastProvider>
+        </LanguageProvider>
       </ThemeProvider>
     </SessionProvider>
   );

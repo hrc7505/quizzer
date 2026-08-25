@@ -65,10 +65,19 @@ export async function POST(req: Request) {
       ? options.map((opt: unknown) => stripNullBytes(String(opt)))
       : [];
 
+    const lang =
+      body.language ||
+      (/[\u0A80-\u0AFF]/.test(text)
+        ? "gu"
+        : /[\u0900-\u097F]/.test(text)
+        ? "hi"
+        : "en");
+
     const question = await prisma.question.create({
       data: {
         quizId,
         topicId,
+        language: lang,
         text: sanitizeQuestionText(text),
         imageUrl: imageUrl || null,
         invertInDark: typeof invertInDark === "boolean" ? invertInDark : true,

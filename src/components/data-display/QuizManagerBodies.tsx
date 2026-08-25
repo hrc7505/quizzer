@@ -28,30 +28,52 @@ export interface EditQuizDialogBodyProps {
 
 export function EditQuizDialogBody({ initialForm, onSave, loading }: EditQuizDialogBodyProps) {
   const [form, setForm] = React.useState<QuizFormState>(initialForm);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   const dialog = useDialog();
+
+  const handleSave = async () => {
+    setIsSubmitting(true);
+    try {
+      await onSave(form);
+      dialog.close();
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const isBusy = loading || isSubmitting;
 
   return (
     <div className="flex flex-col gap-4 mt-3">
       <div className="flex flex-col gap-1.5">
         <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Quiz Title <span className="text-danger">*</span></label>
-        <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required />
+        <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required disabled={isBusy} />
       </div>
 
       <div className="flex flex-col gap-1.5">
         <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Difficulty <span className="text-danger">*</span></label>
-        <Select value={form.difficulty} onChange={e => setForm(f => ({ ...f, difficulty: e.target.value }))} required>
+        <Select value={form.difficulty} onChange={e => setForm(f => ({ ...f, difficulty: e.target.value }))} required disabled={isBusy}>
           {DIFFICULTIES.map(d => <option key={d} value={d}>{d}</option>)}
         </Select>
       </div>
 
       <div className="flex flex-col gap-1.5">
         <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Order / Position</label>
-        <Input type="number" placeholder="Leave blank for auto" value={form.quizOrder} onChange={e => setForm(f => ({ ...f, quizOrder: e.target.value }))} />
+        <Input type="number" placeholder="Leave blank for auto" value={form.quizOrder} onChange={e => setForm(f => ({ ...f, quizOrder: e.target.value }))} disabled={isBusy} />
       </div>
 
       <div className="flex items-center justify-end space-x-2 mt-6 pt-3 border-t border-border/30">
-        <Button variant="outline" onClick={() => dialog.close()}>Cancel</Button>
-        <Button variant="primary" onClick={async () => { await onSave(form); dialog.close(); }} disabled={!form.title || loading}>Save</Button>
+        <Button variant="outline" onClick={() => dialog.close()} disabled={isBusy}>Cancel</Button>
+        <Button variant="primary" onClick={handleSave} disabled={!form.title || isBusy} className="gap-1.5 min-w-[76px]">
+          {isBusy ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <span>Saving…</span>
+            </>
+          ) : (
+            "Save"
+          )}
+        </Button>
       </div>
     </div>
   );

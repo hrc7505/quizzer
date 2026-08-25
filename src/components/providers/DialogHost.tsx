@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { X } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 
 import { cn } from "@/utils/cn";
 import { Button } from "@/components/ui/Button";
@@ -16,6 +16,7 @@ export interface DialogConfig {
   okText?: string;
   cancelText?: string;
   okVariant?: "primary" | "danger";
+  busyText?: string;
   onOk?: () => void | Promise<void>;
   onCancel?: () => void;
   okDisabled?: boolean;
@@ -48,6 +49,22 @@ export function DialogHost({ config, onClose }: DialogHostProps) {
       }
     }
     onClose();
+  };
+
+  const getBusyText = () => {
+    if (config.busyText) return config.busyText;
+    const okText = typeof config.okText === "string" ? config.okText.trim() : "";
+    const lower = okText.toLowerCase();
+    if (!okText || lower === "ok" || lower === "confirm") {
+      return config.okVariant === "danger" ? "Deleting…" : "Processing…";
+    }
+    if (lower.includes("delete") || lower.includes("remove")) return "Deleting…";
+    if (lower.includes("save")) return "Saving…";
+    if (lower.includes("proofread")) return "Proofreading…";
+    if (lower.includes("translate") || lower.includes("localize")) return "Translating…";
+    if (lower.includes("merge")) return "Merging…";
+    if (lower.includes("generate")) return "Generating…";
+    return `${okText}…`;
   };
 
   return (
@@ -99,9 +116,16 @@ export function DialogHost({ config, onClose }: DialogHostProps) {
                   variant={config.okVariant ?? "primary"}
                   onClick={handleOk}
                   disabled={config.okDisabled || okBusy}
-                  className="h-9 px-4 text-xs font-semibold"
+                  className="h-9 px-4 text-xs font-semibold gap-1.5"
                 >
-                  {config.okText ?? "OK"}
+                  {okBusy ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <span>{getBusyText()}</span>
+                    </>
+                  ) : (
+                    config.okText ?? "OK"
+                  )}
                 </Button>
               )}
             </div>

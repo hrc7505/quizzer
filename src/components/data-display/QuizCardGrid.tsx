@@ -17,6 +17,8 @@ interface QuizItem {
   title: string;
   difficulty: string;
   quizOrder: number;
+  availableLanguages?: string[];
+  questions?: { language?: string; text?: string }[];
   _count?: { questions: number };
 }
 
@@ -161,16 +163,55 @@ export function QuizCardGrid({ quizzes, subtopicTitle, basePath, attemptsData: i
       {/* Grid of Quizzes */}
       {paginated.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {paginated.map((quiz) => (
-            <Card key={quiz.id} className="p-5 flex flex-col justify-between hover:border-primary/40 hover:shadow-md transition-all duration-200 bg-card border-border/80">
-              <div className="flex flex-col gap-2">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none">
-                  Quiz #{quiz.quizOrder}
-                </span>
-                <h3 className="text-sm font-bold text-foreground leading-snug line-clamp-2">
-                  {quiz.title}
-                </h3>
-              </div>
+          {paginated.map((quiz) => {
+            const languages =
+              quiz.availableLanguages ||
+              (quiz.questions
+                ? Array.from(
+                    new Set(
+                      quiz.questions.map((q) =>
+                        q.language ||
+                        (/[\u0A80-\u0AFF]/.test(q.text || "")
+                          ? "gu"
+                          : /[\u0900-\u097F]/.test(q.text || "")
+                          ? "hi"
+                          : "en")
+                      )
+                    )
+                  )
+                : []);
+
+            return (
+              <Card key={quiz.id} className="p-5 flex flex-col justify-between hover:border-primary/40 hover:shadow-md transition-all duration-200 bg-card border-border/80">
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none">
+                      Quiz #{quiz.quizOrder}
+                    </span>
+                    {languages.length > 1 && (
+                      <div className="flex items-center gap-1 shrink-0">
+                        {languages.includes("en") && (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                            🇺🇸 EN
+                          </span>
+                        )}
+                        {languages.includes("gu") && (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                            🇮🇳 GU
+                          </span>
+                        )}
+                        {languages.includes("hi") && (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20">
+                            🇮🇳 HI
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <h3 className="text-sm font-bold text-foreground leading-snug line-clamp-2">
+                    {quiz.title}
+                  </h3>
+                </div>
 
               <div className="flex items-center gap-1.5 flex-wrap mt-4 select-none">
                 <Badge variant={difficultyBadgeVariant(quiz.difficulty)} className="capitalize font-bold text-[10px] px-2 py-0.5">
@@ -226,7 +267,8 @@ export function QuizCardGrid({ quizzes, subtopicTitle, basePath, attemptsData: i
                 />
               </div>
             </Card>
-          ))}
+          );
+        })}
         </div>
       ) : (
         <NoData 

@@ -4,6 +4,8 @@
 
   /* Font Family override variables */
   --font-winky: "Winky Sans", sans-serif;
+  --font-gujarati: "Anek Gujarati", "Noto Sans Gujarati", sans-serif;
+  --font-hindi: "Hind", "Noto Sans Devanagari", sans-serif;
 
   /* Base Transitions */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -183,4 +185,19 @@
   --markdown-pre-fg: #e4e4e7;
   --markdown-quote-fg: #a1a1aa;
   --markdown-quote-border: #3f3f46;
+}
+
+/* Language-aware typography overrides */
+html[data-lang="gu"], [data-lang="gu"] {
+  font-family: var(--font-gujarati), var(--font-winky), system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.01em;
+}
+
+html[data-lang="hi"], [data-lang="hi"] {
+  font-family: var(--font-hindi), var(--font-winky), system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.01em;
+}
+
+html[data-lang="en"], [data-lang="en"] {
+  font-family: var(--font-winky), system-ui, -apple-system, sans-serif;
 }

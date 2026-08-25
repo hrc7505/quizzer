@@ -5,12 +5,13 @@ import { Check, X, Sparkles, Lightbulb } from "lucide-react";
 
 import { OptionText } from "@/components/data-display/OptionText";
 import { MarkdownContent } from "@/components/data-display/MarkdownContent";
+import { useTranslation } from "@/contexts/LanguageContext";
 import { cn } from "@/utils/cn";
 import type { AnswerCalloutProps } from "@/components/data-display/interfaces/AnswerCallout.interface";
 
 /**
  * AnswerCallout — reusable display banner for correct answers, user choices,
- * answer explanations, and hints across quizzes and results.
+ * answer explanations, and hints across quizzes and results with multi-language support.
  */
 export function AnswerCallout({
   variant,
@@ -19,6 +20,8 @@ export function AnswerCallout({
   title,
   className,
 }: AnswerCalloutProps) {
+  const { t } = useTranslation();
+
   // 1. Correct Answer Callout
   if (variant === "correct") {
     return (
@@ -30,7 +33,7 @@ export function AnswerCallout({
       >
         <div className="flex items-center gap-1.5 text-success font-bold text-[10px] uppercase tracking-wider select-none">
           <Check className="h-3.5 w-3.5 stroke-[2.5]" />
-          <span>{title || "Correct Answer"}</span>
+          <span>{title || t("correctAnswer", "Correct Answer")}</span>
         </div>
         <div className="text-foreground font-semibold text-xs sm:text-sm leading-relaxed min-w-0 break-words">
           {text ? <OptionText text={text} /> : children}
@@ -50,7 +53,7 @@ export function AnswerCallout({
       >
         <div className="flex items-center gap-1.5 text-danger font-bold text-[10px] uppercase tracking-wider select-none">
           <X className="h-3.5 w-3.5 stroke-[2.5]" />
-          <span>{title || "Your Answer"}</span>
+          <span>{title || t("yourAnswer", "Your Answer")}</span>
         </div>
         <div className="text-foreground font-semibold text-xs sm:text-sm leading-relaxed min-w-0 break-words">
           {text ? <OptionText text={text} /> : children}
@@ -70,7 +73,7 @@ export function AnswerCallout({
       >
         <div className="flex items-center gap-1.5 text-primary font-bold text-xs select-none">
           <Sparkles className="h-3.5 w-3.5 shrink-0" />
-          <span>{title || "Explanation"}</span>
+          <span>{title || t("explanation", "Explanation")}</span>
         </div>
         <div className="min-w-0 break-words">
           {typeof text === "string" ? (
@@ -93,7 +96,7 @@ export function AnswerCallout({
     >
       <Lightbulb className="h-4 w-4 text-warning shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0 break-words">
-        <span className="font-bold text-warning select-none">{title || "Hint: "}</span>
+        <span className="font-bold text-warning select-none">{title || t("hintLabel", "Hint:")} </span>
         <span>{text || children}</span>
       </div>
     </div>
@@ -101,3 +104,4 @@ export function AnswerCallout({
 }
 
 export default AnswerCallout;
+

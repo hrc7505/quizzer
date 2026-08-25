@@ -9,11 +9,56 @@ export async function GET() {
     const quizzes = await prisma.quiz.findMany({
       include: {
         topics: true,
-        _count: { select: { questions: true } }
+        questions: {
+          select: { language: true, text: true },
+        },
+        _count: { select: { questions: true, attempts: true } },
       },
-      orderBy: { quizOrder: "asc" }
+      orderBy: { quizOrder: "asc" },
     });
-    return NextResponse.json(quizzes);
+
+    const formattedQuizzes = quizzes.map((quiz) => {
+      const languages = Array.from(
+        new Set(
+          quiz.questions.map((q) => {
+            if (q.language) return q.language;
+            if (/[\u0A80-\u0AFF]/.test(q.text)) return "gu";
+            if (/[\u0900-\u097F]/.test(q.text)) return "hi";
+            return "en";
+          })
+        )
+      );
+
+      const enCount = quiz.questions.filter(
+        (q) =>
+          q.language === "en" ||
+          (!q.language && !/[\u0A80-\u0AFF]/.test(q.text) && !/[\u0900-\u097F]/.test(q.text))
+      ).length;
+      const guCount = quiz.questions.filter(
+        (q) => q.language === "gu" || /[\u0A80-\u0AFF]/.test(q.text)
+      ).length;
+      const hiCount = quiz.questions.filter(
+        (q) => q.language === "hi" || /[\u0900-\u097F]/.test(q.text)
+      ).length;
+
+      const distinctCount = Math.max(enCount, guCount, hiCount, quiz.questions.length > 0 ? 1 : 0);
+
+      return {
+        id: quiz.id,
+        title: quiz.title,
+        difficulty: quiz.difficulty,
+        quizOrder: quiz.quizOrder,
+        language: quiz.language,
+        availableLanguages: languages.length > 0 ? languages : ["en"],
+        topics: quiz.topics,
+        _count: {
+          questions: distinctCount,
+          attempts: quiz._count?.attempts || 0,
+        },
+      };
+    });
+
+    return NextResponse.json(formattedQuizzes);
   } catch (error) {
     console.error("Failed to fetch quizzes:", error);
     return NextResponse.json({ error: "Failed to fetch quizzes" }, { status: 500 });

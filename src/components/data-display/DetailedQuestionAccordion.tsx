@@ -10,6 +10,7 @@ import { cn } from "@/utils/cn";
 import { QuestionImage } from "@/components/data-display/QuestionImage";
 import { AnswerCallout } from "@/components/data-display/AnswerCallout";
 import { QuestionText } from "@/components/data-display/QuestionText";
+import { useTranslation } from "@/contexts/LanguageContext";
 import type { DetailedQuestionAccordionProps } from "@/components/data-display/interfaces/DetailedQuestionAccordion.interface";
 
 /**
@@ -25,11 +26,19 @@ function DetailedQuestionAccordionInner({
   handleElaborate,
   onOpenFullPage,
 }: DetailedQuestionAccordionProps) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const isCorrect = answer?.isCorrect;
 
+  const isGujarati = /[\u0A80-\u0AFF]/.test(question.text);
+  const isHindi = /[\u0900-\u097F]/.test(question.text);
+  const lang = isGujarati ? "gu" : isHindi ? "hi" : "en";
+
   return (
-    <div className="border border-border/80 rounded-xl overflow-hidden bg-card shadow-2xs transition-colors min-w-0 max-w-full">
+    <div
+      data-lang={lang}
+      className="border border-border/80 rounded-xl overflow-hidden bg-card shadow-2xs transition-colors min-w-0 max-w-full"
+    >
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -103,7 +112,7 @@ function DetailedQuestionAccordionInner({
                 <Sparkles className="h-3.5 w-3.5" />
               )}
               <span>
-                {elaborations[question.id]?.data ? "View Deep Dive" : "Generate Deep Dive"}
+                {elaborations[question.id]?.data ? t("viewDeepDive", "View Deep Dive") : t("generateDeepDive", "Generate Deep Dive")}
               </span>
             </Button>
 
@@ -114,7 +123,7 @@ function DetailedQuestionAccordionInner({
                   size="sm"
                   className="gap-1.5 h-9 font-semibold text-xs text-muted-foreground/80 hover:text-foreground"
                 >
-                  <span>Open Full Page</span>
+                  <span>{t("openFullPage", "Open Full Page")}</span>
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Button>
               </Link>

@@ -47,21 +47,43 @@ export interface ExamDialogBodyProps {
 
 export function ExamDialogBody({ initialForm, onSave, loading }: ExamDialogBodyProps) {
   const [form, setForm] = React.useState<ExamForm>(initialForm);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   const dialog = useDialog();
+
+  const handleSave = async () => {
+    setIsSubmitting(true);
+    try {
+      await onSave(form);
+      dialog.close();
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const isBusy = loading || isSubmitting;
 
   return (
     <div className="flex flex-col gap-4 mt-3">
       <div className="flex flex-col gap-1.5">
         <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Exam Title <span className="text-danger">*</span></label>
-        <Input value={form.title} onChange={e => setForm({...form, title: e.target.value})} required />
+        <Input value={form.title} onChange={e => setForm({...form, title: e.target.value})} required disabled={isBusy} />
       </div>
       <div className="flex flex-col gap-1.5">
         <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Description</label>
-        <Textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={3} />
+        <Textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={3} disabled={isBusy} />
       </div>
       <div className="flex items-center justify-end space-x-2 mt-6 pt-3 border-t border-border/30">
-        <Button variant="outline" onClick={() => dialog.close()}>Cancel</Button>
-        <Button variant="primary" onClick={async () => { await onSave(form); dialog.close(); }} disabled={!form.title || loading}>Save</Button>
+        <Button variant="outline" onClick={() => dialog.close()} disabled={isBusy}>Cancel</Button>
+        <Button variant="primary" onClick={handleSave} disabled={!form.title || isBusy} className="gap-1.5 min-w-[76px]">
+          {isBusy ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <span>Saving…</span>
+            </>
+          ) : (
+            "Save"
+          )}
+        </Button>
       </div>
     </div>
   );
@@ -75,21 +97,43 @@ export interface TopicDialogBodyProps {
 
 export function TopicDialogBody({ initialForm, onSave, loading }: TopicDialogBodyProps) {
   const [form, setForm] = React.useState<TopicForm>(initialForm);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   const dialog = useDialog();
+
+  const handleSave = async () => {
+    setIsSubmitting(true);
+    try {
+      await onSave(form);
+      dialog.close();
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const isBusy = loading || isSubmitting;
 
   return (
     <div className="flex flex-col gap-4 mt-3">
       <div className="flex flex-col gap-1.5">
         <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Topic Title <span className="text-danger">*</span></label>
-        <Input value={form.title} onChange={e => setForm({...form, title: e.target.value})} required />
+        <Input value={form.title} onChange={e => setForm({...form, title: e.target.value})} required disabled={isBusy} />
       </div>
       <div className="flex flex-col gap-1.5">
         <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Description</label>
-        <Textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={3} />
+        <Textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={3} disabled={isBusy} />
       </div>
       <div className="flex items-center justify-end space-x-2 mt-6 pt-3 border-t border-border/30">
-        <Button variant="outline" onClick={() => dialog.close()}>Cancel</Button>
-        <Button variant="primary" onClick={async () => { await onSave(form); dialog.close(); }} disabled={!form.title || loading}>Save</Button>
+        <Button variant="outline" onClick={() => dialog.close()} disabled={isBusy}>Cancel</Button>
+        <Button variant="primary" onClick={handleSave} disabled={!form.title || isBusy} className="gap-1.5 min-w-[76px]">
+          {isBusy ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <span>Saving…</span>
+            </>
+          ) : (
+            "Save"
+          )}
+        </Button>
       </div>
     </div>
   );
@@ -127,6 +171,7 @@ export function QuestionDialogBody({ initialForm, onSave, loading }: QuestionDia
   });
   const [isGeneratingAi, setIsGeneratingAi] = React.useState(false);
   const [aiError, setAiError] = React.useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   const dialog = useDialog();
 
   const handleOptionChange = (idx: number, val: string) => {
@@ -213,9 +258,16 @@ export function QuestionDialogBody({ initialForm, onSave, loading }: QuestionDia
   };
 
   const handleSave = async () => {
-    await onSave(form);
-    dialog.close();
+    setIsSubmitting(true);
+    try {
+      await onSave(form);
+      dialog.close();
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  const isBusy = loading || isSubmitting;
 
   const detectedLang =
     form.language ||
@@ -238,6 +290,7 @@ export function QuestionDialogBody({ initialForm, onSave, loading }: QuestionDia
           placeholder="Enter the question text (e.g. In the given circuit diagram below, calculate the equivalent resistance...)"
           rows={3}
           required
+          disabled={isBusy}
         />
       </div>
 
@@ -247,7 +300,7 @@ export function QuestionDialogBody({ initialForm, onSave, loading }: QuestionDia
         onChange={(url) => setForm(prev => ({ ...prev, imageUrl: url }))}
         invertInDark={form.invertInDark}
         onInvertInDarkChange={(invert) => setForm(prev => ({ ...prev, invertInDark: invert }))}
-        disabled={loading || isGeneratingAi}
+        disabled={isBusy || isGeneratingAi}
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -259,6 +312,7 @@ export function QuestionDialogBody({ initialForm, onSave, loading }: QuestionDia
               onChange={e => handleOptionChange(idx, e.target.value)}
               placeholder={`Enter option ${idx + 1}`}
               required
+              disabled={isBusy}
             />
           </div>
         ))}
@@ -270,6 +324,7 @@ export function QuestionDialogBody({ initialForm, onSave, loading }: QuestionDia
           value={form.correctAnswer}
           onChange={e => setForm(prev => ({ ...prev, correctAnswer: e.target.value }))}
           required
+          disabled={isBusy}
         >
           <option value="">Select correct option...</option>
           {form.options.filter(Boolean).map((opt, idx) => (
@@ -284,6 +339,7 @@ export function QuestionDialogBody({ initialForm, onSave, loading }: QuestionDia
           value={form.hint}
           onChange={e => setForm(prev => ({ ...prev, hint: e.target.value }))}
           placeholder="e.g. Apply Kirchhoff's current law at node A..."
+          disabled={isBusy}
         />
       </div>
 
@@ -296,7 +352,7 @@ export function QuestionDialogBody({ initialForm, onSave, loading }: QuestionDia
             type="button"
             variant="outline"
             size="sm"
-            disabled={isGeneratingAi || loading}
+            disabled={isGeneratingAi || isBusy}
             onClick={handleAiGenerateExplanation}
             className="h-7 px-2.5 text-xs font-semibold text-primary border-primary/30 hover:bg-primary/10 gap-1.5 shrink-0"
           >
@@ -319,6 +375,7 @@ export function QuestionDialogBody({ initialForm, onSave, loading }: QuestionDia
           placeholder="Explain step-by-step why this option is correct (or click 'Generate with Diagram AI' above)..."
           rows={4}
           required
+          disabled={isBusy}
         />
         {aiError && (
           <p className="text-[11px] text-danger font-medium mt-0.5">{aiError}</p>
@@ -326,9 +383,21 @@ export function QuestionDialogBody({ initialForm, onSave, loading }: QuestionDia
       </div>
 
       <div className="flex items-center justify-end space-x-2 mt-4 pt-3 border-t border-border/30">
-        <Button variant="outline" onClick={() => dialog.close()}>Cancel</Button>
-        <Button variant="primary" onClick={handleSave} disabled={!form.text || !form.correctAnswer || !form.description || loading || isGeneratingAi}>
-          Save
+        <Button variant="outline" onClick={() => dialog.close()} disabled={isBusy}>Cancel</Button>
+        <Button
+          variant="primary"
+          onClick={handleSave}
+          disabled={!form.text || !form.correctAnswer || !form.description || isBusy || isGeneratingAi}
+          className="gap-1.5 min-w-[76px]"
+        >
+          {isBusy ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <span>Saving…</span>
+            </>
+          ) : (
+            "Save"
+          )}
         </Button>
       </div>
     </div>

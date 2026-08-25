@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { X } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 
 import { cn } from "@/utils/cn";
 import { Button } from "@/components/ui/Button";
@@ -99,9 +99,16 @@ export function DialogHost({ config, onClose }: DialogHostProps) {
                   variant={config.okVariant ?? "primary"}
                   onClick={handleOk}
                   disabled={config.okDisabled || okBusy}
-                  className="h-9 px-4 text-xs font-semibold"
+                  className="h-9 px-4 text-xs font-semibold gap-1.5"
                 >
-                  {config.okText ?? "OK"}
+                  {okBusy ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <span>{config.okVariant === "danger" ? "Deleting…" : "Saving…"}</span>
+                    </>
+                  ) : (
+                    config.okText ?? "OK"
+                  )}
                 </Button>
               )}
             </div>

@@ -216,3 +216,65 @@ Respond ONLY with a valid JSON object matching this exact structure:
     throw lastError || new Error("Failed to generate explanation from AI models.");
   });
 }
+
+/**
+ * Translates structured explanation points and hint into a target language (en, gu, hi).
+ */
+export async function translateExplanationAndHint(params: {
+  explanation: string;
+  hint: string;
+  targetLanguage: "en" | "gu" | "hi";
+}): Promise<{ explanation: string; hint: string }> {
+  const { explanation, hint, targetLanguage } = params;
+  if (!explanation && !hint) return { explanation: "", hint: "" };
+
+  const langName =
+    targetLanguage === "gu"
+      ? "Gujarati (ગુજરાતી)"
+      : targetLanguage === "hi"
+      ? "Hindi (हिन्दी)"
+      : "English";
+
+  const prompt = `You are an expert multilingual academic editor. Translate the following structured explanation and hint into ${langName}.
+
+CRITICAL PRESERVATION RULES:
+1. Translate all explanatory text and step headers into natural, authentic academic ${langName}.
+2. Strictly maintain the bullet points and structured format (- **Concept Overview:**, - **Step 1 — ...:**, - **Conclusion:**).
+3. NEVER translate or alter mathematical formulas, symbols, or LaTeX expressions (e.g. $term$, $$\\frac{a}{b}$$). Keep them identical.
+4. NEVER translate or alter code snippets (\`\`\`c ... \`\`\`, \`printf\`). Keep verbatim.
+
+Input to translate:
+Explanation:
+${explanation}
+
+Hint:
+${hint}
+
+Respond ONLY with a valid JSON object matching:
+{
+  "explanation": "Translated explanation in ${langName}...",
+  "hint": "Translated hint in ${langName}..."
+}`;
+
+  return executeWithGeminiFailover(async (client) => {
+    const response = await client.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        temperature: 0.2,
+      },
+    });
+
+    const rawText = response.text || "";
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return {
+        explanation: String(parsed.explanation || explanation).trim(),
+        hint: String(parsed.hint || hint).trim(),
+      };
+    }
+    return { explanation, hint };
+  });
+}

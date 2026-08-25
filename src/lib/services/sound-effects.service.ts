@@ -50,6 +50,19 @@ class SoundEffectsService {
   }
 
   /**
+   * Trigger haptic vibration on supported mobile devices (e.g. Android Chrome, Samsung Internet, WebViews, PWAs)
+   */
+  public triggerHaptic(pattern: number | number[] = 100): void {
+    if (typeof window !== "undefined" && "navigator" in window && typeof navigator.vibrate === "function") {
+      try {
+        navigator.vibrate(pattern);
+      } catch {
+        // Silently ignore if device/browser restrictions apply
+      }
+    }
+  }
+
+  /**
    * Helper: create a soft, organic mini firecracker / popper pop
    */
   private triggerMicroPop(ctx: AudioContext, time: number, pitch = 2200, volume = 0.08): void {
@@ -190,9 +203,12 @@ class SoundEffectsService {
   }
 
   /**
-   * Play soft subtle wrong answer feedback (gentle low woodblock click)
+   * Play soft subtle wrong answer feedback with distinct double-buzz haptic vibration on mobile
    */
   public playWrongSound(): void {
+    // Distinct double-buzz pattern: 90ms vibrate -> 50ms pause -> 90ms vibrate
+    this.triggerHaptic([90, 50, 90]);
+
     if (!this.soundEnabled) return;
     const ctx = this.getContext();
     if (!ctx) return;

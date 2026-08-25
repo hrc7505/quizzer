@@ -153,7 +153,7 @@ function QuizQuestionCardInner({
             {isSubmitting ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                <span>{t("completing", "Completing...")}</span>
+                <span>{isLastQuestion ? t("submitting", "Calculating Results…") : t("completing", "Completing...")}</span>
               </>
             ) : (
               <span>{isLastQuestion ? t("viewResults", "View Results") : t("nextQuestion", "Next Question →")}</span>

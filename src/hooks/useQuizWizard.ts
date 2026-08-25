@@ -354,12 +354,13 @@ export function useQuizWizard(quiz: QuizWizardQuiz): [QuizWizardState, QuizWizar
         const res = await AttemptService.completeAttempt(attemptId, timeTaken);
         if (res.success) {
           router.push(`/quiz/results/${res.attemptId}`);
+          // Keep isSubmitting active during page transition
         } else {
           setError("Failed to submit attempt");
+          setIsSubmitting(false);
         }
       } catch {
         setError("An error occurred while finalizing quiz.");
-      } finally {
         setIsSubmitting(false);
       }
     }

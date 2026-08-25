@@ -269,50 +269,49 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
     )
     .sort((a, b) => getTime(a) - getTime(b));
 
+  const rawGuList = quiz.questions.filter(
+    (q) => q.language === "gu" || (!q.language && /[\u0A80-\u0AFF]/.test(q.text))
+  );
+  const rawHiList = quiz.questions.filter(
+    (q) => q.language === "hi" || (!q.language && /[\u0900-\u097F]/.test(q.text))
+  );
+
   // 2. Build Gujarati track strictly paired by sourceQuestionId to match English sequence 1-to-1
   const guMap = new Map<string, Question>();
   const guUnmapped: Question[] = [];
-  for (const q of quiz.questions) {
-    if (q.language === "gu" || (!q.language && /[\u0A80-\u0AFF]/.test(q.text))) {
-      if (q.sourceQuestionId) {
-        guMap.set(q.sourceQuestionId, q);
-      } else {
-        guUnmapped.push(q);
-      }
+  for (const q of rawGuList) {
+    if (q.sourceQuestionId) {
+      guMap.set(q.sourceQuestionId, q);
+    } else {
+      guUnmapped.push(q);
     }
   }
 
-  const guQuestions =
-    enQuestions.length > 0 && (guMap.size > 0 || guUnmapped.length > 0)
-      ? enQuestions.map((enQ, idx) => guMap.get(enQ.id) || guUnmapped[idx] || enQ)
-      : quiz.questions
-          .filter((q) => q.language === "gu" || (!q.language && /[\u0A80-\u0AFF]/.test(q.text)))
-          .sort((a, b) => getTime(a) - getTime(b));
+  const guQuestions: Question[] =
+    enQuestions.length > 0 && guMap.size > 0
+      ? enQuestions.map((enQ) => guMap.get(enQ.id)).filter((q): q is Question => !!q).concat(guUnmapped)
+      : rawGuList.sort((a, b) => getTime(a) - getTime(b));
 
   // 3. Build Hindi track strictly paired by sourceQuestionId to match English sequence 1-to-1
   const hiMap = new Map<string, Question>();
   const hiUnmapped: Question[] = [];
-  for (const q of quiz.questions) {
-    if (q.language === "hi" || (!q.language && /[\u0900-\u097F]/.test(q.text))) {
-      if (q.sourceQuestionId) {
-        hiMap.set(q.sourceQuestionId, q);
-      } else {
-        hiUnmapped.push(q);
-      }
+  for (const q of rawHiList) {
+    if (q.sourceQuestionId) {
+      hiMap.set(q.sourceQuestionId, q);
+    } else {
+      hiUnmapped.push(q);
     }
   }
 
-  const hiQuestions =
-    enQuestions.length > 0 && (hiMap.size > 0 || hiUnmapped.length > 0)
-      ? enQuestions.map((enQ, idx) => hiMap.get(enQ.id) || hiUnmapped[idx] || enQ)
-      : quiz.questions
-          .filter((q) => q.language === "hi")
-          .sort((a, b) => getTime(a) - getTime(b));
+  const hiQuestions: Question[] =
+    enQuestions.length > 0 && hiMap.size > 0
+      ? enQuestions.map((enQ) => hiMap.get(enQ.id)).filter((q): q is Question => !!q).concat(hiUnmapped)
+      : rawHiList.sort((a, b) => getTime(a) - getTime(b));
 
   const [activeLangTab, setActiveLangTab] = useState<string>(() => {
     if (enQuestions.length > 0) return "en";
-    if (guQuestions.length > 0) return "gu";
-    if (hiQuestions.length > 0) return "hi";
+    if (rawGuList.length > 0) return "gu";
+    if (rawHiList.length > 0) return "hi";
     return "en";
   });
 

@@ -1,4 +1,4 @@
-import { Winky_Sans, Anek_Gujarati, Arya } from "next/font/google";
+import { Winky_Sans, Anek_Gujarati, Hind } from "next/font/google";
 import Script from "next/script";
 import NextTopLoader from "nextjs-toploader";
 
@@ -23,11 +23,11 @@ const anekGujarati = Anek_Gujarati({
   weight: ["400", "500", "600", "700"],
 });
 
-const aryaHindi = Arya({
+const hindHindi = Hind({
   subsets: ["latin", "devanagari"],
   display: "swap",
   variable: "--font-hindi",
-  weight: ["400", "700"],
+  weight: ["300", "400", "500", "600", "700"],
 });
 
 export const viewport: Viewport = {
@@ -87,7 +87,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${winkySans.variable} ${anekGujarati.variable} ${aryaHindi.variable}`}
+      className={`${winkySans.variable} ${anekGujarati.variable} ${hindHindi.variable}`}
       suppressHydrationWarning
     >
       <head>
@@ -102,10 +102,15 @@ export default function RootLayout({
         <Providers>
           <NextTopLoader
             color="#4f46e5"
-            height={3}
+            initialPosition={0.08}
+            crawlSpeed={200}
+            height={3.5}
+            crawl={true}
             showSpinner={false}
-            shadow={false}
-            initialPosition={0}
+            easing="ease"
+            speed={200}
+            shadow="0 0 10px #4f46e5,0 0 5px #4f46e5"
+            zIndex={99999}
           />
           {children}
         </Providers>

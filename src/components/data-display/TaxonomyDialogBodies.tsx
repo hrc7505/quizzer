@@ -221,17 +221,17 @@ export function QuestionDialogBody({ initialForm, onSave, loading }: QuestionDia
       }
 
       const detectedLang =
-        form.language ||
-        (/[\u0A80-\u0AFF]/.test(form.text)
+        /[\u0A80-\u0AFF]/.test(form.text) || form.options.some((o: string) => /[\u0A80-\u0AFF]/.test(o))
           ? "gu"
-          : /[\u0900-\u097F]/.test(form.text)
+          : /[\u0900-\u097F]/.test(form.text) || form.options.some((o: string) => /[\u0900-\u097F]/.test(o))
           ? "hi"
-          : "en");
+          : form.language || "en";
 
       const res = await fetch("/api/admin/questions/explain", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          questionId: initialForm?.id || form?.id,
           text: form.text,
           options: form.options.filter(Boolean),
           correctAnswer: form.correctAnswer,

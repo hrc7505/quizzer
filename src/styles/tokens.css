@@ -5,7 +5,7 @@
   /* Font Family override variables */
   --font-winky: "Winky Sans", sans-serif;
   --font-gujarati: "Anek Gujarati", "Noto Sans Gujarati", sans-serif;
-  --font-hindi: "Arya", "Noto Sans Devanagari", sans-serif;
+  --font-hindi: "Hind", "Noto Sans Devanagari", sans-serif;
 
   /* Base Transitions */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);

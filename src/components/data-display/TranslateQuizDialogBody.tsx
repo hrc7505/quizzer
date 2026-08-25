@@ -11,7 +11,7 @@ import type { TranslateQuizDialogBodyProps } from "@/components/data-display/int
 
 const TARGET_LANGUAGES = [
   { code: "gu", label: "Gujarati", native: "ગુજરાતી", flag: "🇮🇳", desc: "Anek Gujarati font typography" },
-  { code: "hi", label: "Hindi", native: "हिन्दी", flag: "🇮🇳", desc: "Arya font typography" },
+  { code: "hi", label: "Hindi", native: "हिन्दी", flag: "🇮🇳", desc: "Hind font typography" },
   { code: "en", label: "English", native: "English", flag: "🇺🇸", desc: "Winky Sans font typography" },
 ];
 

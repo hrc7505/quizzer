@@ -91,8 +91,15 @@ export function QuestionCard({
   optionVariant = "plain",
   className,
 }: QuestionCardProps) {
+  const isGujarati = /[\u0A80-\u0AFF]/.test(question.text);
+  const isHindi = /[\u0900-\u097F]/.test(question.text);
+  const lang = isGujarati ? "gu" : isHindi ? "hi" : "en";
+
   return (
-    <Card className={cn("p-5 border border-border/80 bg-card shadow-sm flex flex-col gap-4 rounded-xl min-w-0 max-w-full", optionVariant === "badge" && "p-6 gap-5 rounded-2xl", className)}>
+    <Card
+      data-lang={lang}
+      className={cn("p-5 border border-border/80 bg-card shadow-sm flex flex-col gap-4 rounded-xl min-w-0 max-w-full", optionVariant === "badge" && "p-6 gap-5 rounded-2xl", className)}
+    >
       <div className="flex items-start justify-between gap-4 min-w-0">
         <div className="flex-1 min-w-0">
           <QuestionText

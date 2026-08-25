@@ -20,6 +20,7 @@ import { QuestionEditorBody } from "@/components/data-display/QuestionEditorBody
 import { DeleteConfirmDialogBody } from "@/components/feedback/DeleteConfirmDialogBody";
 import { MergeQuizzesDialogBody } from "@/components/data-display/MergeQuizzesDialogBody";
 import { DuplicateQuestionsDialogBody } from "@/components/data-display/DuplicateQuestionsDialogBody";
+import { TranslateQuizDialogBody } from "@/components/data-display/TranslateQuizDialogBody";
 import { downloadCSV } from "@/lib/csv-export";
 import { Pagination } from "@/components/data-display/Pagination";
 import { SearchFilterBar } from "@/components/data-display/SearchFilterBar";
@@ -36,6 +37,7 @@ interface TopicRef {
 interface Quiz {
   id: string;
   title: string;
+  language?: string;
   difficulty: string;
   quizOrder: number;
   topics: TopicRef[];
@@ -547,6 +549,32 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
     });
   };
 
+  // Open Localize / Translate Quiz Dialog
+  const handleOpenTranslateDialog = (quiz: Quiz) => {
+    dialog.open({
+      title: `Localize Quiz — ${quiz.title}`,
+      body: (
+        <TranslateQuizDialogBody
+          quizId={quiz.id}
+          quizTitle={quiz.title}
+          currentLanguage={quiz.language || "en"}
+          questionCount={quiz._count?.questions || 0}
+          onClose={() => dialog.close()}
+          onSuccess={async (res) => {
+            await fetchQuizzes();
+            toast.addToast({
+              type: "success",
+              message:
+                res.mode === "clone"
+                  ? `Created companion quiz in ${res.language.toUpperCase()}`
+                  : `Translated quiz to ${res.language.toUpperCase()}`,
+            });
+          }}
+        />
+      ),
+    });
+  };
+
   // Open Merge Multiple Quizzes Dialog
   const handleOpenMergeDialog = () => {
     const selectedList = quizzes.filter(q => selectedQuizIds.includes(q.id));
@@ -813,6 +841,7 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
                     onDeleteQuiz={handleDeleteQuiz}
                     onAppendQuestions={handleOpenAppendDialog}
                     onFindDuplicates={handleOpenDuplicatesDialog}
+                    onTranslateQuiz={handleOpenTranslateDialog}
                   />
                 ))}
               </tbody>

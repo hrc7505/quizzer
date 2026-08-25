@@ -65,6 +65,7 @@ export function GenerateQuizForm({
   const [topicText, setTopicText] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [difficulty, setDifficulty] = useState("Medium");
+  const [language, setLanguage] = useState("en");
   const [padTo30, setPadTo30] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -122,6 +123,7 @@ export function GenerateQuizForm({
         existingTopicId: initialTopicId || undefined,
         targetQuizId: targetQuizId || undefined,
         difficulty,
+        language,
         topicText: mode === "text" ? topicText : undefined,
         file: mode === "pdf" ? file : undefined,
         padTo30,
@@ -268,18 +270,38 @@ export function GenerateQuizForm({
         </span>
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs sm:text-sm font-semibold text-foreground/90">Target Difficulty <span className="text-danger">*</span></label>
-        <Select 
-          value={difficulty} 
-          onChange={(e) => setDifficulty(e.target.value)} 
-          disabled={loading}
-          className="h-10 text-sm"
-        >
-          <option value="Easy">Easy</option>
-          <option value="Medium">Medium</option>
-          <option value="Hard">Hard</option>
-        </Select>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs sm:text-sm font-semibold text-foreground/90">
+            Language <span className="text-danger">*</span>
+          </label>
+          <Select 
+            value={language} 
+            onChange={(e) => setLanguage(e.target.value)} 
+            disabled={loading}
+            className="h-10 text-sm"
+          >
+            <option value="en">🇺🇸 English</option>
+            <option value="gu">🇮🇳 Gujarati (ગુજરાતી)</option>
+            <option value="hi">🇮🇳 Hindi (हिन्दी)</option>
+          </Select>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs sm:text-sm font-semibold text-foreground/90">
+            Target Difficulty <span className="text-danger">*</span>
+          </label>
+          <Select 
+            value={difficulty} 
+            onChange={(e) => setDifficulty(e.target.value)} 
+            disabled={loading}
+            className="h-10 text-sm"
+          >
+            <option value="Easy">Easy</option>
+            <option value="Medium">Medium</option>
+            <option value="Hard">Hard</option>
+          </Select>
+        </div>
       </div>
 
       {mode === "text" && (

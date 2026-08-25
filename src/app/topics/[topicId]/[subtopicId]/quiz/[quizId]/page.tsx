@@ -18,8 +18,10 @@ async function getQuizData(quizId: string, subtopicId: string) {
     where: { id: quizId },
     include: {
       topics: true,
-      questions: true,
-    }
+      questions: {
+        orderBy: { createdAt: "asc" },
+      },
+    },
   });
 
   if (!quiz) {
@@ -29,13 +31,14 @@ async function getQuizData(quizId: string, subtopicId: string) {
   let questions = quiz.questions;
   if (questions.length === 0) {
     questions = await prisma.question.findMany({
-      where: { topicId: subtopicId }
+      where: { topicId: subtopicId },
+      orderBy: { createdAt: "asc" },
     });
   }
 
   return {
     ...quiz,
-    questions
+    questions,
   };
 }
 

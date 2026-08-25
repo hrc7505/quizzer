@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { text, options, correctAnswer, imageUrl, topicTitle } = body;
+    const { text, options, correctAnswer, imageUrl, topicTitle, language } = body;
 
     if (!text || !options || !Array.isArray(options) || !correctAnswer) {
       return NextResponse.json(
@@ -32,6 +32,7 @@ export async function POST(req: Request) {
       correctAnswer,
       imageUrl,
       topicTitle,
+      language,
     });
 
     return NextResponse.json({

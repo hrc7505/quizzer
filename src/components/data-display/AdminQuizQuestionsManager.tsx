@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, ArrowLeft, Sparkles, Layers, Wand2, Loader2 } from "lucide-react";
+import { Plus, ArrowLeft, Sparkles, Layers, Wand2, Loader2, Languages } from "lucide-react";
 
 import { difficultyColor } from "@/lib/format";
+import { cn } from "@/utils/cn";
 import NoData from "@/components/feedback/NoData";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -16,10 +17,12 @@ import { QuestionCard } from "@/components/data-display/QuestionCard";
 import { QuestionDialogBody, type QuestionForm } from "@/components/data-display/TaxonomyDialogBodies";
 import { GenerateQuizForm } from "@/components/forms/GenerateQuizForm";
 import { DuplicateQuestionsDialogBody } from "@/components/data-display/DuplicateQuestionsDialogBody";
+import { TranslateQuizDialogBody } from "@/components/data-display/TranslateQuizDialogBody";
 import { soundEffects } from "@/lib/services/sound-effects.service";
 
 interface Question {
   id: string;
+  language?: string;
   text: string;
   imageUrl?: string | null;
   invertInDark?: boolean;
@@ -32,6 +35,7 @@ interface Question {
 interface QuizDetail {
   id: string;
   title: string;
+  language?: string;
   difficulty: string;
   quizOrder: number;
   questions: Question[];
@@ -83,6 +87,7 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
 
     const payload = {
       quizId: quiz.id,
+      language: form.language || activeLangTab,
       text: form.text,
       imageUrl: form.imageUrl,
       invertInDark: form.invertInDark,
@@ -99,14 +104,17 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
         body: JSON.stringify(payload)
       });
       const data = await res.json();
-      if (!data.error) {
-        await refreshQuiz();
-        toast.addToast({ type: "success", message: "Question saved" });
+      if (data.error) {
+        setError(data.error);
       } else {
-        setError(data.error || "Failed to save question");
+        toast.addToast({
+          type: "success",
+          message: isEdit ? "Question updated successfully" : "Question created successfully"
+        });
+        await refreshQuiz();
       }
     } catch {
-      setError("An unexpected error occurred");
+      setError("Failed to save question");
     } finally {
       setLoading(false);
     }
@@ -115,11 +123,12 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
   const handleOpenAdd = () => {
     setError(null);
     dialog.open({
-      title: "Add Question",
+      title: `Add ${currentLangLabel} Question`,
       body: (
         <QuestionDialogBody
           initialForm={{
             id: "",
+            language: activeLangTab,
             text: "",
             imageUrl: "",
             invertInDark: true,
@@ -164,6 +173,7 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
         <QuestionDialogBody
           initialForm={{
             id: q.id,
+            language: q.language || activeLangTab,
             text: q.text,
             imageUrl: q.imageUrl || "",
             invertInDark: q.invertInDark ?? true,
@@ -217,15 +227,61 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
     });
   };
 
+  const handleOpenTranslateDialog = () => {
+    dialog.open({
+      title: `Localize Quiz — ${quiz.title}`,
+      body: (
+        <TranslateQuizDialogBody
+          quizId={quiz.id}
+          quizTitle={quiz.title}
+          currentLanguage={quiz.language || "en"}
+          questionCount={quiz.questions.length}
+          onClose={() => dialog.close()}
+          onSuccess={async (res) => {
+            toast.addToast({
+              type: "success",
+              message:
+                res.mode === "clone"
+                  ? `Created companion quiz in ${res.language.toUpperCase()}`
+                  : `Translated quiz to ${res.language.toUpperCase()}`,
+            });
+            await refreshQuiz();
+          }}
+        />
+      ),
+    });
+  };
+
+  const enQuestions = quiz.questions.filter((q) => q.language === "en" || (!q.language && !/[\u0A80-\u0AFF]/.test(q.text) && !/[\u0900-\u097F]/.test(q.text)));
+  const guQuestions = quiz.questions.filter((q) => q.language === "gu" || (!q.language && /[\u0A80-\u0AFF]/.test(q.text)));
+  const hiQuestions = quiz.questions.filter((q) => q.language === "hi");
+
+  const [activeLangTab, setActiveLangTab] = useState<string>(() => {
+    if (enQuestions.length > 0) return "en";
+    if (guQuestions.length > 0) return "gu";
+    if (hiQuestions.length > 0) return "hi";
+    return "en";
+  });
+
+  const displayedQuestions =
+    activeLangTab === "gu"
+      ? guQuestions
+      : activeLangTab === "hi"
+      ? hiQuestions
+      : enQuestions;
+
+  const currentLangLabel =
+    activeLangTab === "gu" ? "Gujarati" : activeLangTab === "hi" ? "Hindi" : "English";
+
   const handleAiProofreadQuiz = () => {
-    if (quiz.questions.length === 0) {
-      toast.addToast({ type: "warning", message: "This quiz has no questions to proofread." });
+    if (displayedQuestions.length === 0) {
+      toast.addToast({ type: "warning", message: `This quiz has no ${currentLangLabel} questions to proofread.` });
       return;
     }
 
     dialog.confirm({
-      title: "AI Proofread & Fix Gujarati Language",
-      description: `AI will proofread all ${quiz.questions.length} questions in "${quiz.title}", repairing broken Gujarati conjuncts (જોડાક્ષરો) and typos while strictly preserving authentic exam terminology.`,
+      title: `AI Proofread & Fix ${currentLangLabel} Language`,
+      description: `AI will proofread all ${displayedQuestions.length} ${currentLangLabel} questions in "${quiz.title}", repairing grammar, typos, OCR artifacts, and script rendering while strictly preserving authentic exam terminology.`,
       okText: "Start Proofreading",
       onConfirm: async () => {
         setProofreadingAll(true);
@@ -233,7 +289,7 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
           const res = await fetch("/api/admin/questions/fix-language", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ quizId: quiz.id }),
+            body: JSON.stringify({ quizId: quiz.id, language: activeLangTab }),
           });
           const data = await res.json();
           if (data.error) {
@@ -255,6 +311,14 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
       },
     });
   };
+
+  const proofreadBtnLabel = proofreadingAll
+    ? "Proofreading…"
+    : activeLangTab === "gu"
+    ? "AI Proofread (Gujarati)"
+    : activeLangTab === "hi"
+    ? "AI Proofread (Hindi)"
+    : "AI Proofread & Fix";
 
   return (
     <div className="flex flex-col gap-6 py-4 w-full">
@@ -278,7 +342,9 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold flex-wrap">
           <span>Manage Quizzes</span>
           <span>/</span>
-          <span className="text-foreground">{quiz.title}</span>
+          <span className="text-foreground flex items-center gap-1.5">
+            <span>{quiz.title}</span>
+          </span>
           <span>/</span>
           <span>Questions</span>
         </div>
@@ -288,11 +354,28 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
       <PageHeader
         title={`${quiz.title} Questions`}
         badge={
-          <Badge variant={difficultyColor(quiz.difficulty)} className="capitalize font-bold text-[10px] px-2 py-0.5 select-none animate-none">
-            {quiz.difficulty}
-          </Badge>
+          <div className="flex items-center gap-1.5">
+            {guQuestions.length > 0 && (
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 select-none">
+                🇮🇳 GU
+              </span>
+            )}
+            {hiQuestions.length > 0 && (
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20 select-none">
+                🇮🇳 HI
+              </span>
+            )}
+            {enQuestions.length > 0 && (
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 select-none">
+                🇺🇸 EN
+              </span>
+            )}
+            <Badge variant={difficultyColor(quiz.difficulty)} className="capitalize font-bold text-[10px] px-2 py-0.5 select-none animate-none">
+              {quiz.difficulty}
+            </Badge>
+          </div>
         }
-        description="Compose, modify, or remove questions linked to this quiz."
+        description="Compose, modify, or translate questions across language tracks for this quiz."
         actions={
           <div className="flex items-center gap-2 flex-wrap">
             <Button
@@ -306,17 +389,26 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
             </Button>
             <Button
               variant="outline"
-              disabled={proofreadingAll || quiz.questions.length === 0}
+              className="h-9 px-3 sm:px-4 font-semibold text-xs gap-1.5 shadow-xs text-indigo-600 dark:text-indigo-400 border-indigo-500/30 hover:bg-indigo-500/5"
+              onClick={handleOpenTranslateDialog}
+              title="Generate a Gujarati or Hindi translation for this quiz"
+            >
+              <Languages className="h-3.5 w-3.5 text-indigo-500" />
+              <span>Localize with AI</span>
+            </Button>
+            <Button
+              variant="outline"
+              disabled={proofreadingAll || displayedQuestions.length === 0}
               className="h-9 px-3 sm:px-4 font-semibold text-xs gap-1.5 shadow-xs text-primary border-primary/30 hover:bg-primary/5"
               onClick={handleAiProofreadQuiz}
-              title="Fix Gujarati conjuncts and typos in all questions"
+              title={`Fix ${currentLangLabel} spelling, grammar, and typos`}
             >
               {proofreadingAll ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
                 <Wand2 className="h-3.5 w-3.5 text-primary" />
               )}
-              <span>{proofreadingAll ? "Proofreading…" : "AI Proofread Gujarati"}</span>
+              <span>{proofreadBtnLabel}</span>
             </Button>
             <Button
               variant="outline"
@@ -339,19 +431,98 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
         titleClassName="text-2xl"
       />
 
+      {/* Language Switcher Tabs */}
+      <div className="flex items-center justify-between gap-3 flex-wrap border-b border-border/60 pb-3">
+        <div className="flex items-center gap-1.5 p-1 bg-surface-hover/70 dark:bg-surface rounded-xl border border-border/60 select-none">
+          <button
+            type="button"
+            onClick={() => setActiveLangTab("en")}
+            className={cn(
+              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer",
+              activeLangTab === "en"
+                ? "bg-card shadow-xs text-foreground ring-1 ring-border/40"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <span>🇺🇸</span>
+            <span>English</span>
+            <span
+              className={cn(
+                "text-[10px] px-1.5 py-0.2 rounded-full font-bold",
+                enQuestions.length > 0 ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+              )}
+            >
+              {enQuestions.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveLangTab("gu")}
+            className={cn(
+              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer",
+              activeLangTab === "gu"
+                ? "bg-card shadow-xs text-foreground ring-1 ring-border/40"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <span>🇮🇳</span>
+            <span>ગુજરાતી (Gujarati)</span>
+            <span
+              className={cn(
+                "text-[10px] px-1.5 py-0.2 rounded-full font-bold",
+                guQuestions.length > 0
+                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  : "bg-muted text-muted-foreground"
+              )}
+            >
+              {guQuestions.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveLangTab("hi")}
+            className={cn(
+              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer",
+              activeLangTab === "hi"
+                ? "bg-card shadow-xs text-foreground ring-1 ring-border/40"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <span>🇮🇳</span>
+            <span>हिन्दी (Hindi)</span>
+            <span
+              className={cn(
+                "text-[10px] px-1.5 py-0.2 rounded-full font-bold",
+                hiQuestions.length > 0
+                  ? "bg-orange-500/10 text-orange-600 dark:text-orange-400"
+                  : "bg-muted text-muted-foreground"
+              )}
+            >
+              {hiQuestions.length}
+            </span>
+          </button>
+        </div>
+
+        <span className="text-xs text-muted-foreground font-medium">
+          Showing {displayedQuestions.length} {currentLangLabel} questions
+        </span>
+      </div>
+
       {/* Questions list */}
-      {quiz.questions.length === 0 ? (
+      {displayedQuestions.length === 0 ? (
         <NoData 
-          title="No Questions Yet" 
-          description="This quiz has no questions. Add a question manually or use AI to generate questions from text/PDF." 
+          title={`No ${currentLangLabel} Questions`} 
+          description={`Translate the quiz questions into ${currentLangLabel} using one-click AI localization.`} 
           icon="book"
           action={
             <div className="flex items-center gap-2">
-              <Button variant="outline" className="gap-1.5 font-semibold text-xs h-9 px-4" onClick={handleOpenAiAppend}>
-                <Sparkles className="h-3.5 w-3.5 text-primary" />
-                <span>AI Generate Questions</span>
+              <Button variant="primary" className="gap-1.5 font-semibold text-xs h-9 px-4" onClick={handleOpenTranslateDialog}>
+                <Languages className="h-3.5 w-3.5" />
+                <span>Localize with AI</span>
               </Button>
-              <Button variant="primary" className="gap-1.5 font-semibold text-xs h-9 px-4" onClick={handleOpenAdd}>
+              <Button variant="outline" className="gap-1.5 font-semibold text-xs h-9 px-4" onClick={handleOpenAdd}>
                 <Plus className="h-3.5 w-3.5" />
                 <span>Add Question</span>
               </Button>
@@ -360,7 +531,7 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
         />
       ) : (
         <div className="flex flex-col gap-6">
-          {quiz.questions.map((q, idx) => (
+          {displayedQuestions.map((q, idx) => (
             <QuestionCard
               key={q.id}
               question={q}

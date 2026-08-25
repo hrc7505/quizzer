@@ -29,6 +29,7 @@ import { Sparkles, Loader2 } from "lucide-react";
 
 export interface QuestionForm {
   id: string;
+  language?: string;
   text: string;
   imageUrl?: string;
   invertInDark?: boolean;
@@ -174,6 +175,14 @@ export function QuestionDialogBody({ initialForm, onSave, loading }: QuestionDia
         }
       }
 
+      const detectedLang =
+        form.language ||
+        (/[\u0A80-\u0AFF]/.test(form.text)
+          ? "gu"
+          : /[\u0900-\u097F]/.test(form.text)
+          ? "hi"
+          : "en");
+
       const res = await fetch("/api/admin/questions/explain", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -182,6 +191,7 @@ export function QuestionDialogBody({ initialForm, onSave, loading }: QuestionDia
           options: form.options.filter(Boolean),
           correctAnswer: form.correctAnswer,
           imageUrl: imagePayload,
+          language: detectedLang,
         }),
       });
 
@@ -207,8 +217,19 @@ export function QuestionDialogBody({ initialForm, onSave, loading }: QuestionDia
     dialog.close();
   };
 
+  const detectedLang =
+    form.language ||
+    (/[\u0A80-\u0AFF]/.test(form.text)
+      ? "gu"
+      : /[\u0900-\u097F]/.test(form.text)
+      ? "hi"
+      : "en");
+
   return (
-    <div className="flex flex-col gap-4 mt-3 max-h-[75vh] overflow-y-auto pr-1">
+    <div
+      data-lang={detectedLang}
+      className="flex flex-col gap-4 mt-3 max-h-[75vh] overflow-y-auto pr-1"
+    >
       <div className="flex flex-col gap-1.5">
         <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Question Text <span className="text-danger">*</span></label>
         <Textarea

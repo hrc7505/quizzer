@@ -295,6 +295,7 @@ export async function ensureQuizBatchTable(): Promise<void> {
         "id" TEXT NOT NULL PRIMARY KEY,
         "topicId" TEXT,
         "title" TEXT NOT NULL,
+        "language" TEXT NOT NULL DEFAULT 'en',
         "difficulty" TEXT NOT NULL DEFAULT 'Medium',
         "rawText" TEXT NOT NULL,
         "batchIndex" INTEGER NOT NULL DEFAULT 1,
@@ -308,6 +309,7 @@ export async function ensureQuizBatchTable(): Promise<void> {
       CREATE INDEX IF NOT EXISTS "QuizBatch_topicId_idx" ON "QuizBatch"("topicId");
       CREATE INDEX IF NOT EXISTS "QuizBatch_status_idx" ON "QuizBatch"("status");
       ALTER TABLE "QuizBatch" ADD COLUMN IF NOT EXISTS "padTo30" BOOLEAN NOT NULL DEFAULT false;
+      ALTER TABLE "QuizBatch" ADD COLUMN IF NOT EXISTS "language" TEXT NOT NULL DEFAULT 'en';
     `);
   } catch (err) {
     console.warn("ensureQuizBatchTable warning:", err);
@@ -448,6 +450,7 @@ ${subBatch.join("\n\n")}`;
           data: {
             ...(batch.topicId ? { topics: { connect: { id: batch.topicId } } } : {}),
             title: quizTitle,
+            language: batch.language || "en",
             difficulty: stripNullBytes(batch.difficulty) || "Medium",
             quizOrder,
           },
@@ -504,6 +507,7 @@ export async function POST(req: Request) {
     const existingTopicId = stripNullBytes(formData.get("existingTopicId") as string || "");
     const targetQuizId = stripNullBytes(formData.get("targetQuizId") as string || "");
     const difficulty = stripNullBytes(formData.get("difficulty") as string || "Medium");
+    const language = stripNullBytes(formData.get("language") as string || "en");
     const padTo30 = formData.get("padTo30") === "true";
 
     if (!mode || (!topicTitle && !existingTopicId && !targetQuizId) || !difficulty) {
@@ -635,6 +639,7 @@ Formatting rules:
               data: {
                 topicId: existingTopicId || null,
                 title: stripNullBytes(topicTitle),
+                language,
                 difficulty: stripNullBytes(difficulty) || "Medium",
                 rawText: stripNullBytes(bunch.join("\n\n")),
                 batchIndex: idx + 1,
@@ -762,6 +767,7 @@ ${chunk}`;
             data: {
               ...(existingTopicId ? { topics: { connect: { id: existingTopicId } } } : {}),
               title: stripNullBytes((existingQuizzesCount > 0 || numQuizzes > 1) ? `${topicTitle} - Part ${currentQuizIndex}` : topicTitle),
+              language,
               difficulty: stripNullBytes(difficulty) || "Medium",
               quizOrder: currentQuizIndex,
             }

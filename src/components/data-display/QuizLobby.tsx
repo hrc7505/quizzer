@@ -17,6 +17,9 @@ interface QuizLobbyProps {
     difficulty: string;
     questions: { id: string }[];
   };
+  availableLanguages?: { code: string; label: string; flag: string; count: number }[];
+  selectedLanguage?: string;
+  onSelectLanguage?: (lang: string) => void;
   authWarning: string | null;
   activeAttempt: {
     attemptId: string;
@@ -37,6 +40,9 @@ const difficultyBadgeVariant = (difficulty: string) => {
 
 function QuizLobbyInner({
   quiz,
+  availableLanguages,
+  selectedLanguage,
+  onSelectLanguage,
   authWarning,
   activeAttempt,
   leaderboard,
@@ -61,12 +67,44 @@ function QuizLobbyInner({
               {quiz.difficulty}
             </Badge>
             <span className="opacity-40 select-none">·</span>
-            <span>Total Questions:</span>
+            <span>Questions:</span>
             <Badge variant="secondary" className="px-1.5 py-0.5 text-[10px] font-bold">
               {quiz.questions.length}
             </Badge>
           </div>
         </div>
+
+        {/* Language Selection if multiple available */}
+        {availableLanguages && availableLanguages.length > 1 && onSelectLanguage && (
+          <div className="flex flex-col items-center gap-1.5 my-1">
+            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+              Take Quiz In
+            </span>
+            <div className="flex items-center gap-1.5 p-1 bg-surface-hover/80 rounded-xl border border-border/60 select-none">
+              {availableLanguages.map((l) => {
+                const isSelected = selectedLanguage === l.code;
+                return (
+                  <button
+                    key={l.code}
+                    type="button"
+                    onClick={() => onSelectLanguage(l.code)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      isSelected
+                        ? "bg-card shadow-xs text-foreground ring-1 ring-border/40"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <span>{l.flag}</span>
+                    <span>{l.label}</span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-secondary/80 font-bold">
+                      {l.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {authWarning && (
           <div className="w-full rounded-lg border border-warning/20 bg-warning/10 p-3.5 text-xs font-semibold text-warning text-left">

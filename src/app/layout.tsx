@@ -1,10 +1,11 @@
-import { Winky_Sans } from "next/font/google";
+import { Winky_Sans, Anek_Gujarati, Arya } from "next/font/google";
 import Script from "next/script";
 import NextTopLoader from "nextjs-toploader";
 
+import { Providers } from "@/components/providers/Providers";
+
 import "katex/dist/katex.min.css";
 import "@/styles/globals.css";
-import { Providers } from "@/components/providers/Providers";
 
 import type { Metadata, Viewport } from "next";
 
@@ -13,6 +14,20 @@ const winkySans = Winky_Sans({
   display: "swap",
   variable: "--font-winky",
   adjustFontFallback: false,
+});
+
+const anekGujarati = Anek_Gujarati({
+  subsets: ["latin", "gujarati"],
+  display: "swap",
+  variable: "--font-gujarati",
+  weight: ["400", "500", "600", "700"],
+});
+
+const aryaHindi = Arya({
+  subsets: ["latin", "devanagari"],
+  display: "swap",
+  variable: "--font-hindi",
+  weight: ["400", "700"],
 });
 
 export const viewport: Viewport = {
@@ -70,7 +85,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${winkySans.variable}`} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${winkySans.variable} ${anekGujarati.variable} ${aryaHindi.variable}`}
+      suppressHydrationWarning
+    >
       <head>
         <meta name="mobile-web-app-capable" content="yes" />
         <link

@@ -26,17 +26,20 @@ async function proofreadQuestionsWithAi(
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
 
-  const prompt = `You are an expert Gujarati and multilingual academic editor and language proofreader for competitive exam question banks.
+  const prompt = `You are an expert multilingual academic editor and language proofreader for competitive exam question banks (supporting Gujarati, Hindi, and English).
 
-Proofread and fix language rendering, OCR corruption, and typographical errors for the ${questions.length} question(s) below.
+Proofread and fix language rendering, OCR corruption, grammatical issues, and typographical errors for the ${questions.length} question(s) below in their respective language.
 
-CRITICAL VERBATIM PRESERVATION RULES:
-1. NEVER substitute, modernize, translate, or paraphrase any Gujarati / Indic vocabulary or formal exam terminology (e.g. KEEP authentic terms like "અધ્યક્ષ", "કારોબારી", "સંચાલન", "વિધાન", "કથન", "પરિષદ", "બંધારણ", "ન્યાયતંત્ર").
-2. FIX broken Unicode conjunct characters (જોડાક્ષરો), improper halant/virama rendering, OCR encoding glitches, and spelling typos.
-3. PRESERVE question structure: For multi-statement questions (1., 2., 3. or (i), (ii), (iii)), format the premise and numbered statements with clean newline separation (\\n).
-4. Extract exactly 4 clean options without letter prefixes like (A), (B).
-5. The \`correctAnswer\` MUST match one of the 4 \`options\` EXACTLY string-for-string.
-6. Provide or improve the \`hint\` and \`description\` explanation in the same language.
+CRITICAL PRESERVATION & PROOFREADING RULES:
+1. For Gujarati text: Fix broken Unicode conjunct characters (જોડાક્ષરો), improper halant/virama rendering, and spelling typos without changing authentic exam terms.
+2. For Hindi text: Fix broken Devanagari ligatures, matra placements, anusvara/chandrabindu, and spelling errors while maintaining pure academic vocabulary.
+3. For English text: Fix spelling, grammatical agreement, and capitalization.
+4. NEVER modify, translate, or alter programming code snippets (e.g. \`\`\`c ... \`\`\`, \`printf()\`, \`int *x\`). Keep all code exactly verbatim.
+5. NEVER alter mathematical formulas, scientific notation, or LaTeX delimiters (e.g. $2^n - 1$, $\\frac{a}{b}$, $$...$$). Keep them identical.
+6. PRESERVE question structure: For multi-statement questions (1., 2., 3. or (i), (ii), (iii)), format the premise and numbered statements with clean newline separation (\\n).
+7. Extract exactly 4 clean options without letter prefixes like (A), (B).
+8. The \`correctAnswer\` MUST match one of the 4 \`options\` EXACTLY string-for-string.
+9. Provide or improve the \`hint\` and \`description\` explanation in the same language.
 
 Questions to proofread:
 ${JSON.stringify(questions, null, 2)}`;
@@ -47,7 +50,7 @@ ${JSON.stringify(questions, null, 2)}`;
       contents: prompt,
       config: {
         systemInstruction:
-          "You are a meticulous multilingual proofreader. You fix OCR artifacts, broken conjunct characters (જોડાક્ષર), and spelling mistakes in Gujarati/Hindi/English exam papers while strictly retaining the exact original terminology, tone, and verbatim vocabulary.",
+          "You are a meticulous multilingual proofreader for Gujarati, Hindi, and English. You fix OCR artifacts, broken conjunct characters (જોડાક્ષર/देवनागरी संयुक्त वर्ण), and spelling mistakes while strictly preserving LaTeX math, programming code, and original terminology.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.ARRAY,

@@ -94,8 +94,9 @@ export function useQuizWizard(quiz: QuizWizardQuiz): [QuizWizardState, QuizWizar
   const [error, setError] = useState<string | null>(null);
 
   const questions = quiz.questions || [];
-  const currentQuestion = questions[currentIndex] || null;
-  const progress = questions.length > 0 ? currentIndex / questions.length : 0;
+  const safeIndex = questions.length > 0 ? Math.min(currentIndex, questions.length - 1) : 0;
+  const currentQuestion = questions[safeIndex] || null;
+  const progress = questions.length > 0 ? Math.min(1, safeIndex / questions.length) : 0;
 
   // Initial Load
   useEffect(() => {

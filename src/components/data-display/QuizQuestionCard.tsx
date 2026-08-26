@@ -11,6 +11,7 @@ import { AnswerCallout } from "@/components/data-display/AnswerCallout";
 import { OptionText } from "@/components/data-display/OptionText";
 import { QuestionText } from "@/components/data-display/QuestionText";
 import { useTranslation } from "@/contexts/LanguageContext";
+
 import type { QuizQuestionCardProps } from "@/components/data-display/interfaces/QuizQuestionCard.interface";
 
 /**

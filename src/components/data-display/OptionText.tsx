@@ -8,6 +8,7 @@ import { ArrowRight } from "lucide-react";
 
 import { autoFormatCodeAndMath, parseMatchingPairs } from "@/lib/format";
 import { cn } from "@/utils/cn";
+
 import type { OptionTextProps } from "@/components/data-display/interfaces/OptionText.interface";
 
 /**

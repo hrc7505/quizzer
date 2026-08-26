@@ -1,14 +1,15 @@
 import { BookOpen } from "lucide-react";
-import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth/next";
+import { notFound } from "next/navigation";
 
-import { PageLayout } from "@/components/layouts/PageLayout";
-import { SectionHeading } from "@/components/ui/SectionHeading";
-import { Breadcrumbs } from "@/components/navigation/Breadcrumbs";
-import { ContentHeader } from "@/components/layouts/ContentHeader";
 import { QuizCardGrid } from "@/components/data-display/QuizCardGrid";
+import { ContentHeader } from "@/components/layouts/ContentHeader";
+import { PageLayout } from "@/components/layouts/PageLayout";
+import { Breadcrumbs } from "@/components/navigation/Breadcrumbs";
+import { SectionHeading } from "@/components/ui/SectionHeading";
+import { authOptions, type SessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { authOptions, SessionUser } from "@/lib/auth";
+import { computeCanonicalQuestionCount } from "@/lib/quiz-routing";
 
 export const revalidate = 60;
 
@@ -35,8 +36,6 @@ export async function generateMetadata({ params }: StandaloneQuizzesPageProps) {
     description: subtopic?.description || "Browse quizzes."
   };
 }
-
-import { computeCanonicalQuestionCount } from "@/lib/quiz-routing";
 
 async function getPageData(topicId: string, subtopicId: string) {
   const session = await getServerSession(authOptions);

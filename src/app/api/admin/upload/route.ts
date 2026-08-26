@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions, SessionUser } from "@/lib/auth";
 import { v2 as cloudinary, type UploadApiResponse } from "cloudinary";
+
+import { authOptions, SessionUser } from "@/lib/auth";
 
 const ALLOWED_MIME_TYPES = new Set([
   "image/png",

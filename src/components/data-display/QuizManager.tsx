@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles, Download, GitMerge, CheckSquare, Square, X, Trash2 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Sparkles, Download, GitMerge, CheckSquare, Square, Trash2 } from "lucide-react";
 
 import { GenerateQuizForm } from "@/components/forms/GenerateQuizForm";
 import { Alert } from "@/components/ui/Alert";
@@ -28,7 +27,6 @@ import { SearchFilterBar } from "@/components/data-display/SearchFilterBar";
 import { PageHeader } from "@/components/data-display/PageHeader";
 import { QuizRow } from "@/components/data-display/QuizRow";
 import { soundEffects } from "@/lib/services/sound-effects.service";
-import { generateQuizPDF } from "@/lib/pdf-generator";
 
 interface TopicRef {
   id: string;
@@ -63,7 +61,7 @@ const DIFFICULTIES = ["Easy", "Medium", "Hard"];
 export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
   const router = useRouter();
   const [quizzes, setQuizzes] = useState<Quiz[]>(initial);
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Multi-selection state for merging

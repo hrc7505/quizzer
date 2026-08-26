@@ -6,7 +6,8 @@ import { Loader2, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Progress } from "@/components/ui/Progress";
 import { cn } from "@/utils/cn";
-import type { BatchProgressCardProps } from "./interfaces/BatchProgressCard.interface";
+
+import type { BatchProgressCardProps } from "@/components/feedback/interfaces/BatchProgressCard.interface";
 
 /**
  * BatchProgressCard — reusable progress and error recovery card for long-running

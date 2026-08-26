@@ -10,9 +10,10 @@ import { Select } from "@/components/ui/Select";
 import { Alert } from "@/components/ui/Alert";
 import { getAiErrorMeta, type AiErrorMeta } from "@/lib/gemini";
 import { QuizService } from "@/lib/services/quiz.service";
-import type { GenerateQuizPayload, GenerateQuizResponse } from "./interfaces/GenerateQuizForm.interface";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/utils/cn";
+
+import type { GenerateQuizPayload, GenerateQuizResponse } from "@/components/forms/interfaces/GenerateQuizForm.interface";
 
 interface GenerateQuizFormProps {
   /** Called after a successful generation — parent can close dialog / refresh state. */

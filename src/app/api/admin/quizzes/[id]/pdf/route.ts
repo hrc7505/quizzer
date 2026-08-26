@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { jsPDF } from "jspdf";
+
 import { prisma } from "@/lib/prisma";
 
 // In-memory font cache so TTF is only fetched once on server startup

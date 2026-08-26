@@ -5,8 +5,8 @@ import { Globe, Check, ChevronDown } from "lucide-react";
 
 import { useTranslation } from "@/contexts/LanguageContext";
 import { cn } from "@/utils/cn";
+
 import type { LanguageSelectorProps } from "@/components/ui/interfaces/LanguageSelector.interface";
-import type { SupportedLanguage } from "@/lib/i18n/dictionaries";
 
 /**
  * LanguageSelector — interactive dropdown allowing users to switch between

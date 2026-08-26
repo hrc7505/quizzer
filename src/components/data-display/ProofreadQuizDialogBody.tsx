@@ -6,7 +6,8 @@ import { Wand2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { BatchProgressCard } from "@/components/feedback/BatchProgressCard";
 import { soundEffects } from "@/lib/services/sound-effects.service";
-import type { ProofreadQuizDialogBodyProps } from "./interfaces/ProofreadQuizDialogBody.interface";
+
+import type { ProofreadQuizDialogBodyProps } from "@/components/data-display/interfaces/ProofreadQuizDialogBody.interface";
 
 const BATCH_SIZE = 8;
 
@@ -24,18 +25,16 @@ interface ServerBatchStatus {
 }
 
 /**
- * ProofreadQuizDialogBody — database-persisted background batch proofreader.
- * Queries PostgreSQL status across all devices, browser reloads, and tabs.
+ * ProofreadQuizDialogBody — server-backed background batch proofreader.
+ * Fixes grammar, typos, punctuation, LaTeX formatting, and Gujarati/Hindi transliteration artifacts.
  */
 export function ProofreadQuizDialogBody({
   quizId,
-  quizTitle,
   language,
   questionCount,
   onSuccess,
   onClose,
 }: ProofreadQuizDialogBodyProps) {
-  const [loading, setLoading] = React.useState(false);
   const [actionBusy, setActionBusy] = React.useState(false);
   const [serverStatus, setServerStatus] = React.useState<ServerBatchStatus | null>(null);
   const hasTriggeredSuccessRef = React.useRef(false);
@@ -74,7 +73,16 @@ export function ProofreadQuizDialogBody({
 
   // Initial fetch on mount
   React.useEffect(() => {
-    fetchStatus();
+    let active = true;
+    const init = async () => {
+      if (active) {
+        await fetchStatus();
+      }
+    };
+    void init();
+    return () => {
+      active = false;
+    };
   }, [fetchStatus]);
 
   // Auto-polling only while active

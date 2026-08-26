@@ -1,15 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { CheckCircle2, AlertTriangle, Trash2, Sparkles, Loader2, CopyCheck, Layers } from "lucide-react";
+import { CheckCircle2, Trash2, Loader2, Layers } from "lucide-react";
+
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Alert } from "@/components/ui/Alert";
 import { QuestionText } from "@/components/data-display/QuestionText";
 import { useToast } from "@/components/providers/ToastProvider";
 import { soundEffects } from "@/lib/services/sound-effects.service";
+
 import type {
-  DuplicateGroup,
   DuplicateScanResult,
   DuplicateQuestionsDialogBodyProps,
 } from "@/components/data-display/interfaces/DuplicateQuestionsDialogBody.interface";
@@ -50,7 +51,16 @@ export function DuplicateQuestionsDialogBody({
   }, [quizId]);
 
   React.useEffect(() => {
-    fetchDuplicates();
+    let active = true;
+    const init = async () => {
+      if (active) {
+        await fetchDuplicates();
+      }
+    };
+    void init();
+    return () => {
+      active = false;
+    };
   }, [fetchDuplicates]);
 
   // Clean all duplicates automatically

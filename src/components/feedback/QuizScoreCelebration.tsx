@@ -1,19 +1,12 @@
 "use client";
 
 import * as React from "react";
-import {
-  AlertTriangle,
-  Flame,
-  Target,
-  Sparkles,
-  Trophy,
-  Crown,
-} from "lucide-react";
+import { AlertTriangle, Flame, Target, Sparkles, Trophy, Crown } from "lucide-react";
+
 import { cn } from "@/utils/cn";
-import { Badge } from "@/components/ui/Badge";
 import { soundEffects } from "@/lib/services/sound-effects.service";
+
 import type {
-  ScoreTier,
   ScoreTierMeta,
   QuizScoreCelebrationProps,
 } from "@/components/feedback/interfaces/QuizScoreCelebration.interface";
@@ -149,8 +142,6 @@ const FIREWORK_COLORS = ["#fbbf24", "#ec4899", "#3b82f6", "#10b981", "#a855f7", 
 
 export function QuizScoreCelebration({
   scorePercentage,
-  totalQuestions,
-  correctCount,
   className,
   autoPlaySound = true,
 }: QuizScoreCelebrationProps) {

@@ -2,10 +2,8 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, ArrowLeft, Search, Link as LinkIcon, MoreHorizontal, Unlink, Sparkles, HelpCircle, Layers, Square, CheckSquare, Trash2, GitMerge, X, FileDown } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
+import { ArrowLeft, Search, Link as LinkIcon, MoreHorizontal, Unlink, Sparkles, HelpCircle, Layers, Square, CheckSquare, Trash2, GitMerge, FileDown } from "lucide-react";
 
-import { generateQuizPDF } from "@/lib/pdf-generator";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";

@@ -2,13 +2,15 @@
 
 import * as React from "react";
 import { GitMerge, AlertTriangle, Loader2 } from "lucide-react";
+
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { useDialog } from "@/components/providers/OverlayProvider";
 import { cn } from "@/utils/cn";
 import { difficultyColor } from "@/lib/format";
-import type { MergeQuizzesDialogBodyProps, MergeQuizzesFormState } from "./interfaces/MergeQuizzesDialogBody.interface";
+
+import type { MergeQuizzesDialogBodyProps, MergeQuizzesFormState } from "@/components/data-display/interfaces/MergeQuizzesDialogBody.interface";
 
 /**
  * MergeQuizzesDialogBody — interactive modal dialog allowing admins to select

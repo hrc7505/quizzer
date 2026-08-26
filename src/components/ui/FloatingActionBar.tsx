@@ -7,7 +7,8 @@ import { X } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { soundEffects } from "@/lib/services/sound-effects.service";
 import { cn } from "@/utils/cn";
-import type { FloatingActionBarProps } from "./interfaces/FloatingActionBar.interface";
+
+import type { FloatingActionBarProps } from "@/components/ui/interfaces/FloatingActionBar.interface";
 
 /**
  * FloatingActionBar is a modern, mobile-responsive bottom action bar

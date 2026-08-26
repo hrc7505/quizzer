@@ -6,6 +6,7 @@ import { ZoomIn, X } from "lucide-react";
 import { ShimmerImage } from "@/components/ui/ShimmerImage";
 import { sanitizeImageUrl } from "@/lib/format";
 import { cn } from "@/utils/cn";
+
 import type { QuestionImageProps } from "@/components/data-display/interfaces/QuestionImage.interface";
 
 /**
@@ -123,6 +124,7 @@ export function QuestionImage({
               </button>
             </div>
             <div className="max-h-[75vh] w-full overflow-auto flex items-center justify-center bg-card/60 dark:bg-zinc-950/80 p-4 rounded-xl border border-border/40">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={safeImageUrl}
                 alt={`${alt} full view`}

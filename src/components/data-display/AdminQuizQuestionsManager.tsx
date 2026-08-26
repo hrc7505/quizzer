@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 import { useDialog } from "@/components/providers/OverlayProvider";
 import { useToast } from "@/components/providers/ToastProvider";
-import { PageHeader } from "@/components/data-display/PageHeader";
 import { QuestionCard } from "@/components/data-display/QuestionCard";
 import { Pagination } from "@/components/data-display/Pagination";
 import { QuestionDialogBody, type QuestionForm } from "@/components/data-display/TaxonomyDialogBodies";
@@ -21,7 +20,6 @@ import { GenerateQuizForm } from "@/components/forms/GenerateQuizForm";
 import { DuplicateQuestionsDialogBody } from "@/components/data-display/DuplicateQuestionsDialogBody";
 import { TranslateQuizDialogBody } from "@/components/data-display/TranslateQuizDialogBody";
 import { ProofreadQuizDialogBody } from "@/components/data-display/ProofreadQuizDialogBody";
-import { soundEffects } from "@/lib/services/sound-effects.service";
 
 interface Question {
   id: string;
@@ -62,7 +60,7 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
   const toast = useToast();
   const [quiz, setQuiz] = useState<QuizDetail>(initialQuiz);
   const [loading, setLoading] = useState(false);
-  const [proofreadingAll, setProofreadingAll] = useState(false);
+  const proofreadingAll = false;
   const [error, setError] = useState<string | null>(null);
 
   // Dialog & confirm states
@@ -438,75 +436,77 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
     return d ? new Date(d).getTime() : 0;
   };
 
-  // 1. Base canonical English questions ordered by creation time
-  const enQuestions = quiz.questions
-    .filter(
-      (q) =>
-        q.language === "en" ||
-        (!q.language && !/[\u0A80-\u0AFF]/.test(q.text) && !/[\u0900-\u097F]/.test(q.text))
-    )
-    .sort((a, b) => getTime(a) - getTime(b));
-
-  const rawGuList = quiz.questions.filter(
-    (q) => q.language === "gu" || (!q.language && /[\u0A80-\u0AFF]/.test(q.text))
-  );
-  const rawHiList = quiz.questions.filter(
-    (q) => q.language === "hi" || (!q.language && /[\u0900-\u097F]/.test(q.text))
-  );
-
-  // 2. Build Gujarati track strictly paired by sourceQuestionId to match English sequence 1-to-1
-  const guMap = new Map<string, Question>();
-  const guUnmapped: Question[] = [];
-  for (const q of rawGuList) {
-    if (q.sourceQuestionId) {
-      guMap.set(q.sourceQuestionId, q);
-    } else {
-      guUnmapped.push(q);
-    }
-  }
-
-  const guQuestions: Question[] =
-    enQuestions.length > 0 && guMap.size > 0
-      ? enQuestions.map((enQ) => guMap.get(enQ.id)).filter((q): q is Question => !!q).concat(guUnmapped)
-      : rawGuList.sort((a, b) => getTime(a) - getTime(b));
-
-  // 3. Build Hindi track strictly paired by sourceQuestionId to match English sequence 1-to-1
-  const hiMap = new Map<string, Question>();
-  const hiUnmapped: Question[] = [];
-  for (const q of rawHiList) {
-    if (q.sourceQuestionId) {
-      hiMap.set(q.sourceQuestionId, q);
-    } else {
-      hiUnmapped.push(q);
-    }
-  }
-
-  const hiQuestions: Question[] =
-    enQuestions.length > 0 && hiMap.size > 0
-      ? enQuestions.map((enQ) => hiMap.get(enQ.id)).filter((q): q is Question => !!q).concat(hiUnmapped)
-      : rawHiList.sort((a, b) => getTime(a) - getTime(b));
-
-  const [activeLangTab, setActiveLangTab] = useState<string>(() => {
-    if (enQuestions.length > 0) return "en";
-    if (rawGuList.length > 0) return "gu";
-    if (rawHiList.length > 0) return "hi";
-    return "en";
-  });
-
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [activeLangTab, setActiveLangTab] = useState<string>("en");
 
-  const displayedQuestions =
-    activeLangTab === "gu"
-      ? guQuestions
-      : activeLangTab === "hi"
-        ? hiQuestions
-        : enQuestions;
+  const { enQuestions, guQuestions, hiQuestions, guMap, hiMap, displayedQuestions } = useMemo(() => {
+    const en = quiz.questions
+      .filter(
+        (q) =>
+          q.language === "en" ||
+          (!q.language && !/[\u0A80-\u0AFF]/.test(q.text) && !/[\u0900-\u097F]/.test(q.text))
+      )
+      .sort((a, b) => getTime(a) - getTime(b));
 
-  const paginatedQuestions = useMemo(() => {
-    const startIndex = (currentPage - 1) * pageSize;
-    return displayedQuestions.slice(startIndex, startIndex + pageSize);
-  }, [displayedQuestions, currentPage, pageSize]);
+    const rawGuList = quiz.questions.filter(
+      (q) => q.language === "gu" || (!q.language && /[\u0A80-\u0AFF]/.test(q.text))
+    );
+    const rawHiList = quiz.questions.filter(
+      (q) => q.language === "hi" || (!q.language && /[\u0900-\u097F]/.test(q.text))
+    );
+
+    // Build Gujarati track strictly paired by sourceQuestionId to match English sequence 1-to-1
+    const guMap = new Map<string, Question>();
+    const guUnmapped: Question[] = [];
+    for (const q of rawGuList) {
+      if (q.sourceQuestionId) {
+        guMap.set(q.sourceQuestionId, q);
+      } else {
+        guUnmapped.push(q);
+      }
+    }
+
+    const gu: Question[] =
+      en.length > 0 && guMap.size > 0
+        ? en.map((enQ) => guMap.get(enQ.id)).filter((q): q is Question => !!q).concat(guUnmapped)
+        : rawGuList.sort((a, b) => getTime(a) - getTime(b));
+
+    // Build Hindi track strictly paired by sourceQuestionId to match English sequence 1-to-1
+    const hiMap = new Map<string, Question>();
+    const hiUnmapped: Question[] = [];
+    for (const q of rawHiList) {
+      if (q.sourceQuestionId) {
+        hiMap.set(q.sourceQuestionId, q);
+      } else {
+        hiUnmapped.push(q);
+      }
+    }
+
+    const hi: Question[] =
+      en.length > 0 && hiMap.size > 0
+        ? en.map((enQ) => hiMap.get(enQ.id)).filter((q): q is Question => !!q).concat(hiUnmapped)
+        : rawHiList.sort((a, b) => getTime(a) - getTime(b));
+
+    const displayed =
+      activeLangTab === "gu"
+        ? gu
+        : activeLangTab === "hi"
+          ? hi
+          : en;
+
+    return {
+      enQuestions: en,
+      guQuestions: gu,
+      hiQuestions: hi,
+      guMap,
+      hiMap,
+      displayedQuestions: displayed,
+    };
+  }, [quiz.questions, activeLangTab]);
+
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedQuestions = displayedQuestions.slice(startIndex, startIndex + pageSize);
 
   const currentLangLabel =
     activeLangTab === "gu" ? "Gujarati" : activeLangTab === "hi" ? "Hindi" : "English";

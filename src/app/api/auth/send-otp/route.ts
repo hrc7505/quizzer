@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
-import crypto from "crypto";
+
 
 import { prisma } from "@/lib/prisma";
 import { sendOtpEmail } from "@/lib/services/email.service";
+
+import crypto from "crypto";
 
 export async function POST(req: Request) {
   try {

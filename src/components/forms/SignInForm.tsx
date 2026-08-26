@@ -1,13 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { signIn, signOut, useSession } from "next-auth/react";
+import { signIn } from "next-auth/react";
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
 import { Alert } from "@/components/ui/Alert";
-import { isAdmin } from "@/lib/session";
 
 export function SignInForm() {
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -15,8 +14,6 @@ export function SignInForm() {
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const { data: session } = useSession();
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();

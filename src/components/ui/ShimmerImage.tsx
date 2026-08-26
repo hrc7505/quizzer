@@ -3,9 +3,11 @@
 import * as React from "react";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { ImageIcon, AlertCircle } from "lucide-react";
+
 import { cn } from "@/utils/cn";
 import { sanitizeImageUrl } from "@/lib/format";
-import type { ShimmerImageProps } from "./interfaces/ShimmerImage.interface";
+
+import type { ShimmerImageProps } from "@/components/ui/interfaces/ShimmerImage.interface";
 
 /**
  * Validates and sanitizes image source URL to satisfy strict DOM XSS guards.
@@ -106,6 +108,7 @@ export const ShimmerImage = React.memo(function ShimmerImage({
       )}
 
       {/* Main Image */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         ref={imgRef}
         src={safeSrc}

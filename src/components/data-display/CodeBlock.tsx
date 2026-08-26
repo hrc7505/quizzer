@@ -4,6 +4,7 @@ import * as React from "react";
 import { Check, Copy } from "lucide-react";
 
 import { cn } from "@/utils/cn";
+
 import type { CodeBlockProps } from "@/components/data-display/interfaces/CodeBlock.interface";
 
 /**

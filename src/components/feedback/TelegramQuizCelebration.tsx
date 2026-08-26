@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Flame, Zap, Trophy, Sparkles } from "lucide-react";
+
 import { cn } from "@/utils/cn";
 
 export interface CelebrationBurst {

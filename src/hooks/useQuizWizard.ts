@@ -4,9 +4,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
 
-import { AttemptService } from "@/lib/services/attempt.service";
-
-import type { LeaderboardEntry } from "@/lib/services/attempt.service";
+import { AttemptService, type LeaderboardEntry } from "@/lib/services/attempt.service";
+import { soundEffects } from "@/lib/services/sound-effects.service";
 
 interface QuizWizardQuestion {
   id: string;
@@ -41,7 +40,6 @@ interface QuizWizardAttempt {
   timeTakenSec: number;
 }
 
-import { soundEffects } from "@/lib/services/sound-effects.service";
 import type { CelebrationBurst, StreakMilestone } from "@/components/feedback/TelegramQuizCelebration";
 
 export interface QuizWizardState {

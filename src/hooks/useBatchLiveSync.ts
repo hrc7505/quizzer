@@ -1,11 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+
 import { soundEffects } from "@/lib/services/sound-effects.service";
-import type {
-  UseBatchLiveSyncOptions,
-  UseBatchLiveSyncResult,
-} from "./interfaces/useBatchLiveSync.interface";
+import { UseBatchLiveSyncOptions, UseBatchLiveSyncResult } from "@/hooks/interfaces/useBatchLiveSync.interface";
 
 /**
  * useBatchLiveSync hook.
@@ -84,7 +82,16 @@ export function useBatchLiveSync({
 
   useEffect(() => {
     // Initial check on mount to see if any background batches are already running
-    checkBatches();
+    let mounted = true;
+    const init = async () => {
+      if (mounted) {
+        await checkBatches();
+      }
+    };
+    void init();
+    return () => {
+      mounted = false;
+    };
   }, [checkBatches]);
 
   useEffect(() => {

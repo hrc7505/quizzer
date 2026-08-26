@@ -10,10 +10,7 @@ import { QuestionImage } from "@/components/data-display/QuestionImage";
 import { AnswerCallout } from "@/components/data-display/AnswerCallout";
 import { OptionText } from "@/components/data-display/OptionText";
 import { QuestionText } from "@/components/data-display/QuestionText";
-import type {
-  QuestionCardData,
-  QuestionCardProps,
-} from "@/components/data-display/interfaces/QuestionCard.interface";
+import { QuestionCardData, QuestionCardProps } from "@/components/data-display/interfaces/QuestionCard.interface";
 
 export type { QuestionCardData, QuestionCardProps };
 

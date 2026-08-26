@@ -1,10 +1,9 @@
 import { Winky_Sans, Anek_Gujarati, Hind } from "next/font/google";
 import Script from "next/script";
 import NextTopLoader from "nextjs-toploader";
+import "katex/dist/katex.min.css";
 
 import { Providers } from "@/components/providers/Providers";
-
-import "katex/dist/katex.min.css";
 import "@/styles/globals.css";
 
 import type { Metadata, Viewport } from "next";

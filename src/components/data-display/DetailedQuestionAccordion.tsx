@@ -11,6 +11,7 @@ import { QuestionImage } from "@/components/data-display/QuestionImage";
 import { AnswerCallout } from "@/components/data-display/AnswerCallout";
 import { QuestionText } from "@/components/data-display/QuestionText";
 import { useTranslation } from "@/contexts/LanguageContext";
+
 import type { DetailedQuestionAccordionProps } from "@/components/data-display/interfaces/DetailedQuestionAccordion.interface";
 
 /**

@@ -9,22 +9,18 @@ import {
   Play,
   Pause,
   AlertTriangle,
-  Clock,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
   FolderTree,
   Square,
   CheckSquare,
-  X,
 } from "lucide-react";
 import Link from "next/link";
-import { AnimatePresence, motion } from "framer-motion";
 
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Spinner } from "@/components/ui/Spinner";
-import { Alert } from "@/components/ui/Alert";
 import { FloatingActionBar } from "@/components/ui/FloatingActionBar";
 import { useToast } from "@/components/providers/ToastProvider";
 import { soundEffects } from "@/lib/services/sound-effects.service";
@@ -83,7 +79,10 @@ export function BatchQueueManager({
 
   const toast = useToast();
   const toastRef = useRef(toast);
-  toastRef.current = toast;
+
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
 
   const fetchBatches = useCallback(async (isManualRefresh = false) => {
     try {
@@ -106,7 +105,16 @@ export function BatchQueueManager({
   }, [initialTopicId]);
 
   useEffect(() => {
-    fetchBatches();
+    let active = true;
+    const init = async () => {
+      if (active) {
+        await fetchBatches();
+      }
+    };
+    void init();
+    return () => {
+      active = false;
+    };
   }, [fetchBatches]);
 
   // Stable auto-poll while batches are in PENDING or PROCESSING states

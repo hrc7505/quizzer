@@ -1,12 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { Languages, Sparkles, AlertCircle, RefreshCw } from "lucide-react";
+import { Languages, Sparkles, RefreshCw } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { BatchProgressCard } from "@/components/feedback/BatchProgressCard";
 import { soundEffects } from "@/lib/services/sound-effects.service";
 import { cn } from "@/utils/cn";
+
 import type { TranslateQuizDialogBodyProps } from "@/components/data-display/interfaces/TranslateQuizDialogBody.interface";
 
 const TARGET_LANGUAGES = [
@@ -93,7 +94,16 @@ export function TranslateQuizDialogBody({
 
   // Initial fetch on mount
   React.useEffect(() => {
-    fetchStatus();
+    let active = true;
+    const init = async () => {
+      if (active) {
+        await fetchStatus();
+      }
+    };
+    void init();
+    return () => {
+      active = false;
+    };
   }, [fetchStatus]);
 
   // Only poll if background batch queue is active (PROCESSING)

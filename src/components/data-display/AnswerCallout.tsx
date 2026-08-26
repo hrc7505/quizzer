@@ -7,6 +7,7 @@ import { OptionText } from "@/components/data-display/OptionText";
 import { MarkdownContent } from "@/components/data-display/MarkdownContent";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { cn } from "@/utils/cn";
+
 import type { AnswerCalloutProps } from "@/components/data-display/interfaces/AnswerCallout.interface";
 
 /**

@@ -1,10 +1,8 @@
 import { NextResponse, after } from "next/server";
 import { getServerSession } from "next-auth/next";
+
 import { authOptions, SessionUser } from "@/lib/auth";
-import {
-  generateQuestionExplanation,
-  translateExplanationAndHint,
-} from "@/lib/services/ai-explain.service";
+import { generateQuestionExplanation, translateExplanationAndHint } from "@/lib/services/ai-explain.service";
 import { describeAiError } from "@/lib/gemini";
 import { prisma } from "@/lib/prisma";
 

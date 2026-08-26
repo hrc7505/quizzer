@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+
 import {
   dictionaries,
   SUPPORTED_LANGUAGES,
@@ -29,22 +30,23 @@ const STORAGE_KEY = "quiz_preferred_language";
  * and dynamic font attribute updates across the application.
  */
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLangState] = React.useState<SupportedLanguage>("en");
-  const [mounted, setMounted] = React.useState(false);
-
-  // Initialize from localStorage or browser preferences
-  React.useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY) as SupportedLanguage;
-      if (saved && (saved === "en" || saved === "gu" || saved === "hi")) {
-        setLangState(saved);
+  const [lang, setLangState] = React.useState<SupportedLanguage>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY) as SupportedLanguage;
+        if (saved && (saved === "en" || saved === "gu" || saved === "hi")) {
+          return saved;
+        }
+      } catch {
+        // Ignore storage access errors in restricted modes
       }
-      // Ensure html root remains clean default
-      document.documentElement.removeAttribute("data-lang");
-    } catch {
-      // Ignore storage access errors in restricted modes
     }
-    setMounted(true);
+    return "en";
+  });
+
+  // Ensure html root remains clean default
+  React.useEffect(() => {
+    document.documentElement.removeAttribute("data-lang");
   }, []);
 
   const setLanguage = React.useCallback((newLang: SupportedLanguage) => {

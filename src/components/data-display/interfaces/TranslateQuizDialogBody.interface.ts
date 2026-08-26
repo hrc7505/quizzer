@@ -2,8 +2,6 @@
  * Interfaces for TranslateQuizDialogBody component.
  */
 
-import type { SupportedLanguage } from "@/lib/i18n/dictionaries";
-
 export interface TranslateQuizDialogBodyProps {
   quizId: string;
   quizTitle: string;

@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Image as ImageIcon, Upload, X, Loader2, Link2, RotateCw, CheckCircle2 } from "lucide-react";
+import { Image as ImageIcon, Upload, X, Loader2, Link2, RotateCw } from "lucide-react";
+
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Progress } from "@/components/ui/Progress";
@@ -9,6 +10,7 @@ import { useImageUpload } from "@/hooks/useImageUpload";
 import { cn } from "@/utils/cn";
 import { sanitizeImageUrl } from "@/lib/format";
 import { ShimmerImage } from "@/components/ui/ShimmerImage";
+
 import type { ImageUploaderProps } from "@/components/forms/interfaces/ImageUploader.interface";
 
 /**
@@ -45,6 +47,10 @@ export function ImageUploader({
 
   const handleFileSelection = (file: File | undefined) => {
     if (!file || disabled || isUploading) return;
+    if (file.size > maxSizeMB * 1024 * 1024) {
+      alert(`File size exceeds the ${maxSizeMB}MB limit.`);
+      return;
+    }
     uploadFile(file);
   };
 

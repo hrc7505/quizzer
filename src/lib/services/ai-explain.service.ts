@@ -1,4 +1,5 @@
 import { executeWithGeminiFailover, GEMINI_MODEL, FALLBACK_MODELS } from "@/lib/gemini";
+
 import fs from "fs/promises";
 import path from "path";
 
@@ -181,7 +182,7 @@ Respond ONLY with a valid JSON object matching this exact structure:
 }`;
 
   return executeWithGeminiFailover(async (client) => {
-    const contents: any[] = [];
+    const contents: Array<string | { inlineData: { mimeType: string; data: string } }> = [];
 
     if (imageData) {
       contents.push({
@@ -216,7 +217,7 @@ Respond ONLY with a valid JSON object matching this exact structure:
         const rawText = response.text || "";
         const jsonMatch = rawText.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
-          const parsed = safeJsonParse<any>(jsonMatch[0], null);
+          const parsed = safeJsonParse<{ explanation?: string; hint?: string } | null>(jsonMatch[0], null);
           if (parsed && parsed.explanation) {
             return {
               explanation: String(parsed.explanation).trim(),

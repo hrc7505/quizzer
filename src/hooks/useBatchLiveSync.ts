@@ -18,7 +18,7 @@ import type {
 export function useBatchLiveSync({
   onRefresh,
   topicId,
-  pollIntervalMs = 3000,
+  pollIntervalMs = 6000,
   onComplete,
 }: UseBatchLiveSyncOptions): UseBatchLiveSyncResult {
   const [activeBatchCount, setActiveBatchCount] = useState(0);
@@ -44,28 +44,32 @@ export function useBatchLiveSync({
       if (!res.ok) return;
 
       const data = await res.json();
-      if (Array.isArray(data)) {
-        const active = data.filter(
-          (b: { status: string }) => b.status === "PENDING" || b.status === "PROCESSING"
-        );
-        const count = active.length;
-        setActiveBatchCount(count);
+      const batchList: Array<{ status: string }> = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.batches)
+        ? data.batches
+        : [];
 
-        if (count > 0) {
-          wasActiveRef.current = true;
-          setIsMonitoring(true);
-          // Progressively refresh underlying table
-          await onRefreshRef.current();
-        } else if (wasActiveRef.current) {
-          // Batches were previously active and just finished
-          wasActiveRef.current = false;
-          setIsMonitoring(false);
-          await onRefreshRef.current();
-          soundEffects.playCorrectSound();
-          onCompleteRef.current?.();
-        } else {
-          setIsMonitoring(false);
-        }
+      const active = batchList.filter(
+        (b) => b.status === "PENDING" || b.status === "PROCESSING"
+      );
+      const count = active.length;
+      setActiveBatchCount(count);
+
+      if (count > 0) {
+        wasActiveRef.current = true;
+        setIsMonitoring(true);
+        // Progressively refresh underlying table
+        await onRefreshRef.current();
+      } else if (wasActiveRef.current) {
+        // Batches were previously active and just finished
+        wasActiveRef.current = false;
+        setIsMonitoring(false);
+        await onRefreshRef.current();
+        soundEffects.playCorrectSound();
+        onCompleteRef.current?.();
+      } else {
+        setIsMonitoring(false);
       }
     } catch (e) {
       console.error("useBatchLiveSync poll error:", e);

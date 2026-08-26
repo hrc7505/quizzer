@@ -32,8 +32,9 @@ export async function GET(req: Request) {
       include: {
         exams: { select: { id: true, title: true } },
         parentTopics: { select: { id: true, title: true } },
-        subtopics: { select: { id: true, title: true } },
+        subtopics: { select: { id: true, title: true }, orderBy: { createdAt: "desc" } },
         quizzes: {
+          orderBy: { createdAt: "desc" },
           include: { _count: { select: { questions: true } } }
         },
         _count: {

@@ -16,7 +16,7 @@ export async function GET() {
         quiz: { select: { id: true, title: true } },
         topic: { select: { id: true, title: true } }
       },
-      orderBy: { id: "desc" }
+      orderBy: { createdAt: "desc" }
     });
     return NextResponse.json(questions);
   } catch (e) {

@@ -27,7 +27,7 @@ export default async function AdminDeepDivesPage() {
       topic: { select: { id: true, title: true } },
       quiz: { select: { id: true, title: true, difficulty: true } }
     },
-    orderBy: [{ topic: { title: "asc" } }]
+    orderBy: { createdAt: "desc" }
   });
 
   return <AdminDeepDivesManager questions={questions} />;

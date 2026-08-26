@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { QuizManager } from "@/components/data-display/QuizManager";
+import { computeCanonicalQuestionCount } from "@/lib/quiz-routing";
 
 export const dynamic = "force-dynamic";
 
@@ -13,21 +14,32 @@ export const metadata = {
  * Fetches all quizzes and available topics server-side for pre-population.
  */
 export default async function ManageQuizzesPage() {
-  const [quizzes, topics] = await Promise.all([
+  const [rawQuizzes, topics] = await Promise.all([
     prisma.quiz.findMany({
       include: {
         topics: {
           select: { id: true, title: true }
         },
-        _count: { select: { questions: true, attempts: true } }
+        questions: {
+          select: { id: true, language: true, sourceQuestionId: true, text: true }
+        },
+        _count: { select: { attempts: true } }
       },
-      orderBy: { quizOrder: "asc" }
+      orderBy: { createdAt: "desc" }
     }),
     prisma.topic.findMany({
       select: { id: true, title: true },
-      orderBy: { title: "asc" }
+      orderBy: { createdAt: "desc" }
     })
   ]);
+
+  const quizzes = rawQuizzes.map((quiz) => ({
+    ...quiz,
+    _count: {
+      questions: computeCanonicalQuestionCount(quiz.questions),
+      attempts: quiz._count?.attempts || 0,
+    },
+  }));
 
   return <QuizManager quizzes={quizzes} topics={topics} />;
 }

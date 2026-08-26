@@ -56,7 +56,7 @@ export default async function ManageExamTopicsPage({ params }: ManageExamTopicsP
         title: true,
         description: true,
       },
-      orderBy: { title: "asc" },
+      orderBy: { createdAt: "desc" },
     }),
   ]);
 

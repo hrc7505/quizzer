@@ -62,6 +62,11 @@ export function TranslateQuizDialogBody({
   const [actionBusy, setActionBusy] = React.useState(false);
   const [statusData, setStatusData] = React.useState<QuizTranslateStatus | null>(null);
   const hasTriggeredSuccessRef = React.useRef(false);
+  const onSuccessRef = React.useRef(onSuccess);
+
+  React.useEffect(() => {
+    onSuccessRef.current = onSuccess;
+  }, [onSuccess]);
 
   // Fetch translation & server batch queue status from PostgreSQL
   const fetchStatus = React.useCallback(async () => {
@@ -74,7 +79,7 @@ export function TranslateQuizDialogBody({
       if (data.batchQueue?.status === "COMPLETED" && !hasTriggeredSuccessRef.current) {
         hasTriggeredSuccessRef.current = true;
         soundEffects.playCorrectSound();
-        await onSuccess({
+        await onSuccessRef.current?.({
           quizId,
           title: quizTitle,
           language: data.batchQueue.targetLanguage,
@@ -84,14 +89,21 @@ export function TranslateQuizDialogBody({
     } catch (err) {
       console.warn("Failed to fetch quiz translation status:", err);
     }
-  }, [quizId, onSuccess]);
+  }, [quizId, quizTitle]);
 
-  // Polling loop
+  // Initial fetch on mount
   React.useEffect(() => {
     fetchStatus();
-    const interval = setInterval(fetchStatus, 2000);
-    return () => clearInterval(interval);
   }, [fetchStatus]);
+
+  // Only poll if background batch queue is active (PROCESSING)
+  const isBatchActive = statusData?.batchQueue?.status === "PROCESSING";
+
+  React.useEffect(() => {
+    if (!isBatchActive) return;
+    const interval = setInterval(fetchStatus, 4000);
+    return () => clearInterval(interval);
+  }, [isBatchActive, fetchStatus]);
 
   // ACTION: Start server-side background translation
   const handleStartTranslate = async (options?: { resume?: boolean }) => {

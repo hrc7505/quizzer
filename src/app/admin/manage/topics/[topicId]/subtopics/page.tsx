@@ -57,7 +57,7 @@ export default async function ManageTopicSubtopicsPage({ params }: ManageTopicSu
         title: true,
         description: true,
       },
-      orderBy: { title: "asc" },
+      orderBy: { createdAt: "desc" },
     }),
   ]);
 

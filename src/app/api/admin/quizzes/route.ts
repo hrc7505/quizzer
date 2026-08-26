@@ -14,7 +14,7 @@ export async function GET() {
         },
         _count: { select: { questions: true, attempts: true } },
       },
-      orderBy: { quizOrder: "asc" },
+      orderBy: { createdAt: "desc" },
     });
 
     const formattedQuizzes = quizzes.map((quiz) => {

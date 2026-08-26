@@ -100,10 +100,11 @@ export function SubtopicQuizzesManager({
           allRes.data.filter((q) => !q.topics?.some((t) => t.id === subtopic.id))
         );
       }
+      router.refresh();
     } catch (e) {
       console.error("Failed to refresh quizzes:", e);
     }
-  }, [subtopic.id]);
+  }, [subtopic.id, router]);
 
   // Filtered quizzes
   const filteredQuizzes = useMemo(() => {

@@ -16,9 +16,9 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Retrieve all users sorted by name, along with their attempt counts
+    // Retrieve all users sorted by latest created, along with their attempt counts
     const users = await prisma.user.findMany({
-      orderBy: { name: "asc" },
+      orderBy: { createdAt: "desc" },
       include: {
         _count: {
           select: {

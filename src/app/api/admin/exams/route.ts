@@ -8,8 +8,10 @@ export async function GET() {
     const exams = await prisma.exam.findMany({
       include: {
         topics: {
+          orderBy: { createdAt: "desc" },
           include: {
             quizzes: {
+              orderBy: { createdAt: "desc" },
               include: { _count: { select: { questions: true } } }
             }
           }

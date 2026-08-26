@@ -23,7 +23,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
             topics: { select: { id: true, title: true } },
             _count: { select: { questions: true, attempts: true } },
           },
-          orderBy: { quizOrder: "asc" },
+          orderBy: { createdAt: "desc" },
         },
       },
     });

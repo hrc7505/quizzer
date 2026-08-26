@@ -28,7 +28,7 @@ export default async function DeepDivesPage() {
       topic: { select: { id: true, title: true } },
       quiz: { select: { id: true, title: true, difficulty: true } }
     },
-    orderBy: [{ topic: { title: "asc" } }]
+    orderBy: { createdAt: "desc" }
   });
 
   return (

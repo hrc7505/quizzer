@@ -20,7 +20,7 @@ export default async function ManageUsersPage() {
 
   // Fetch all users with their quiz attempt statistics
   const users = await prisma.user.findMany({
-    orderBy: { name: "asc" },
+    orderBy: { createdAt: "desc" },
     include: {
       _count: {
         select: {

@@ -11,8 +11,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       include: {
         topics: {
           include: {
-            subtopics: { select: { id: true, title: true } },
-            quizzes: { select: { id: true, title: true } },
+            subtopics: { select: { id: true, title: true }, orderBy: { createdAt: "desc" } },
+            quizzes: { select: { id: true, title: true }, orderBy: { createdAt: "desc" } },
             _count: { select: { subtopics: true, quizzes: true, questions: true } },
           },
           orderBy: { createdAt: "desc" },

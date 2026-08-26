@@ -81,19 +81,22 @@ function ToastContainer({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id
   };
 
   const colors: Record<ToastType, string> = {
-    success: "border-success/30 bg-success/5 text-success",
-    error: "border-danger/30 bg-danger/5 text-danger",
-    warning: "border-warning/30 bg-warning/5 text-warning",
-    info: "border-info/30 bg-info/5 text-info",
+    success: "border-success/40 bg-card text-success shadow-2xl",
+    error: "border-danger/40 bg-card text-danger shadow-2xl",
+    warning: "border-warning/40 bg-card text-warning shadow-2xl",
+    info: "border-info/40 bg-card text-info shadow-2xl",
   };
 
   return createPortal(
-    <div className="fixed bottom-4 right-4 z-1400 flex flex-col gap-2 max-w-sm w-full" aria-live="polite">
-      {toasts.map(toast => (
+    <div
+      className="fixed bottom-4 right-4 z-[9999] flex flex-col gap-2 max-w-sm w-full pointer-events-none"
+      aria-live="polite"
+    >
+      {toasts.map((toast) => (
         <div
           key={toast.id}
           className={cn(
-            "flex items-start gap-3 rounded-xl border p-4 shadow-lg animate-fade-in-up text-sm",
+            "pointer-events-auto flex items-start gap-3 rounded-xl border p-4 shadow-2xl animate-fade-in-up text-sm bg-card/95 backdrop-blur-md",
             colors[toast.type]
           )}
         >
@@ -104,7 +107,7 @@ function ToastContainer({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id
           </div>
           <button
             onClick={() => onDismiss(toast.id)}
-            className="shrink-0 rounded-md p-0.5 text-muted-foreground hover:text-foreground transition-colors"
+            className="shrink-0 rounded-md p-0.5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             aria-label="Dismiss"
           >
             <X className="h-4 w-4" />

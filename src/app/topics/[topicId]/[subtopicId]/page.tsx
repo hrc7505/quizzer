@@ -48,7 +48,7 @@ async function getPageData(topicId: string, subtopicId: string) {
         quizzes: {
           where: { questions: { some: {} } },
           include: { _count: { select: { questions: true } } },
-          orderBy: { quizOrder: "asc" }
+          orderBy: { createdAt: "desc" }
         }
       }
     })

@@ -42,7 +42,7 @@ export default async function ManageSubtopicQuizzesPage({ params }: ManageSubtop
             topics: { select: { id: true, title: true } },
             _count: { select: { questions: true, attempts: true } },
           },
-          orderBy: { quizOrder: "asc" },
+          orderBy: { createdAt: "desc" },
         },
       },
     }),
@@ -54,7 +54,7 @@ export default async function ManageSubtopicQuizzesPage({ params }: ManageSubtop
         topics: { select: { id: true, title: true } },
         _count: { select: { questions: true, attempts: true } },
       },
-      orderBy: { quizOrder: "asc" },
+      orderBy: { createdAt: "desc" },
     }),
   ]);
 

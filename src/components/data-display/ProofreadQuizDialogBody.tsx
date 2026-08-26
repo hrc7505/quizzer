@@ -47,6 +47,11 @@ export function ProofreadQuizDialogBody({
       ? "Hindi (हिन्दी)"
       : "English";
 
+  const onSuccessRef = React.useRef(onSuccess);
+  React.useEffect(() => {
+    onSuccessRef.current = onSuccess;
+  }, [onSuccess]);
+
   // Poll server database status
   const fetchStatus = React.useCallback(async () => {
     try {
@@ -60,26 +65,30 @@ export function ProofreadQuizDialogBody({
       if (data.status === "COMPLETED" && !hasTriggeredSuccessRef.current) {
         hasTriggeredSuccessRef.current = true;
         soundEffects.playCorrectSound();
-        await onSuccess();
+        await onSuccessRef.current?.();
       }
     } catch (e) {
       console.warn("Failed to fetch proofread batch status:", e);
     }
-  }, [quizId, language, onSuccess]);
+  }, [quizId, language]);
 
-  // Initial fetch and auto-polling if active
+  // Initial fetch on mount
   React.useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
     fetchStatus();
-
-    interval = setInterval(() => {
-      fetchStatus();
-    }, 2000);
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
   }, [fetchStatus]);
+
+  // Auto-polling only while active
+  const isBatchActive = serverStatus?.status === "PROCESSING";
+
+  React.useEffect(() => {
+    if (!isBatchActive) return;
+
+    const interval = setInterval(() => {
+      fetchStatus();
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [isBatchActive, fetchStatus]);
 
   // ACTION: Start server-side background batch job
   const handleStartProofreading = async () => {

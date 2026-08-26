@@ -21,11 +21,11 @@ export default async function ManageQuizzesPage() {
         },
         _count: { select: { questions: true, attempts: true } }
       },
-      orderBy: { quizOrder: "asc" }
+      orderBy: { createdAt: "desc" }
     }),
     prisma.topic.findMany({
       select: { id: true, title: true },
-      orderBy: { title: "asc" }
+      orderBy: { createdAt: "desc" }
     })
   ]);
 

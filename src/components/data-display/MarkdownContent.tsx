@@ -162,7 +162,7 @@ export const MarkdownContent = React.memo(function MarkdownContent({
     >
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
-        rehypePlugins={[rehypeKatex]}
+        rehypePlugins={[[rehypeKatex, { strict: "ignore", throwOnError: false }]]}
         components={{
           ul: ({ children }) => (
             <ul className="flex flex-col gap-2 my-1.5 list-none p-0 m-0 min-w-0 max-w-full">

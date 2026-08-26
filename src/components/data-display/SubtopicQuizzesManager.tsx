@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
 import { FloatingActionBar } from "@/components/ui/FloatingActionBar";
 import { PageHeader } from "@/components/data-display/PageHeader";
+import { generateQuizPDF } from "@/lib/pdf-generator";
 import { Pagination } from "@/components/data-display/Pagination";
 import { NoData } from "@/components/feedback/NoData";
 import { LinkPicker } from "@/components/data-display/LinkPicker";
@@ -33,6 +34,21 @@ import type {
   SubtopicQuizItem,
   SubtopicWithQuizzes,
 } from "@/components/data-display/interfaces/SubtopicQuizzesManager.interface";
+
+function formatSafeDate(dateStr?: string | Date | null): string {
+  if (!dateStr) return "-";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "-";
+    return d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  } catch {
+    return "-";
+  }
+}
 
 /**
  * SubtopicQuizzesManager component.
@@ -62,6 +78,14 @@ export function SubtopicQuizzesManager({
   const [selectedQuizIds, setSelectedQuizIds] = useState<string[]>([]);
   const prevSelectedCountRef = useRef(0);
 
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // Link picker state
   const [linkModalSelectedIds, setLinkModalSelectedIds] = useState<string[]>([]);
   const linkModalSelectedIdsRef = useRef<string[]>([]);
@@ -75,20 +99,21 @@ export function SubtopicQuizzesManager({
   const refreshQuizzes = useCallback(async () => {
     try {
       const res = await api.get<{ quizzes?: SubtopicQuizItem[] }>(`/api/admin/topics/${subtopic.id}`);
+      if (!isMountedRef.current) return;
       if (res.success && res.data?.quizzes) {
         setSubtopic((prev) => ({ ...prev, quizzes: res.data?.quizzes || [] }));
       }
       const allRes = await api.get<SubtopicQuizItem[]>("/api/admin/quizzes");
+      if (!isMountedRef.current) return;
       if (allRes.success && allRes.data) {
         setUnlinkedQuizzes(
           allRes.data.filter((q) => !q.topics?.some((t) => t.id === subtopic.id))
         );
       }
-      router.refresh();
     } catch (e) {
       console.error("Failed to refresh quizzes:", e);
     }
-  }, [subtopic.id, router]);
+  }, [subtopic.id]);
 
   // Filtered quizzes
   const filteredQuizzes = useMemo(() => {
@@ -487,24 +512,23 @@ export function SubtopicQuizzesManager({
   );
 
   const handleDownloadPdf = useCallback(
-    async (quiz: { id: string; title: string; language?: string }) => {
+    async (quiz: SubtopicQuizItem) => {
       try {
-        toast.addToast({ type: "info", message: `Generating PDF for "${quiz.title}"...` });
-        const res = await fetch(`/api/admin/quizzes/${quiz.id}/pdf?mode=${quiz.language || "en"}`);
-        if (!res.ok) throw new Error("Failed to generate PDF on server");
-        const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `quiz-${quiz.title.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase()}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        toast.addToast({ type: "success", message: `Downloaded "${quiz.title}" PDF!` });
+        toast.addToast({ type: "info", message: `Preparing print booklet for "${quiz.title}"...` });
+        const res = await api.get(`/api/admin/quizzes/${quiz.id}`);
+        const fullQuiz = res.data;
+        if (!fullQuiz || !fullQuiz.questions || fullQuiz.questions.length === 0) {
+          toast.addToast({ type: "warning", message: "No questions in this quiz to download." });
+          return;
+        }
+        await generateQuizPDF({
+          title: fullQuiz.title,
+          language: fullQuiz.language || "en",
+          questions: fullQuiz.questions,
+        });
       } catch (err) {
-        console.error(err);
-        toast.addToast({ type: "error", message: "Failed to download PDF booklet." });
+        console.error("PDF print generation failed:", err);
+        toast.addToast({ type: "error", message: "Failed to generate PDF booklet." });
       }
     },
     [toast]
@@ -673,6 +697,7 @@ export function SubtopicQuizzesManager({
                   <th scope="col" className="py-3.5 px-4 font-bold text-center w-24">Difficulty</th>
                   <th scope="col" className="py-3.5 px-4 font-bold text-center w-24">Questions</th>
                   <th scope="col" className="py-3.5 px-4 font-bold text-center w-24">Attempts</th>
+                  <th scope="col" className="py-3.5 px-4 font-bold text-center w-28">Created</th>
                   <th scope="col" className="py-3.5 px-4 font-bold text-center w-24">Actions</th>
                 </tr>
               </thead>
@@ -726,6 +751,9 @@ export function SubtopicQuizzesManager({
                       </td>
                       <td className="py-3 px-4 text-center font-bold text-foreground/90">
                         {quiz._count?.attempts ?? 0}
+                      </td>
+                      <td className="py-3 px-4 text-center font-medium text-muted-foreground whitespace-nowrap">
+                        {formatSafeDate(quiz.createdAt)}
                       </td>
                       <td className="py-3 px-4 text-center select-none">
                         <div className="flex items-center justify-center gap-1.5">

@@ -13,6 +13,7 @@ const winkySans = Winky_Sans({
   display: "swap",
   variable: "--font-winky",
   adjustFontFallback: false,
+  fallback: ["system-ui", "sans-serif"],
 });
 
 const anekGujarati = Anek_Gujarati({
@@ -87,6 +88,7 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${winkySans.variable} ${anekGujarati.variable} ${hindHindi.variable}`}
+      data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
       <head>

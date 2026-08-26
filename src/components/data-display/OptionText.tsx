@@ -42,7 +42,7 @@ export function OptionText({ text, className }: OptionTextProps) {
     <span className={cn("inline-block leading-relaxed min-w-0 max-w-full break-words", className)}>
       <ReactMarkdown
         remarkPlugins={[remarkMath]}
-        rehypePlugins={[rehypeKatex]}
+        rehypePlugins={[[rehypeKatex, { strict: "ignore", throwOnError: false }]]}
         components={{
           p: ({ children }) => <span className="inline leading-relaxed break-words">{children}</span>,
           code: ({ children }) => (

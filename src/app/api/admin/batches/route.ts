@@ -3,7 +3,21 @@ import { getServerSession } from "next-auth/next";
 
 import { authOptions, SessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { ensureQuizBatchTable } from "@/app/api/admin/generate-quiz/route";
+import { ensureQuizBatchTable, extractQuestionBlocks } from "@/app/api/admin/generate-quiz/route";
+
+/**
+ * Counts the number of questions in a batch's rawText using the robust question block extractor.
+ */
+function countBatchQuestions(rawText?: string | null): number {
+  if (!rawText) return 0;
+  const blocks = extractQuestionBlocks(rawText);
+  if (blocks.length > 0) return blocks.length;
+  const optMatches = rawText.match(/(?:\([A-Da-d1-4અ-ડ]\)|[A-Da-dઅ-ડ]\))/gu);
+  if (optMatches && optMatches.length > 0) {
+    return Math.max(1, Math.round(optMatches.length / 4));
+  }
+  return 1;
+}
 
 export async function GET(req: Request) {
   try {
@@ -52,6 +66,7 @@ export async function GET(req: Request) {
 
     const result = batches.map((b) => ({
       ...b,
+      questionCount: countBatchQuestions(b.rawText),
       topicTitle: b.topicId ? topicMap.get(b.topicId) || null : null,
     }));
 

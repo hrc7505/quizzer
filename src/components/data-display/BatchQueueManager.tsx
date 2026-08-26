@@ -15,6 +15,7 @@ import {
   FolderTree,
   Square,
   CheckSquare,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -35,6 +36,7 @@ export interface BatchItem {
   rawText: string;
   batchIndex: number;
   totalBatches: number;
+  questionCount?: number;
   status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | "PAUSED";
   error: string | null;
   createdAt: string;
@@ -68,6 +70,7 @@ export function BatchQueueManager({
 }: BatchQueueManagerProps) {
   const [batches, setBatches] = useState<BatchItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<"ALL" | "PENDING" | "PAUSED" | "FAILED">("ALL");
   const [actionLoadingIds, setActionLoadingIds] = useState<Set<string>>(new Set());
   const [actionAllLoading, setActionAllLoading] = useState(false);
@@ -103,6 +106,20 @@ export function BatchQueueManager({
       setLoading(false);
     }
   }, [initialTopicId]);
+
+  const handleManualRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    const startTime = Date.now();
+    try {
+      await fetchBatches(true);
+    } finally {
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, 600 - elapsed);
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, remaining);
+    }
+  }, [fetchBatches]);
 
   useEffect(() => {
     let active = true;
@@ -464,11 +481,11 @@ export function BatchQueueManager({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => fetchBatches(true)}
-              disabled={loading}
+              onClick={handleManualRefresh}
+              disabled={loading || isRefreshing}
               className="gap-1.5 text-xs h-8"
             >
-              <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+              <RefreshCw className={cn("h-3.5 w-3.5", (isRefreshing || loading) && "animate-spin")} />
               <span>Refresh</span>
             </Button>
           </div>
@@ -530,7 +547,7 @@ export function BatchQueueManager({
                 disabled={actionAllLoading || loading}
                 className="gap-1.5 text-xs font-semibold h-7 px-2"
               >
-                {actionAllLoading ? <Spinner size="sm" /> : <Play className="h-3 w-3" />}
+                {actionAllLoading ? <RefreshCw className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
                 <span>Retry Failed</span>
               </Button>
             )}
@@ -551,11 +568,11 @@ export function BatchQueueManager({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => fetchBatches(true)}
-              disabled={loading}
+              onClick={handleManualRefresh}
+              disabled={loading || isRefreshing}
               className="gap-1.5 text-xs h-7 px-2"
             >
-              <RefreshCw className={cn("h-3 w-3", loading && "animate-spin")} />
+              <RefreshCw className={cn("h-3 w-3", (isRefreshing || loading) && "animate-spin")} />
             </Button>
           </div>
         </div>
@@ -656,6 +673,9 @@ export function BatchQueueManager({
                             Part {batch.batchIndex} of {batch.totalBatches}
                           </Badge>
                         )}
+                        <Badge variant="outline" className="text-[11px] font-medium border-primary/20 bg-primary/5 text-primary">
+                          {batch.questionCount !== undefined ? `${batch.questionCount} Questions` : "30 Questions"}
+                        </Badge>
                         <Badge
                           variant={
                             batch.status === "FAILED"
@@ -666,8 +686,11 @@ export function BatchQueueManager({
                                   ? "warning"
                                   : "outline"
                           }
-                          className="text-[11px]"
+                          className="text-[11px] gap-1"
                         >
+                          {batch.status === "PROCESSING" && (
+                            <Loader2 className="h-3 w-3 animate-spin inline-block" />
+                          )}
                           {batch.status === "PROCESSING" ? "Generating..." : batch.status}
                         </Badge>
                       </div>
@@ -689,7 +712,9 @@ export function BatchQueueManager({
                           </span>
                         )}
                         <span>Difficulty: {batch.difficulty}</span>
-                        {batch.createdAt && <span>Created: {formatSafeTime(batch.createdAt)}</span>}
+                        <span>•</span>
+                        <span>{batch.questionCount !== undefined ? `${batch.questionCount} questions` : "30 questions"}</span>
+                        {batch.createdAt && <span>• Created: {formatSafeTime(batch.createdAt)}</span>}
                       </div>
                     </div>
                   </div>
@@ -733,9 +758,9 @@ export function BatchQueueManager({
                         className="h-8 px-3 text-xs font-semibold gap-1.5"
                       >
                         {isLoadingAction ? (
-                          <Spinner size="sm" />
+                          <RefreshCw className="h-3.5 w-3.5 animate-spin" />
                         ) : (
-                          <Play className="h-3.5 w-3.5" />
+                          <RefreshCw className="h-3.5 w-3.5" />
                         )}
                         <span>Retry</span>
                       </Button>

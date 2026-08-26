@@ -43,4 +43,6 @@ export interface GenerateQuizPayload {
   file?: File | null;
   /** Whether AI should auto-pad incomplete quizzes with extra generated questions to reach 30 (default: false) */
   padTo30?: boolean;
+  /** Whether to keep all questions in a single master quiz or split into 30-question parts (default: 'single') */
+  quizStructure?: "single" | "split";
 }

@@ -60,7 +60,6 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
   const toast = useToast();
   const [quiz, setQuiz] = useState<QuizDetail>(initialQuiz);
   const [loading, setLoading] = useState(false);
-  const proofreadingAll = false;
   const [error, setError] = useState<string | null>(null);
 
   // Dialog & confirm states
@@ -255,6 +254,86 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
     });
   };
 
+  const getTime = (q: Question) => {
+    const d = q.createdAt;
+    return d ? new Date(d).getTime() : 0;
+  };
+
+  const [activeLangTab, setActiveLangTab] = useState<string>("en");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
+  const { enQuestions, guQuestions, hiQuestions, guMap, hiMap, displayedQuestions } = useMemo(() => {
+    const en = quiz.questions
+      .filter(
+        (q) =>
+          q.language === "en" ||
+          (!q.language && !/[\u0A80-\u0AFF]/.test(q.text) && !/[\u0900-\u097F]/.test(q.text))
+      )
+      .sort((a, b) => getTime(a) - getTime(b));
+
+    const rawGuList = quiz.questions.filter(
+      (q) => q.language === "gu" || (!q.language && /[\u0A80-\u0AFF]/.test(q.text))
+    );
+    const rawHiList = quiz.questions.filter(
+      (q) => q.language === "hi" || (!q.language && /[\u0900-\u097F]/.test(q.text))
+    );
+
+    const guMap = new Map<string, Question>();
+    const guUnmapped: Question[] = [];
+    for (const q of rawGuList) {
+      if (q.sourceQuestionId) {
+        guMap.set(q.sourceQuestionId, q);
+      } else {
+        guUnmapped.push(q);
+      }
+    }
+
+    const gu: Question[] =
+      en.length > 0 && guMap.size > 0
+        ? en.map((enQ) => guMap.get(enQ.id)).filter((q): q is Question => !!q).concat(guUnmapped)
+        : rawGuList.sort((a, b) => getTime(a) - getTime(b));
+
+    const hiMap = new Map<string, Question>();
+    const hiUnmapped: Question[] = [];
+    for (const q of rawHiList) {
+      if (q.sourceQuestionId) {
+        hiMap.set(q.sourceQuestionId, q);
+      } else {
+        hiUnmapped.push(q);
+      }
+    }
+
+    const hi: Question[] =
+      en.length > 0 && hiMap.size > 0
+        ? en.map((enQ) => hiMap.get(enQ.id)).filter((q): q is Question => !!q).concat(hiUnmapped)
+        : rawHiList.sort((a, b) => getTime(a) - getTime(b));
+
+    const displayed =
+      activeLangTab === "gu"
+        ? gu
+        : activeLangTab === "hi"
+          ? hi
+          : en;
+
+    return {
+      enQuestions: en,
+      guQuestions: gu,
+      hiQuestions: hi,
+      guMap,
+      hiMap,
+      displayedQuestions: displayed,
+    };
+  }, [quiz.questions, activeLangTab]);
+
+  const paginatedQuestions = displayedQuestions.slice(
+    (currentPage - 1) * pageSize,
+    (currentPage - 1) * pageSize + pageSize
+  );
+
+  const currentLangLabel =
+    activeLangTab === "gu" ? "Gujarati" : activeLangTab === "hi" ? "Hindi" : "English";
+
   const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   const runDownloadPdf = async (mode: "current" | "en" | "gu" | "hi") => {
@@ -296,7 +375,7 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
           language: q.language || (mode === "current" ? activeLangTab : mode),
         })),
       });
-      toast.addToast({ type: "success", message: `Generated ${label} PDF Booklet successfully!` });
+      toast.addToast({ type: "success", message: `Opened print dialog for ${label} PDF booklet!` });
     } catch (err) {
       console.error("PDF generation failed:", err);
       toast.addToast({ type: "error", message: "Failed to generate PDF." });
@@ -338,7 +417,7 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
           };
         }),
       });
-      toast.addToast({ type: "success", message: `Generated Bilingual (English + ${targetLabel}) PDF!` });
+      toast.addToast({ type: "success", message: `Opened print dialog for Bilingual (English + ${targetLabel}) PDF!` });
     } catch (err) {
       console.error("Bilingual PDF generation failed:", err);
       toast.addToast({ type: "error", message: "Failed to generate Bilingual PDF." });
@@ -431,86 +510,6 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
     });
   };
 
-  const getTime = (q: Question) => {
-    const d = q.createdAt;
-    return d ? new Date(d).getTime() : 0;
-  };
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
-  const [activeLangTab, setActiveLangTab] = useState<string>("en");
-
-  const { enQuestions, guQuestions, hiQuestions, guMap, hiMap, displayedQuestions } = useMemo(() => {
-    const en = quiz.questions
-      .filter(
-        (q) =>
-          q.language === "en" ||
-          (!q.language && !/[\u0A80-\u0AFF]/.test(q.text) && !/[\u0900-\u097F]/.test(q.text))
-      )
-      .sort((a, b) => getTime(a) - getTime(b));
-
-    const rawGuList = quiz.questions.filter(
-      (q) => q.language === "gu" || (!q.language && /[\u0A80-\u0AFF]/.test(q.text))
-    );
-    const rawHiList = quiz.questions.filter(
-      (q) => q.language === "hi" || (!q.language && /[\u0900-\u097F]/.test(q.text))
-    );
-
-    // Build Gujarati track strictly paired by sourceQuestionId to match English sequence 1-to-1
-    const guMap = new Map<string, Question>();
-    const guUnmapped: Question[] = [];
-    for (const q of rawGuList) {
-      if (q.sourceQuestionId) {
-        guMap.set(q.sourceQuestionId, q);
-      } else {
-        guUnmapped.push(q);
-      }
-    }
-
-    const gu: Question[] =
-      en.length > 0 && guMap.size > 0
-        ? en.map((enQ) => guMap.get(enQ.id)).filter((q): q is Question => !!q).concat(guUnmapped)
-        : rawGuList.sort((a, b) => getTime(a) - getTime(b));
-
-    // Build Hindi track strictly paired by sourceQuestionId to match English sequence 1-to-1
-    const hiMap = new Map<string, Question>();
-    const hiUnmapped: Question[] = [];
-    for (const q of rawHiList) {
-      if (q.sourceQuestionId) {
-        hiMap.set(q.sourceQuestionId, q);
-      } else {
-        hiUnmapped.push(q);
-      }
-    }
-
-    const hi: Question[] =
-      en.length > 0 && hiMap.size > 0
-        ? en.map((enQ) => hiMap.get(enQ.id)).filter((q): q is Question => !!q).concat(hiUnmapped)
-        : rawHiList.sort((a, b) => getTime(a) - getTime(b));
-
-    const displayed =
-      activeLangTab === "gu"
-        ? gu
-        : activeLangTab === "hi"
-          ? hi
-          : en;
-
-    return {
-      enQuestions: en,
-      guQuestions: gu,
-      hiQuestions: hi,
-      guMap,
-      hiMap,
-      displayedQuestions: displayed,
-    };
-  }, [quiz.questions, activeLangTab]);
-
-  const startIndex = (currentPage - 1) * pageSize;
-  const paginatedQuestions = displayedQuestions.slice(startIndex, startIndex + pageSize);
-
-  const currentLangLabel =
-    activeLangTab === "gu" ? "Gujarati" : activeLangTab === "hi" ? "Hindi" : "English";
-
   const handleAiProofreadQuiz = () => {
     if (displayedQuestions.length === 0) {
       toast.addToast({ type: "warning", message: `This quiz has no ${currentLangLabel} questions to proofread.` });
@@ -538,9 +537,8 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
     });
   };
 
-  const proofreadBtnLabel = proofreadingAll
-    ? "Proofreading…"
-    : activeLangTab === "gu"
+  const proofreadBtnLabel =
+    activeLangTab === "gu"
       ? "AI Proofread (Gujarati)"
       : activeLangTab === "hi"
         ? "AI Proofread (Hindi)"
@@ -764,16 +762,11 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
             <Button
               variant="outline"
               size="sm"
-              disabled={proofreadingAll}
               className="h-8 px-3 font-semibold text-xs gap-1.5 shadow-2xs text-primary border-primary/30 hover:bg-primary/10 rounded-xl"
               onClick={handleAiProofreadQuiz}
               title={`Fix ${currentLangLabel} spelling, grammar, and typos`}
             >
-              {proofreadingAll ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <Wand2 className="h-3 w-3 text-primary" />
-              )}
+              <Wand2 className="h-3 w-3 text-primary" />
               <span>{proofreadBtnLabel}</span>
             </Button>
           )}

@@ -21,9 +21,17 @@ export function useBatchLiveSync({
 }: UseBatchLiveSyncOptions): UseBatchLiveSyncResult {
   const [activeBatchCount, setActiveBatchCount] = useState(0);
   const [isMonitoring, setIsMonitoring] = useState(false);
+  const isMountedRef = useRef(true);
   const wasActiveRef = useRef(false);
   const onRefreshRef = useRef(onRefresh);
   const onCompleteRef = useRef(onComplete);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     onRefreshRef.current = onRefresh;
@@ -39,9 +47,11 @@ export function useBatchLiveSync({
         ? `/api/admin/batches?topicId=${encodeURIComponent(topicId)}`
         : "/api/admin/batches";
       const res = await fetch(url);
-      if (!res.ok) return;
+      if (!res.ok || !isMountedRef.current) return;
 
       const data = await res.json();
+      if (!isMountedRef.current) return;
+
       const batchList: Array<{ status: string }> = Array.isArray(data)
         ? data
         : Array.isArray(data?.batches)
@@ -52,20 +62,26 @@ export function useBatchLiveSync({
         (b) => b.status === "PENDING" || b.status === "PROCESSING"
       );
       const count = active.length;
+
+      if (!isMountedRef.current) return;
       setActiveBatchCount(count);
 
       if (count > 0) {
         wasActiveRef.current = true;
         setIsMonitoring(true);
         // Progressively refresh underlying table
-        await onRefreshRef.current();
+        if (isMountedRef.current) {
+          await onRefreshRef.current();
+        }
       } else if (wasActiveRef.current) {
         // Batches were previously active and just finished
         wasActiveRef.current = false;
         setIsMonitoring(false);
-        await onRefreshRef.current();
-        soundEffects.playCorrectSound();
-        onCompleteRef.current?.();
+        if (isMountedRef.current) {
+          await onRefreshRef.current();
+          soundEffects.playCorrectSound();
+          onCompleteRef.current?.();
+        }
       } else {
         setIsMonitoring(false);
       }
@@ -76,21 +92,23 @@ export function useBatchLiveSync({
 
   const triggerSync = useCallback(() => {
     wasActiveRef.current = true;
-    setIsMonitoring(true);
-    checkBatches();
+    if (isMountedRef.current) {
+      setIsMonitoring(true);
+      checkBatches();
+    }
   }, [checkBatches]);
 
   useEffect(() => {
     // Initial check on mount to see if any background batches are already running
-    let mounted = true;
+    let active = true;
     const init = async () => {
-      if (mounted) {
+      if (active && isMountedRef.current) {
         await checkBatches();
       }
     };
     void init();
     return () => {
-      mounted = false;
+      active = false;
     };
   }, [checkBatches]);
 

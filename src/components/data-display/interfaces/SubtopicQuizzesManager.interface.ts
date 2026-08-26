@@ -7,6 +7,7 @@ export interface SubtopicQuizItem {
   title: string;
   difficulty: string;
   quizOrder: number;
+  createdAt?: string | Date;
   topics?: { id: string; title: string }[];
   _count: { questions: number; attempts: number };
 }

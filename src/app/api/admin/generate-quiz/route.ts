@@ -81,124 +81,149 @@ function sanitizePdfText(text: string): string {
   return cleanedLines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
+function toStandardDigits(str: string): string {
+  return str
+    .replace(/[૦-૯]/g, (d) => String(d.charCodeAt(0) - 2534))
+    .replace(/[०-९]/g, (d) => String(d.charCodeAt(0) - 2406));
+}
+
 /**
- * Extracts and separates individual question blocks from raw user text or PDF dumps.
- * Handles numbered (e.g. 1. ... 200.), multi-statement questions, and inline options without over-splitting.
+ * Extracts leading question number from a line if present, handling English, Gujarati, Hindi numerals.
  */
-function extractQuestionBlocks(rawText: string): string[] {
+function parseLeadingQuestionNumber(line: string): number | null {
+  const trimmed = line.trim();
+  if (/^(?:Statement|વિધાન|કથન)\s*[0-9I|:.\-]/iu.test(trimmed)) return null;
+  // Exclude hyphenated words like "2-element", "3-dimensional"
+  if (/^[૦-૯०-९0-9]{1,4}-[a-zA-Z]/i.test(trimmed)) return null;
+
+  // 1. Explicit keyword prefix: Q.1, Question 1, Que 1, Que-1, પ્રશ્ન ૧, પ્ર. ૧, प्रश्न 1, etc.
+  const kwMatch = trimmed.match(/^(?:Question|Q|Que|Ques|પ્રશ્ન|પ્ર\.|प्रश्न)\s*[.:\-#]?\s*([૦-૯०-९0-9]{1,4})/iu);
+  if (kwMatch) return parseInt(toStandardDigits(kwMatch[1]), 10);
+
+  // 2. Bracketed numbering like [1], [25], [200]
+  const bracketMatch = trimmed.match(/^\[([૦-૯०-९0-9]{1,4})\]/iu);
+  if (bracketMatch) return parseInt(toStandardDigits(bracketMatch[1]), 10);
+
+  // 3. Parenthesized question numbers above 4 like (5), (50), (200)
+  const parenMatch = trimmed.match(/^\(([5-9]|[1-9][0-9]{1,3})\)/iu);
+  if (parenMatch) return parseInt(toStandardDigits(parenMatch[1]), 10);
+
+  // 4. Standard numbering: 1., 2), 200., 150 -, 1:, 135)
+  const numMatch = trimmed.match(/^([૦-૯०-९0-9]{1,4})\s*(?:[.:)]|-\s+)\s*/iu);
+  if (numMatch) return parseInt(toStandardDigits(numMatch[1]), 10);
+
+  return null;
+}
+
+/**
+ * Recognizes robust question headers across English, Gujarati, and Hindi exam formats.
+ */
+function isQuestionHeader(line: string): boolean {
+  return parseLeadingQuestionNumber(line) !== null;
+}
+
+/**
+ * Checks if a line or substring has option indicators.
+ */
+function containsOptions(text: string): boolean {
+  return /(?:\([A-Da-d1-4અ-ડક-ઘ]\)|[A-Da-dઅ-ડક-ઘ][.):\-]|(?:^|\s)[1-4]\)\s+)/u.test(text);
+}
+
+function isOptionLine(line: string): boolean {
+  const trimmed = line.trim();
+  // Option styles: (A), A), A., (1), 1), (અ), અ., [A], [B]
+  return /^(?:\([A-Da-d1-4અ-ડક-ઘ]\)|[A-Da-dઅ-ડક-ઘ][.):\-]|\[[A-Da-dઅ-ડક-ઘ]\]|[1-4]\))\s+/u.test(trimmed);
+}
+
+/**
+ * Extracts individual question blocks from any text or PDF dump.
+ * Accurately handles all numbering conventions, sequence skips, and option layouts.
+ */
+export function extractQuestionBlocks(rawText: string): string[] {
   const text = stripNullBytes(rawText).replace(/\r\n/g, "\n").trim();
   if (!text) return [];
 
-  const optionPattern = /(?:^\s*(?:[A-Da-d][\.\)]|\([A-Da-d]\))\s+|(?:[A-Da-d][\.\)]|\([A-Da-d]\))\s+)/;
   const lines = text.split("\n");
-
-  // Strategy A: Check if the text contains numbered questions (e.g. 1. ... 200.)
-  let hasSequentialNumbering = false;
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (/^(?:(?:Question|Q|Que|Ques)\s*[\.\:\-\#]?\s*1\b|^1[\.\)\:\-\]]\s+)/i.test(trimmed)) {
-      hasSequentialNumbering = true;
-      break;
-    }
-  }
-
-  if (hasSequentialNumbering) {
-    const blocks: string[] = [];
-    let currentBlock: string[] = [];
-    let currentQNum = 0;
-    let started = false;
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const trimmed = line.trim();
-      if (!trimmed) continue;
-
-      const qMatch = trimmed.match(/^(?:(?:Question|Q|Que|Ques)\s*[\.\:\-\#]?\s*(\d{1,4})|^(\d{1,4})[\.\)\:\-\]])\s+/i);
-      if (qMatch) {
-        const numStr = qMatch[1] || qMatch[2];
-        const qNum = parseInt(numStr, 10);
-
-        if (!started) {
-          if (qNum === 1) {
-            started = true;
-            currentQNum = 1;
-            currentBlock = [line];
-            continue;
-          }
-        } else {
-          // Check if this is the next question in sequence (allowing small skips if OCR missed a number)
-          if (qNum > currentQNum && qNum <= currentQNum + 5) {
-            if (currentBlock.length > 0) {
-              const blockText = currentBlock.join("\n").trim();
-              if (optionPattern.test(blockText)) {
-                blocks.push(blockText);
-              }
-            }
-            currentQNum = qNum;
-            currentBlock = [line];
-            continue;
-          }
-        }
-      }
-
-      if (started) {
-        currentBlock.push(line);
-      }
-    }
-
-    if (currentBlock.length > 0) {
-      const blockText = currentBlock.join("\n").trim();
-      if (optionPattern.test(blockText)) {
-        blocks.push(blockText);
-      }
-    }
-
-    if (blocks.length > 0) {
-      return blocks;
-    }
-  }
-
-  // Strategy B: Paragraph or line-by-line state machine for unnumbered question banks
-  const paragraphs = text.split(/\n\s*\n+/).map((p) => p.trim()).filter(Boolean);
-  if (paragraphs.length >= 2 && paragraphs.every((p) => optionPattern.test(p))) {
-    return paragraphs;
-  }
-
-  const fallbackBlocks: string[] = [];
-  let curBlock: string[] = [];
-  let blockHasOptions = false;
+  const blocks: string[] = [];
+  let currentBlock: string[] = [];
+  let currentQuestionNum = 0;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const trimmed = line.trim();
     if (!trimmed) {
-      if (curBlock.length > 0) curBlock.push(line);
+      if (currentBlock.length > 0) currentBlock.push(line);
       continue;
     }
 
-    const isOptionLine = /^\s*(?:[A-Da-d][\.\)]|\([A-Da-d]\))\s+/.test(trimmed);
-    const startsWithQ = /^(?:Question|Q|Que|Ques)\s*[\.\:\-\#]?\s*\d+/i.test(trimmed) || /^\d+[\.\)\:\-\]]\s+/.test(trimmed);
+    const qNum = parseLeadingQuestionNumber(trimmed);
+    const isOpt = isOptionLine(trimmed);
+    const currentBlockText = currentBlock.join("\n");
+    const currentBlockHasOptions = containsOptions(currentBlockText);
 
-    if (startsWithQ && curBlock.length > 0 && blockHasOptions) {
-      const bText = curBlock.join("\n").trim();
-      if (bText && optionPattern.test(bText)) fallbackBlocks.push(bText);
-      curBlock = [line];
-      blockHasOptions = isOptionLine;
-    } else {
-      curBlock.push(line);
-      if (isOptionLine || optionPattern.test(line)) {
-        blockHasOptions = true;
+    let isQ = false;
+    if (qNum !== null && !isOpt) {
+      // If we have an active question (e.g. #83), and line is #1, #2, #3, #4 (or <= 10 when current > 10)
+      if (currentQuestionNum > 0 && qNum <= 10 && currentQuestionNum > 10) {
+        // It's a statement/premise within the current question!
+        isQ = false;
+      } else if (!currentBlockHasOptions && currentQuestionNum > 0 && qNum <= currentQuestionNum) {
+        // Block hasn't even reached its options yet, so a smaller/equal number is a premise line
+        isQ = false;
+      } else {
+        isQ = true;
       }
+    }
+
+    // If it's a question header and NOT an option line, and we already have accumulated content
+    if (isQ && currentBlock.length > 0) {
+      const blockText = currentBlock.join("\n").trim();
+      if (blockText.length > 0) {
+        blocks.push(blockText);
+        currentBlock = [line];
+        if (qNum !== null) currentQuestionNum = qNum;
+        continue;
+      }
+    }
+
+    if (currentBlock.length === 0 && qNum !== null) {
+      currentQuestionNum = qNum;
+    }
+
+    currentBlock.push(line);
+  }
+
+  if (currentBlock.length > 0) {
+    const blockText = currentBlock.join("\n").trim();
+    if (blockText.length > 0) {
+      blocks.push(blockText);
     }
   }
 
-  if (curBlock.length > 0) {
-    const bText = curBlock.join("\n").trim();
-    if (bText && optionPattern.test(bText)) fallbackBlocks.push(bText);
+  // Filter out non-question header blocks (like exam cover headers or title pages) if valid option-bearing questions exist
+  const questionBlocks = blocks.filter((b) => {
+    const trimmed = b.trim();
+    if (!containsOptions(trimmed)) return false;
+    const firstLine = trimmed.split("\n")[0].trim();
+    return parseLeadingQuestionNumber(firstLine) !== null;
+  });
+
+  if (questionBlocks.length >= 2) {
+    return questionBlocks;
   }
 
-  return fallbackBlocks.length > 0 ? fallbackBlocks : [text];
+  const optionBlocks = blocks.filter((b) => containsOptions(b));
+  if (optionBlocks.length >= 2) {
+    return optionBlocks;
+  }
+
+  // Fallback Strategy: Paragraph splitting for unnumbered question banks with blank line separation
+  const paragraphs = text.split(/\n\s*\n+/).map((p) => p.trim()).filter(Boolean);
+  if (paragraphs.length >= 2 && paragraphs.filter((p) => containsOptions(p)).length >= 2) {
+    return paragraphs.filter((p) => containsOptions(p));
+  }
+
+  return blocks.length > 0 ? blocks : [text];
 }
 
 function chunkText(text: string, maxLength: number): string[] {
@@ -222,6 +247,71 @@ function chunkText(text: string, maxLength: number): string[] {
   return chunks;
 }
 
+/**
+ * Safely decodes URI-encoded strings with unescape fallback.
+ */
+function safeDecode(encoded: string): string {
+  try {
+    return decodeURIComponent(encoded);
+  } catch {
+    try {
+      return decodeURI(encoded);
+    } catch {
+      return unescape(encoded);
+    }
+  }
+}
+
+interface PdfTextItem {
+  x: number;
+  y: number;
+  w: number;
+  text: string;
+}
+
+interface PdfPageData {
+  Texts?: Array<{
+    x: number;
+    y: number;
+    w: number;
+    R: Array<{ T: string }>;
+  }>;
+}
+
+/**
+ * Formats a list of positional PDF text items into line-broken text preserving original natural reading order.
+ */
+function formatPageItems(items: PdfTextItem[]): string {
+  if (items.length === 0) return "";
+  // Sort items primarily by Y ascending (top to bottom), then by X ascending (left to right)
+  items.sort((a, b) => (Math.abs(a.y - b.y) < 0.4 ? a.x - b.x : a.y - b.y));
+
+  const lines: string[] = [];
+  let curLine: PdfTextItem[] = [];
+  let curY = -1;
+
+  for (const item of items) {
+    if (curY === -1 || Math.abs(item.y - curY) < 0.4) {
+      curLine.push(item);
+      curY = item.y;
+    } else {
+      curLine.sort((a, b) => a.x - b.x);
+      lines.push(curLine.map((it) => it.text).join(" "));
+      curLine = [item];
+      curY = item.y;
+    }
+  }
+  if (curLine.length > 0) {
+    curLine.sort((a, b) => a.x - b.x);
+    lines.push(curLine.map((it) => it.text).join(" "));
+  }
+
+  return lines.join("\n");
+}
+
+/**
+ * Parses PDF buffer with coordinate-aware natural reading order and Unicode decoding.
+ */
 async function parsePdfBuffer(buffer: Buffer): Promise<string> {
   const tempFile = path.join(os.tmpdir(), `pdf-${Date.now()}-${Math.random().toString(36).slice(2)}.pdf`);
   
@@ -237,8 +327,67 @@ async function parsePdfBuffer(buffer: Buffer): Promise<string> {
 
       pdfParser.on("pdfParser_dataReady", () => {
         try {
-          const text = pdfParser.getRawTextContent();
-          resolve(stripNullBytes(text || ""));
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const parsedData = (pdfParser as any).data as { Pages?: PdfPageData[] };
+          
+          if (parsedData?.Pages && Array.isArray(parsedData.Pages) && parsedData.Pages.length > 0) {
+            const pageTexts: string[] = [];
+
+            for (const page of parsedData.Pages) {
+              if (!page.Texts || page.Texts.length === 0) continue;
+
+              const items: PdfTextItem[] = page.Texts.map((t) => {
+                const rawStr = t.R.map((r) => r.T).join("");
+                return {
+                  x: t.x,
+                  y: t.y,
+                  w: t.w,
+                  text: safeDecode(rawStr),
+                };
+              }).filter((item) => item.text.trim().length > 0);
+
+              if (items.length === 0) continue;
+
+              // Check if page contains true 2-column layout (independent question headers on both left and right columns)
+              const xs = items.map((it) => it.x);
+              const minX = Math.min(...xs);
+              const maxX = Math.max(...xs);
+              const width = maxX - minX;
+              const midX = minX + width / 2;
+
+              const leftItems = items.filter((it) => it.x < midX);
+              const rightItems = items.filter((it) => it.x >= midX);
+
+              const hasLeftQHeaders = leftItems.some((it) => isQuestionHeader(it.text));
+              const hasRightQHeaders = rightItems.some((it) => isQuestionHeader(it.text));
+
+              const isTrueTwoColumn =
+                width > 16 &&
+                hasLeftQHeaders &&
+                hasRightQHeaders &&
+                leftItems.length >= 8 &&
+                rightItems.length >= 8;
+
+              if (isTrueTwoColumn) {
+                // True 2-column: process left column top-to-bottom, then right column top-to-bottom
+                const leftText = formatPageItems(leftItems);
+                const rightText = formatPageItems(rightItems);
+                pageTexts.push(`${leftText}\n\n${rightText}`);
+              } else {
+                // Standard page / multi-column options: process top-to-bottom
+                pageTexts.push(formatPageItems(items));
+              }
+            }
+
+            if (pageTexts.length > 0) {
+              resolve(stripNullBytes(pageTexts.join("\n\n")));
+              return;
+            }
+          }
+
+          // Fallback if structured page data is not available
+          const rawText = pdfParser.getRawTextContent();
+          resolve(stripNullBytes(rawText || ""));
         } catch (err) {
           reject(err);
         }
@@ -345,6 +494,7 @@ export async function ensureQuizBatchTable(): Promise<void> {
       CREATE TABLE IF NOT EXISTS "QuizBatch" (
         "id" TEXT NOT NULL PRIMARY KEY,
         "topicId" TEXT,
+        "targetQuizId" TEXT,
         "title" TEXT NOT NULL,
         "language" TEXT NOT NULL DEFAULT 'en',
         "difficulty" TEXT NOT NULL DEFAULT 'Medium',
@@ -361,6 +511,7 @@ export async function ensureQuizBatchTable(): Promise<void> {
       CREATE INDEX IF NOT EXISTS "QuizBatch_status_idx" ON "QuizBatch"("status");
       ALTER TABLE "QuizBatch" ADD COLUMN IF NOT EXISTS "padTo30" BOOLEAN NOT NULL DEFAULT false;
       ALTER TABLE "QuizBatch" ADD COLUMN IF NOT EXISTS "language" TEXT NOT NULL DEFAULT 'en';
+      ALTER TABLE "QuizBatch" ADD COLUMN IF NOT EXISTS "targetQuizId" TEXT;
     `);
   } catch (err) {
     console.warn("ensureQuizBatchTable warning:", err);
@@ -486,31 +637,36 @@ ${subBatch.join("\n\n")}`;
       questionTopicId = sentinel.id;
     }
 
-    const existingQuizzesCount = batch.topicId
-      ? await prisma.quiz.count({ where: { topics: { some: { id: batch.topicId } } } })
-      : 0;
-    const quizOrder = existingQuizzesCount + 1;
-
-    const quizTitle = stripNullBytes(batch.totalBatches > 1
-      ? `${batch.title} - Part ${batch.batchIndex}`
-      : batch.title);
-
     await prisma.$transaction(
       async (tx: Prisma.TransactionClient) => {
-        const quiz = await tx.quiz.create({
-          data: {
-            ...(batch.topicId ? { topics: { connect: { id: batch.topicId } } } : {}),
-            title: quizTitle,
-            language: batch.language || "en",
-            difficulty: stripNullBytes(batch.difficulty) || "Medium",
-            quizOrder,
-          },
-        });
+        let targetQuizId = batch.targetQuizId;
+
+        // If no targetQuizId specified, create a new Quiz (Part N if multiple batches)
+        if (!targetQuizId) {
+          const existingQuizzesCount = batch.topicId
+            ? await tx.quiz.count({ where: { topics: { some: { id: batch.topicId } } } })
+            : 0;
+          const quizOrder = existingQuizzesCount + 1;
+          const quizTitle = stripNullBytes(
+            batch.totalBatches > 1 ? `${batch.title} - Part ${batch.batchIndex}` : batch.title
+          );
+
+          const createdQuiz = await tx.quiz.create({
+            data: {
+              ...(batch.topicId ? { topics: { connect: { id: batch.topicId } } } : {}),
+              title: quizTitle,
+              language: batch.language || "en",
+              difficulty: stripNullBytes(batch.difficulty) || "Medium",
+              quizOrder,
+            },
+          });
+          targetQuizId = createdQuiz.id;
+        }
 
         await tx.question.createMany({
           data: parsedQuestions.map((q) => ({
             topicId: questionTopicId,
-            quizId: quiz.id,
+            quizId: targetQuizId,
             text: sanitizeQuestionText(q.text),
             options: (q.options || []).map((opt) => stripNullBytes(opt)),
             correctAnswer: stripNullBytes(q.correctAnswer),
@@ -560,6 +716,7 @@ export async function POST(req: Request) {
     const difficulty = stripNullBytes(formData.get("difficulty") as string || "Medium");
     const language = stripNullBytes(formData.get("language") as string || "en");
     const padTo30 = formData.get("padTo30") === "true";
+    const quizStructure = stripNullBytes((formData.get("quizStructure") as string) || "single");
 
     if (!mode || (!topicTitle && !existingTopicId && !targetQuizId) || !difficulty) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -596,7 +753,10 @@ export async function POST(req: Request) {
       });
       if (!topic) return NextResponse.json({ error: "Topic not found" }, { status: 404 });
 
-      topicTitle = topic.title;
+      // Preserve user-specified quiz title if provided, otherwise fallback to topic title
+      if (!topicTitle) {
+        topicTitle = topic.title;
+      }
       existingQuizzesCount = topic.quizzes.length;
 
       if (topic.questions.length > 0) {
@@ -668,11 +828,10 @@ Formatting rules:
       }
 
       const questionBlocks = extractQuestionBlocks(fullText);
-      const optionInlinePattern = /(?:[A-Da-d][\.\)]|\([A-Da-d]\))/;
-      const isQuestionBank = questionBlocks.length > 1 || (questionBlocks.length === 1 && optionInlinePattern.test(questionBlocks[0]));
+      const isQuestionBank = questionBlocks.length > 1 || (questionBlocks.length === 1 && containsOptions(questionBlocks[0]));
 
       if (isQuestionBank) {
-        // User pasted questions: group into 30-question bunches (each bunch = 1 Quiz)
+        // Group questions into 30-question processing chunks
         const bunches: string[][] = [];
         for (let i = 0; i < questionBlocks.length; i += 30) {
           bunches.push(questionBlocks.slice(i, i + 30));
@@ -683,12 +842,29 @@ Formatting rules:
         // Ensure table exists on database (safe auto-migration fallback)
         await ensureQuizBatchTable();
 
+        // If single quiz mode and not appending to existing quiz, create the master quiz up front
+        let masterQuizId = targetQuizId || null;
+        if (quizStructure === "single" && !masterQuizId) {
+          const quizOrder = (existingQuizzesCount || 0) + 1;
+          const createdMaster = await prisma.quiz.create({
+            data: {
+              ...(existingTopicId ? { topics: { connect: { id: existingTopicId } } } : {}),
+              title: stripNullBytes(topicTitle),
+              language,
+              difficulty: stripNullBytes(difficulty) || "Medium",
+              quizOrder,
+            },
+          });
+          masterQuizId = createdMaster.id;
+        }
+
         // 1. Create persistent QuizBatch records in DB for all batches immediately
         const batchRecords = await Promise.all(
           bunches.map((bunch, idx) =>
             prisma.quizBatch.create({
               data: {
                 topicId: existingTopicId || null,
+                targetQuizId: masterQuizId,
                 title: stripNullBytes(topicTitle),
                 language,
                 difficulty: stripNullBytes(difficulty) || "Medium",
@@ -722,6 +898,7 @@ Formatting rules:
           success: true,
           isBatched: true,
           topicId: topic?.id ?? "",
+          quizId: masterQuizId || undefined,
           batchesCreated: totalBatches,
           totalQuestions: questionBlocks.length,
           message: `Created ${totalBatches} batch(es) with ${questionBlocks.length} questions in queue. Processing in background.`,
@@ -733,7 +910,7 @@ Formatting rules:
         for (let i = 0; i < textChunks.length; i++) {
           const chunk = textChunks[i];
           const prompt = `You are an expert quiz generator.
-Generate up to 10 comprehensive multiple-choice questions based on the key concepts in the text below.
+Generate multiple-choice questions based on all concepts in the text below. Extract all questions provided in the text or generate up to 10 comprehensive questions covering the content.
 
 Difficulty level: ${difficulty}.
 Each question must have exactly 4 options.

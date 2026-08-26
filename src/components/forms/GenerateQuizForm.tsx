@@ -68,6 +68,7 @@ export function GenerateQuizForm({
   const [difficulty, setDifficulty] = useState("Medium");
   const [language, setLanguage] = useState("en");
   const [padTo30, setPadTo30] = useState(false);
+  const [quizStructure, setQuizStructure] = useState<"single" | "split">("single");
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
@@ -128,6 +129,7 @@ export function GenerateQuizForm({
         topicText: mode === "text" ? topicText : undefined,
         file: mode === "pdf" ? file : undefined,
         padTo30,
+        quizStructure,
       };
 
       const data = await QuizService.generateQuiz(payload as unknown as Record<string, unknown>);
@@ -362,6 +364,48 @@ export function GenerateQuizForm({
             {file && (
               <span className="text-[11px] sm:text-xs text-success font-medium">PDF ready to process</span>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Quiz Structure: Single Master Quiz vs Split Parts */}
+      {(mode === "text" || mode === "pdf") && !targetQuizId && (
+        <div className="flex flex-col gap-2 rounded-xl border border-border/70 bg-secondary/10 p-3">
+          <label className="text-xs font-semibold text-foreground/90 flex items-center gap-1.5">
+            <Layers className="h-3.5 w-3.5 text-primary" />
+            Quiz Organization
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setQuizStructure("single")}
+              className={cn(
+                "flex flex-col items-start gap-0.5 rounded-lg border p-2.5 text-left transition-all cursor-pointer",
+                quizStructure === "single"
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border bg-surface text-muted-foreground hover:bg-surface-hover"
+              )}
+            >
+              <span className="text-xs font-semibold text-foreground">Single Master Quiz</span>
+              <span className="text-[10px] text-muted-foreground leading-tight">
+                All questions in 1 complete exam quiz (recommended)
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setQuizStructure("split")}
+              className={cn(
+                "flex flex-col items-start gap-0.5 rounded-lg border p-2.5 text-left transition-all cursor-pointer",
+                quizStructure === "split"
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border bg-surface text-muted-foreground hover:bg-surface-hover"
+              )}
+            >
+              <span className="text-xs font-semibold text-foreground">Split into Parts</span>
+              <span className="text-[10px] text-muted-foreground leading-tight">
+                Split into 30-question practice batches (Part 1, Part 2...)
+              </span>
+            </button>
           </div>
         </div>
       )}

@@ -18,6 +18,8 @@ import { EditQuizBody, QuizDrawerBody } from "@/components/data-display/QuizMana
 import { QuestionEditorBody } from "@/components/data-display/QuestionEditorBody";
 import { DeleteConfirmDialogBody } from "@/components/feedback/DeleteConfirmDialogBody";
 import { MergeQuizzesDialogBody } from "@/components/data-display/MergeQuizzesDialogBody";
+import { generateQuizPDF } from "@/lib/pdf-generator";
+import { api } from "@/lib/api";
 import { DuplicateQuestionsDialogBody } from "@/components/data-display/DuplicateQuestionsDialogBody";
 import { TranslateQuizDialogBody } from "@/components/data-display/TranslateQuizDialogBody";
 import { downloadCSV } from "@/lib/csv-export";
@@ -606,22 +608,21 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
     });
   };
 
-  // Download PDF Booklet
+  // Download PDF Booklet (Native Print Engine)
   const handleDownloadPdf = async (quiz: Quiz) => {
     try {
-      toast.addToast({ type: "info", message: `Generating PDF booklet for "${quiz.title}"...` });
-      const res = await fetch(`/api/admin/quizzes/${quiz.id}/pdf?mode=${quiz.language || "en"}`);
-      if (!res.ok) throw new Error("Failed to generate PDF on server");
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `quiz-${quiz.title.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase()}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      toast.addToast({ type: "success", message: `Downloaded "${quiz.title}" PDF successfully!` });
+      toast.addToast({ type: "info", message: `Preparing print booklet for "${quiz.title}"...` });
+      const res = await api.get(`/api/admin/quizzes/${quiz.id}`);
+      const fullQuiz = res.data;
+      if (!fullQuiz || !fullQuiz.questions || fullQuiz.questions.length === 0) {
+        toast.addToast({ type: "warning", message: "No questions in this quiz to download." });
+        return;
+      }
+      await generateQuizPDF({
+        title: fullQuiz.title,
+        language: fullQuiz.language || "en",
+        questions: fullQuiz.questions,
+      });
     } catch (err) {
       console.error(err);
       toast.addToast({ type: "error", message: "Failed to generate PDF booklet." });

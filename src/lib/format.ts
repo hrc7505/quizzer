@@ -176,10 +176,17 @@ export function sanitizeImageUrl(url?: string | null): string {
  */
 export function normalizeMathDelimiters(text: string): string {
   if (!text) return "";
-  return text
+  let out = text
     .replace(LATEX_FRAC_REGEX, "\\dfrac")
     .replace(LATEX_BRACKET_BLOCK_REGEX, "\n$$\n$1\n$$\n")
     .replace(LATEX_PAREN_INLINE_REGEX, "$$$1$$");
+
+  // Normalize Unicode dashes (en-dash, em-dash, minus sign) to standard ASCII minus (-) inside math mode
+  out = out.replace(/(\$\$[\s\S]*?\$\$|\$[^\$\n]+\$)/g, (math) => {
+    return math.replace(/[\u2013\u2014\u2212–—−]/g, "-");
+  });
+
+  return out;
 }
 
 /**

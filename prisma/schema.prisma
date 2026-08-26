@@ -160,6 +160,7 @@ model UserAnswer {
 model QuizBatch {
   id           String    @id @default(uuid())
   topicId      String?
+  targetQuizId String?
   title        String
   language     String    @default("en")
   difficulty   String    @default("Medium")

@@ -272,7 +272,7 @@ function FormattedRichText({ content, className }: { content: string; className?
     >
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
-        rehypePlugins={[rehypeKatex]}
+        rehypePlugins={[[rehypeKatex, { strict: "ignore", throwOnError: false }]]}
         components={{
           p: ({ children }) => <p className="my-1 leading-relaxed break-words">{children}</p>,
           ul: ({ children }) => <ul className="my-1.5 ml-5 list-disc space-y-1 text-foreground/90">{children}</ul>,

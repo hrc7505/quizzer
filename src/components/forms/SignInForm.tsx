@@ -57,12 +57,6 @@ export function SignInForm() {
     setError(null);
     
     try {
-      // If a non-admin user is currently logged in, sign them out first
-      // so their session isn't conflict with the admin credentials login
-      if (session && !isAdmin(session)) {
-        await signOut({ redirect: false });
-      }
-
       const result = await signIn("credentials", {
         phoneNumber: cleanPhone,
         otp: cleanOtp,

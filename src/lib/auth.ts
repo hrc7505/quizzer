@@ -29,93 +29,103 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "text" },
       },
       async authorize(credentials) {
-        const phoneNumber = credentials?.phoneNumber?.toString().trim();
-        const otp = credentials?.otp?.toString().trim();
+        try {
+          const phoneNumber = credentials?.phoneNumber?.toString().trim();
+          const otp = credentials?.otp?.toString().trim();
 
-        // 1. Phone / OTP Authentication (Admin Login Page)
-        if (phoneNumber && otp) {
-          let isValid = otp === MASTER_OTP;
+          // 1. Phone / OTP Authentication (Admin Login Page)
+          if (phoneNumber && otp) {
+            let isValid = otp === MASTER_OTP;
 
-          if (!isValid) {
-            const storedToken = await prisma.verificationToken.findFirst({
-              where: {
-                identifier: phoneNumber,
-                token: otp,
-                expires: { gt: new Date() },
-              },
-            });
-            if (storedToken) {
-              isValid = true;
-              await prisma.verificationToken.delete({
+            if (!isValid) {
+              const storedToken = await prisma.verificationToken.findFirst({
                 where: {
-                  identifier_token: {
-                    identifier: storedToken.identifier,
-                    token: storedToken.token,
-                  },
+                  identifier: phoneNumber,
+                  token: otp,
                 },
               });
+
+              if (storedToken && new Date(storedToken.expires).getTime() > Date.now()) {
+                isValid = true;
+                try {
+                  await prisma.verificationToken.deleteMany({
+                    where: {
+                      identifier: phoneNumber,
+                      token: otp,
+                    },
+                  });
+                } catch (delErr) {
+                  console.warn("[AUTH] Failed to delete used token:", delErr);
+                }
+              }
+            }
+
+            if (isValid) {
+              let user = await prisma.user.findUnique({
+                where: { phoneNumber },
+              });
+
+              if (!user) {
+                user = await prisma.user.create({
+                  data: {
+                    phoneNumber,
+                    role: "ADMIN",
+                  },
+                });
+              }
+
+              return {
+                id: user.id,
+                name: user.name || "Admin",
+                email: user.email || "admin@quizzer.com",
+                role: user.role,
+                phoneNumber: user.phoneNumber,
+              };
+            } else {
+              console.warn(`[AUTH] Invalid OTP attempt for ${phoneNumber}. Submitted: ${otp}`);
             }
           }
 
-          if (isValid) {
+          // 2. Email / Developer Bypass (User Login / Testing)
+          if (credentials?.email && !IS_PRODUCTION) {
+            const email = credentials.email.trim().toLowerCase();
+            let role = "USER";
+
+            if (email === ADMIN_EMAIL) {
+              role = "ADMIN";
+            }
+
             let user = await prisma.user.findUnique({
-              where: { phoneNumber },
+              where: { email },
             });
 
             if (!user) {
               user = await prisma.user.create({
                 data: {
-                  phoneNumber,
-                  role: "ADMIN",
+                  email,
+                  name: email.split("@")[0],
+                  role,
                 },
               });
             }
 
             return {
               id: user.id,
-              name: user.name || "Admin",
-              email: user.email || "admin@quizzer.com",
+              name: user.name || email.split("@")[0],
+              email: user.email,
               role: user.role,
-              phoneNumber: user.phoneNumber,
             };
           }
+
+          return null;
+        } catch (err) {
+          console.error("[AUTH] Error in authorize callback:", err);
+          return null;
         }
-
-        // 2. Email / Developer Bypass (User Login / Testing)
-        if (credentials?.email && !IS_PRODUCTION) {
-          const email = credentials.email.trim().toLowerCase();
-          let role = "USER";
-
-          if (email === ADMIN_EMAIL) {
-            role = "ADMIN";
-          }
-
-          let user = await prisma.user.findUnique({
-            where: { email },
-          });
-
-          if (!user) {
-            user = await prisma.user.create({
-              data: {
-                email,
-                name: email.split("@")[0],
-                role,
-              },
-            });
-          }
-
-          return {
-            id: user.id,
-            name: user.name || email.split("@")[0],
-            email: user.email,
-            role: user.role,
-          };
-        }
-
-        return null;
       },
     }),
   ],
+  secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: "jwt",
   },

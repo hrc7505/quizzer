@@ -50,94 +50,155 @@ function extractJson(text: string): unknown {
   return JSON.parse(trimmed);
 }
 
+function sanitizePdfText(text: string): string {
+  const lines = stripNullBytes(text).split("\n");
+  const cleanedLines: string[] = [];
+
+  const headerFooterPatterns = [
+    /^\s*\d+\s*\|\s*\[.*?\]\s*\[Contd\.?/i,
+    /^\s*\[.*?\]\s*P\.T\.O\.?\]?\s*\|\s*\d+/i,
+    /^\s*\[Contd\.?/i,
+    /^\s*P\.T\.O\.?/i,
+    /^\s*Page\s+\d+\s+(?:of|\/)\s+\d+/i,
+    /^\s*This Question Booklet Contains \d+ Printed Pages/i,
+    /^\s*Question Booklet Series/i,
+    /^\s*Total\s+(?:Ques|Questions|Marks)\s*:\s*\d+/i,
+    /^\s*Time\s*:\s*\d+\s*Minutes/i,
+    /^\s*કુલ\s+પ્રશ્નો\s*:\s*\d+/i,
+    /^\s*કુલ\s+ગુણ\s*:\s*\d+/i,
+    /^\s*સમય\s*:\s*\d+\s*મિનિટ/i,
+  ];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    if (headerFooterPatterns.some((p) => p.test(trimmed))) continue;
+    // Standalone booklet series letters on isolated lines like "M", "BNW"
+    if (/^(?:[A-D|M|N|W|X|Y|Z]|BNW)$/.test(trimmed)) continue;
+    cleanedLines.push(sanitizeImageText(line));
+  }
+
+  return cleanedLines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
 /**
  * Extracts and separates individual question blocks from raw user text or PDF dumps.
- * Handles numbered (e.g. "1.", "45)", "Q1:"), unnumbered questions, markdown, and inline options.
+ * Handles numbered (e.g. 1. ... 200.), multi-statement questions, and inline options without over-splitting.
  */
 function extractQuestionBlocks(rawText: string): string[] {
   const text = stripNullBytes(rawText).replace(/\r\n/g, "\n").trim();
   if (!text) return [];
 
-  // 1. If text is formatted with double newlines separating question blocks
-  const paragraphs = text.split(/\n\s*\n+/).map((p) => p.trim()).filter(Boolean);
-  const optionInlinePattern = /(?:[A-Da-d][\.\)]|\([A-Da-d]\))/;
+  const optionPattern = /(?:^\s*(?:[A-Da-d][\.\)]|\([A-Da-d]\))\s+|(?:[A-Da-d][\.\)]|\([A-Da-d]\))\s+)/;
+  const lines = text.split("\n");
 
-  if (paragraphs.length >= 2 && paragraphs.every((p) => optionInlinePattern.test(p))) {
+  // Strategy A: Check if the text contains numbered questions (e.g. 1. ... 200.)
+  let hasSequentialNumbering = false;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (/^(?:(?:Question|Q|Que|Ques)\s*[\.\:\-\#]?\s*1\b|^1[\.\)\:\-\]]\s+)/i.test(trimmed)) {
+      hasSequentialNumbering = true;
+      break;
+    }
+  }
+
+  if (hasSequentialNumbering) {
+    const blocks: string[] = [];
+    let currentBlock: string[] = [];
+    let currentQNum = 0;
+    let started = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+
+      const qMatch = trimmed.match(/^(?:(?:Question|Q|Que|Ques)\s*[\.\:\-\#]?\s*(\d{1,4})|^(\d{1,4})[\.\)\:\-\]])\s+/i);
+      if (qMatch) {
+        const numStr = qMatch[1] || qMatch[2];
+        const qNum = parseInt(numStr, 10);
+
+        if (!started) {
+          if (qNum === 1) {
+            started = true;
+            currentQNum = 1;
+            currentBlock = [line];
+            continue;
+          }
+        } else {
+          // Check if this is the next question in sequence (allowing small skips if OCR missed a number)
+          if (qNum > currentQNum && qNum <= currentQNum + 5) {
+            if (currentBlock.length > 0) {
+              const blockText = currentBlock.join("\n").trim();
+              if (optionPattern.test(blockText)) {
+                blocks.push(blockText);
+              }
+            }
+            currentQNum = qNum;
+            currentBlock = [line];
+            continue;
+          }
+        }
+      }
+
+      if (started) {
+        currentBlock.push(line);
+      }
+    }
+
+    if (currentBlock.length > 0) {
+      const blockText = currentBlock.join("\n").trim();
+      if (optionPattern.test(blockText)) {
+        blocks.push(blockText);
+      }
+    }
+
+    if (blocks.length > 0) {
+      return blocks;
+    }
+  }
+
+  // Strategy B: Paragraph or line-by-line state machine for unnumbered question banks
+  const paragraphs = text.split(/\n\s*\n+/).map((p) => p.trim()).filter(Boolean);
+  if (paragraphs.length >= 2 && paragraphs.every((p) => optionPattern.test(p))) {
     return paragraphs;
   }
 
-  // 2. Line-by-line state machine for single-spaced, unnumbered, or numbered questions
-  const lines = text.split("\n");
-  const blocks: string[] = [];
-  let currentBlock: string[] = [];
-
-  const optionPattern = /^\s*(?:[A-Da-d][\.\)]|\([A-Da-d]\))\s+/;
-  const answerPattern = /^\s*(?:Ans(?:wer)?|Correct(?:\s*Answer)?|Key|Explanation)[\s\:\-\.]/i;
-
-  let hasSeenOptions = false;
-
-  function isLineQuestionStart(line: string, isBlockEmpty: boolean): boolean {
-    const trimmed = line.trim();
-    if (!trimmed) return false;
-
-    // Explicit prefix (Q1, Question 1, Que 1, etc.)
-    if (/^(?:[\*\_\#\s]*(?:Question|Q|Que|Ques)\s*[\.\:\-\#]?\s*\d+)/i.test(trimmed)) {
-      return true;
-    }
-
-    // Numbered prefix: e.g. "1. ", "2. ", "45. ", "[3] ", "1) "
-    const cleaned = trimmed.replace(/^[\*\_\#\s]+/, "");
-    if (/^\[?\d+[\.\)\:\-\]]\s+/.test(cleaned)) {
-      if (hasSeenOptions && optionPattern.test(cleaned)) {
-        return false;
-      }
-      // If we already have content in currentBlock and have NOT seen options yet,
-      // this numbered line is a sub-statement (e.g. 1., 2., 3. inside the question)
-      if (!isBlockEmpty && !hasSeenOptions) {
-        return false;
-      }
-      return true;
-    }
-
-    return false;
-  }
+  const fallbackBlocks: string[] = [];
+  let curBlock: string[] = [];
+  let blockHasOptions = false;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const trimmed = line.trim();
-
     if (!trimmed) {
-      if (currentBlock.length > 0) currentBlock.push(line);
+      if (curBlock.length > 0) curBlock.push(line);
       continue;
     }
 
-    const isOption = optionPattern.test(trimmed);
-    const isAnswer = answerPattern.test(trimmed);
-    const isQuestion = isLineQuestionStart(trimmed, currentBlock.length === 0);
+    const isOptionLine = /^\s*(?:[A-Da-d][\.\)]|\([A-Da-d]\))\s+/.test(trimmed);
+    const startsWithQ = /^(?:Question|Q|Que|Ques)\s*[\.\:\-\#]?\s*\d+/i.test(trimmed) || /^\d+[\.\)\:\-\]]\s+/.test(trimmed);
 
-    // An unnumbered question starts when the previous block already had options/answers,
-    // and the current line is a new question statement (i.e. not an option and not an answer)
-    const isNewUnnumbered = hasSeenOptions && !isOption && !isAnswer;
-
-    if ((isQuestion || isNewUnnumbered) && currentBlock.length > 0 && (hasSeenOptions || isNewUnnumbered)) {
-      const blockText = currentBlock.join("\n").trim();
-      if (blockText) blocks.push(blockText);
-      currentBlock = [line];
-      hasSeenOptions = isOption;
+    if (startsWithQ && curBlock.length > 0 && blockHasOptions) {
+      const bText = curBlock.join("\n").trim();
+      if (bText && optionPattern.test(bText)) fallbackBlocks.push(bText);
+      curBlock = [line];
+      blockHasOptions = isOptionLine;
     } else {
-      currentBlock.push(line);
-      if (isOption || optionInlinePattern.test(line)) {
-        hasSeenOptions = true;
+      curBlock.push(line);
+      if (isOptionLine || optionPattern.test(line)) {
+        blockHasOptions = true;
       }
     }
   }
 
-  if (currentBlock.length > 0) {
-    const remaining = currentBlock.join("\n").trim();
-    if (remaining) blocks.push(remaining);
+  if (curBlock.length > 0) {
+    const bText = curBlock.join("\n").trim();
+    if (bText && optionPattern.test(bText)) fallbackBlocks.push(bText);
   }
 
-  return blocks.length > 0 ? blocks : [text];
+  return fallbackBlocks.length > 0 ? fallbackBlocks : [text];
 }
 
 function chunkText(text: string, maxLength: number): string[] {
@@ -159,16 +220,6 @@ function chunkText(text: string, maxLength: number): string[] {
   }
 
   return chunks;
-}
-
-function sanitizePdfText(text: string): string {
-  return stripNullBytes(text)
-    .split("\n")
-    .map(line => sanitizeImageText(line))
-    .filter(line => line.trim() !== "")
-    .join("\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
 }
 
 async function parsePdfBuffer(buffer: Buffer): Promise<string> {

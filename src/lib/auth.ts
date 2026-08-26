@@ -29,15 +29,18 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "text" },
       },
       async authorize(credentials) {
+        const phoneNumber = credentials?.phoneNumber?.toString().trim();
+        const otp = credentials?.otp?.toString().trim();
+
         // 1. Phone / OTP Authentication (Admin Login Page)
-        if (credentials?.phoneNumber && credentials?.otp) {
-          let isValid = credentials.otp === MASTER_OTP;
+        if (phoneNumber && otp) {
+          let isValid = otp === MASTER_OTP;
 
           if (!isValid) {
             const storedToken = await prisma.verificationToken.findFirst({
               where: {
-                identifier: credentials.phoneNumber,
-                token: credentials.otp,
+                identifier: phoneNumber,
+                token: otp,
                 expires: { gt: new Date() },
               },
             });
@@ -56,13 +59,13 @@ export const authOptions: NextAuthOptions = {
 
           if (isValid) {
             let user = await prisma.user.findUnique({
-              where: { phoneNumber: credentials.phoneNumber },
+              where: { phoneNumber },
             });
 
             if (!user) {
               user = await prisma.user.create({
                 data: {
-                  phoneNumber: credentials.phoneNumber,
+                  phoneNumber,
                   role: "ADMIN",
                 },
               });

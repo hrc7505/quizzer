@@ -20,7 +20,8 @@ export function SignInForm() {
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phoneNumber) return;
+    const cleanPhone = phoneNumber.trim();
+    if (!cleanPhone) return;
     
     setLoading(true);
     setError(null);
@@ -29,7 +30,7 @@ export function SignInForm() {
       const res = await fetch("/api/auth/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phoneNumber }),
+        body: JSON.stringify({ phoneNumber: cleanPhone }),
       });
       
       const data = await res.json();
@@ -48,7 +49,9 @@ export function SignInForm() {
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!otp) return;
+    const cleanPhone = phoneNumber.trim();
+    const cleanOtp = otp.trim();
+    if (!cleanOtp || !cleanPhone) return;
     
     setLoading(true);
     setError(null);
@@ -61,8 +64,8 @@ export function SignInForm() {
       }
 
       const result = await signIn("credentials", {
-        phoneNumber,
-        otp,
+        phoneNumber: cleanPhone,
+        otp: cleanOtp,
         redirect: false,
       });
       

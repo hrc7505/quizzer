@@ -6,7 +6,8 @@ import crypto from "crypto";
 
 export async function POST(req: Request) {
   try {
-    const { phoneNumber } = await req.json();
+    const body = await req.json();
+    const phoneNumber = (body?.phoneNumber || "").toString().trim();
 
     if (!phoneNumber) {
       return NextResponse.json({ error: "Phone number is required" }, { status: 400 });

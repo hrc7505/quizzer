@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
+import crypto from "crypto";
 
 import { prisma } from "@/lib/prisma";
-
-import crypto from "crypto";
+import { sendOtpEmail } from "@/lib/services/email.service";
 
 export async function POST(req: Request) {
   try {
@@ -31,8 +31,17 @@ export async function POST(req: Request) {
       }
     });
 
+    // Dispatch OTP to Admin Email if configured
+    const adminEmail = process.env.ADMIN_ALERT_EMAIL || process.env.ADMIN_EMAIL || "hrc7505@gmail.com";
+    if (adminEmail && process.env.RESEND_API_KEY) {
+      await sendOtpEmail({
+        to: adminEmail,
+        otp,
+        phoneNumber,
+      }).catch((e) => console.error("[EMAIL] OTP email error:", e));
+    }
+
     if (process.env.NODE_ENV === "production") {
-      // TODO: Replace with real SMS provider (e.g., Twilio)
       console.log(`[PRODUCTION MOCK] OTP for ${phoneNumber} is ${otp}`);
     } else {
       console.log(`[LOCAL DEV] OTP for ${phoneNumber} is ${otp}`);

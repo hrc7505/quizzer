@@ -36,23 +36,41 @@ export async function generateMetadata({ params }: StandaloneQuizzesPageProps) {
   };
 }
 
+import { computeCanonicalQuestionCount } from "@/lib/quiz-routing";
+
 async function getPageData(topicId: string, subtopicId: string) {
   const session = await getServerSession(authOptions);
   const userId = session?.user ? (session.user as SessionUser).id : null;
 
-  const [topic, subtopic] = await Promise.all([
+  const [topic, rawSubtopic] = await Promise.all([
     prisma.topic.findUnique({ where: { id: topicId } }),
     prisma.topic.findUnique({
       where: { id: subtopicId },
       include: {
         quizzes: {
           where: { questions: { some: {} } },
-          include: { _count: { select: { questions: true } } },
-          orderBy: { createdAt: "desc" }
-        }
-      }
-    })
+          include: {
+            questions: {
+              select: { id: true, language: true, sourceQuestionId: true, text: true },
+            },
+          },
+          orderBy: { createdAt: "desc" },
+        },
+      },
+    }),
   ]);
+
+  const subtopic = rawSubtopic
+    ? {
+        ...rawSubtopic,
+        quizzes: rawSubtopic.quizzes.map((quiz) => ({
+          ...quiz,
+          _count: {
+            questions: computeCanonicalQuestionCount(quiz.questions),
+          },
+        })),
+      }
+    : null;
 
   const attemptsData: Record<string, { lastAttemptId: string | null; completedCount: number }> = {};
 

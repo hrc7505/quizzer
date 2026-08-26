@@ -24,11 +24,11 @@ import type {
 export function getScoreTierMeta(score: number): ScoreTierMeta {
   const rounded = Math.round(score);
 
-  if (rounded < 25) {
+  if (rounded < 40) {
     return {
       tier: "danger",
-      title: "Critical Zone — Review Required",
-      subtitle: "Review the concepts and questions below to build a stronger foundation.",
+      title: "Needs Review — Build Foundation",
+      subtitle: "Review the concepts and detailed explanations below to improve your score.",
       badgeVariant: "danger",
       gradientClass: "from-red-600/25 via-rose-500/10 to-transparent",
       glowClass: "shadow-red-500/25 border-red-500/50 text-red-500",
@@ -36,11 +36,11 @@ export function getScoreTierMeta(score: number): ScoreTierMeta {
     };
   }
 
-  if (rounded < 50) {
+  if (rounded < 60) {
     return {
       tier: "improvement",
-      title: "Building Momentum — Keep Going!",
-      subtitle: "You're getting there! A little more practice will push you over the top.",
+      title: "Keep Practicing — Room for Improvement",
+      subtitle: "You're making progress! Review the incorrect answers below to master these concepts.",
       badgeVariant: "warning",
       gradientClass: "from-amber-500/25 via-orange-500/10 to-transparent",
       glowClass: "shadow-amber-500/25 border-amber-500/50 text-amber-500",
@@ -48,11 +48,11 @@ export function getScoreTierMeta(score: number): ScoreTierMeta {
     };
   }
 
-  if (rounded < 75) {
+  if (rounded < 80) {
     return {
       tier: "moderate",
-      title: "Solid Effort — Good Performance!",
-      subtitle: "Well played! You have a solid grasp on most topics in this quiz.",
+      title: "Good Effort — Passing Score!",
+      subtitle: "Good work! You have a solid grasp of the core concepts in this quiz.",
       badgeVariant: "default",
       gradientClass: "from-blue-500/25 via-cyan-500/10 to-transparent",
       glowClass: "shadow-blue-500/25 border-blue-500/50 text-blue-500",
@@ -60,11 +60,11 @@ export function getScoreTierMeta(score: number): ScoreTierMeta {
     };
   }
 
-  if (rounded < 90) {
+  if (rounded < 95) {
     return {
       tier: "appreciation",
-      title: "Great Job! Outstanding Effort!",
-      subtitle: "Excellent result! You've mastered almost the entire subject matter.",
+      title: "Great Score — Well Done!",
+      subtitle: "Excellent result! You've mastered most topics in this quiz.",
       badgeVariant: "success",
       gradientClass: "from-emerald-500/25 via-teal-500/10 to-transparent",
       glowClass: "shadow-emerald-500/25 border-emerald-500/50 text-emerald-500",
@@ -76,7 +76,7 @@ export function getScoreTierMeta(score: number): ScoreTierMeta {
     return {
       tier: "outstanding",
       title: "Superb Mastery! Near Perfect!",
-      subtitle: "Incredible mastery! You demonstrated top-tier academic precision.",
+      subtitle: "Outstanding performance! You demonstrated top-tier academic precision.",
       badgeVariant: "success",
       gradientClass: "from-purple-500/30 via-amber-500/20 to-transparent",
       glowClass: "shadow-purple-500/30 border-purple-500/50 text-purple-400",
@@ -87,7 +87,7 @@ export function getScoreTierMeta(score: number): ScoreTierMeta {
   // 100% Perfect
   return {
     tier: "perfect",
-    title: "👑 PERFECT 100% SCORE! LEGENDARY!",
+    title: "👑 PERFECT 100% SCORE!",
     subtitle: "Flawless victory! You answered every single question with 100% absolute accuracy!",
     badgeVariant: "default",
     gradientClass: "from-amber-400/35 via-yellow-500/25 to-purple-600/20",
@@ -607,54 +607,35 @@ export function QuizScoreCelebration({
       {/* Decorative gradient overlay */}
       <div className={cn("absolute inset-0 bg-linear-to-r pointer-events-none opacity-60", meta.gradientClass)} />
 
-      <div className="relative z-10 flex flex-col sm:flex-row items-center sm:items-start justify-between gap-5 text-center sm:text-left">
-        <div className="flex items-center sm:items-start gap-4">
-          {/* Animated Tier Icon Badge */}
-          <div
-            className={cn(
-              "w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-md border animate-scale-in",
-              meta.tier === "danger" && "bg-red-500/20 text-red-500 border-red-500/30 animate-pulse",
-              meta.tier === "improvement" && "bg-amber-500/20 text-amber-500 border-amber-500/30 animate-bounce",
-              meta.tier === "moderate" && "bg-blue-500/20 text-blue-500 border-blue-500/30 animate-pulse",
-              meta.tier === "appreciation" && "bg-emerald-500/20 text-emerald-500 border-emerald-500/30 animate-bounce",
-              meta.tier === "outstanding" && "bg-purple-500/20 text-purple-400 border-purple-500/40 animate-bounce",
-              meta.tier === "perfect" && "bg-amber-400/25 text-amber-400 border-amber-400/50 shadow-amber-400/30 animate-bounce"
-            )}
-          >
-            {meta.tier === "danger" && <AlertTriangle className="h-7 w-7" />}
-            {meta.tier === "improvement" && <Flame className="h-7 w-7" />}
-            {meta.tier === "moderate" && <Target className="h-7 w-7" />}
-            {meta.tier === "appreciation" && <Sparkles className="h-7 w-7" />}
-            {meta.tier === "outstanding" && <Trophy className="h-7 w-7" />}
-            {meta.tier === "perfect" && <Crown className="h-8 w-8 text-amber-400 fill-amber-400 animate-pulse" />}
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
-              <h2 className="text-lg sm:text-xl font-black tracking-tight text-foreground m-0">
-                {meta.title}
-              </h2>
-              <Badge variant={meta.badgeVariant} className="font-bold text-xs uppercase px-2.5 py-0.5">
-                {Math.round(scorePercentage)}% Score
-              </Badge>
-            </div>
-            <p className="text-xs sm:text-sm text-muted-foreground max-w-lg leading-relaxed m-0">
-              {meta.subtitle}
-            </p>
-          </div>
+      <div className="relative z-10 flex items-center gap-4 sm:gap-5">
+        {/* Animated Tier Icon Badge */}
+        <div
+          className={cn(
+            "w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-md border animate-scale-in",
+            meta.tier === "danger" && "bg-red-500/20 text-red-500 border-red-500/30 animate-pulse",
+            meta.tier === "improvement" && "bg-amber-500/20 text-amber-500 border-amber-500/30 animate-bounce",
+            meta.tier === "moderate" && "bg-blue-500/20 text-blue-500 border-blue-500/30 animate-pulse",
+            meta.tier === "appreciation" && "bg-emerald-500/20 text-emerald-500 border-emerald-500/30 animate-bounce",
+            meta.tier === "outstanding" && "bg-purple-500/20 text-purple-400 border-purple-500/40 animate-bounce",
+            meta.tier === "perfect" && "bg-amber-400/25 text-amber-400 border-amber-400/50 shadow-amber-400/30 animate-bounce"
+          )}
+        >
+          {meta.tier === "danger" && <AlertTriangle className="h-6 w-6 sm:h-7 sm:w-7" />}
+          {meta.tier === "improvement" && <Flame className="h-6 w-6 sm:h-7 sm:w-7" />}
+          {meta.tier === "moderate" && <Target className="h-6 w-6 sm:h-7 sm:w-7" />}
+          {meta.tier === "appreciation" && <Sparkles className="h-6 w-6 sm:h-7 sm:w-7" />}
+          {meta.tier === "outstanding" && <Trophy className="h-6 w-6 sm:h-7 sm:w-7" />}
+          {meta.tier === "perfect" && <Crown className="h-7 w-7 sm:h-8 sm:w-8 text-amber-400 fill-amber-400 animate-pulse" />}
         </div>
 
-        {/* Quick stat pill */}
-        {typeof correctCount === "number" && typeof totalQuestions === "number" && (
-          <div className="shrink-0 bg-secondary/30 dark:bg-zinc-900/50 border border-border/60 rounded-xl px-4 py-2 flex flex-col items-center">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-              Score Ratio
-            </span>
-            <span className="text-sm font-black text-foreground">
-              {correctCount} / {totalQuestions} Correct
-            </span>
-          </div>
-        )}
+        <div className="flex flex-col gap-1 min-w-0 flex-1 text-left">
+          <h2 className="text-base sm:text-lg font-black tracking-tight text-foreground m-0">
+            {meta.title}
+          </h2>
+          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed m-0">
+            {meta.subtitle}
+          </p>
+        </div>
       </div>
     </div>
   );

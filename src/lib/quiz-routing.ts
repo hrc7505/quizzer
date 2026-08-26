@@ -81,3 +81,35 @@ export async function revalidateQuizAndRelated(quizId: string) {
   }
 }
 
+/**
+ * Accurately computes the distinct number of canonical questions in a quiz,
+ * preventing double-counting when translations (Gujarati/Hindi) are present.
+ */
+export function computeCanonicalQuestionCount(
+  questions?: { language?: string | null; text?: string | null; sourceQuestionId?: string | null }[] | null
+): number {
+  if (!questions || questions.length === 0) return 0;
+
+  // 1. If base questions are explicitly tracked with sourceQuestionId = null
+  const baseQuestions = questions.filter((q) => !q.sourceQuestionId);
+  if (baseQuestions.length > 0) {
+    return baseQuestions.length;
+  }
+
+  // 2. Fallback: group and count maximum questions per language track
+  const enCount = questions.filter(
+    (q) =>
+      q.language === "en" ||
+      (!q.language && !/[\u0A80-\u0AFF]/.test(q.text || "") && !/[\u0900-\u097F]/.test(q.text || ""))
+  ).length;
+  const guCount = questions.filter(
+    (q) => q.language === "gu" || (q.text && /[\u0A80-\u0AFF]/.test(q.text))
+  ).length;
+  const hiCount = questions.filter(
+    (q) => q.language === "hi" || (q.text && /[\u0900-\u097F]/.test(q.text))
+  ).length;
+
+  return Math.max(enCount, guCount, hiCount, 1);
+}
+
+

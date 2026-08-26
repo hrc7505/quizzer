@@ -393,13 +393,14 @@ export async function POST(
       return NextResponse.json({ error: "Quiz not found" }, { status: 404 });
     }
 
-    // Source questions (prefer English)
-    let sourceQuestions = quiz.questions.filter((q) => q.language !== targetLanguage);
+    // Source questions (select base canonical questions where sourceQuestionId is null)
+    let sourceQuestions = quiz.questions.filter((q) => !q.sourceQuestionId);
     if (sourceQuestions.length === 0) {
-      sourceQuestions = quiz.questions;
-    } else {
-      const enQuestions = sourceQuestions.filter((q) => q.language === "en");
-      if (enQuestions.length > 0) sourceQuestions = enQuestions;
+      sourceQuestions = quiz.questions.filter((q) => q.language !== targetLanguage);
+    }
+    if (sourceQuestions.length === 0) {
+      const enQuestions = quiz.questions.filter((q) => q.language === "en");
+      sourceQuestions = enQuestions.length > 0 ? enQuestions : quiz.questions;
     }
 
     if (sourceQuestions.length === 0) {

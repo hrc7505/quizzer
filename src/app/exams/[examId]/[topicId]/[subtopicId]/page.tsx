@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import { QuizzesPageClient } from "@/app/exams/[examId]/[topicId]/[subtopicId]/QuizzesPageClient";
 import { prisma } from "@/lib/prisma";
+import { computeCanonicalQuestionCount } from "@/lib/quiz-routing";
 
 export const revalidate = 60;
 
@@ -37,7 +38,7 @@ export async function generateMetadata({ params }: QuizzesPageProps) {
 }
 
 async function getPageData(examId: string, topicId: string, subtopicId: string) {
-  const [exam, topic, subtopic] = await Promise.all([
+  const [exam, topic, rawSubtopic] = await Promise.all([
     prisma.exam.findUnique({ where: { id: examId } }),
     prisma.topic.findUnique({ where: { id: topicId } }),
     prisma.topic.findUnique({
@@ -45,12 +46,29 @@ async function getPageData(examId: string, topicId: string, subtopicId: string) 
       include: {
         quizzes: {
           where: { questions: { some: {} } },
-          include: { _count: { select: { questions: true } } },
-          orderBy: { createdAt: "desc" }
-        }
-      }
-    })
+          include: {
+            questions: {
+              select: { id: true, language: true, sourceQuestionId: true, text: true },
+            },
+          },
+          orderBy: { createdAt: "desc" },
+        },
+      },
+    }),
   ]);
+
+  const subtopic = rawSubtopic
+    ? {
+        ...rawSubtopic,
+        quizzes: rawSubtopic.quizzes.map((quiz) => ({
+          ...quiz,
+          _count: {
+            questions: computeCanonicalQuestionCount(quiz.questions),
+          },
+        })),
+      }
+    : null;
+
   return { exam, topic, subtopic };
 }
 

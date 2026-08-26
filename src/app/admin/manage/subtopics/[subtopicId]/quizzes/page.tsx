@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth/next";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { SubtopicQuizzesManager } from "@/components/data-display/SubtopicQuizzesManager";
+import { computeCanonicalQuestionCount } from "@/lib/quiz-routing";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,7 @@ export default async function ManageSubtopicQuizzesPage({ params }: ManageSubtop
 
   const { subtopicId } = await params;
 
-  const [subtopic, availableQuizzes] = await Promise.all([
+  const [rawSubtopic, rawAvailableQuizzes] = await Promise.all([
     prisma.topic.findUnique({
       where: { id: subtopicId },
       include: {
@@ -40,7 +41,10 @@ export default async function ManageSubtopicQuizzesPage({ params }: ManageSubtop
         quizzes: {
           include: {
             topics: { select: { id: true, title: true } },
-            _count: { select: { questions: true, attempts: true } },
+            questions: {
+              select: { id: true, language: true, sourceQuestionId: true, text: true },
+            },
+            _count: { select: { attempts: true } },
           },
           orderBy: { createdAt: "desc" },
         },
@@ -52,15 +56,37 @@ export default async function ManageSubtopicQuizzesPage({ params }: ManageSubtop
       },
       include: {
         topics: { select: { id: true, title: true } },
-        _count: { select: { questions: true, attempts: true } },
+        questions: {
+          select: { id: true, language: true, sourceQuestionId: true, text: true },
+        },
+        _count: { select: { attempts: true } },
       },
       orderBy: { createdAt: "desc" },
     }),
   ]);
 
-  if (!subtopic) {
+  if (!rawSubtopic) {
     notFound();
   }
+
+  const subtopic = {
+    ...rawSubtopic,
+    quizzes: rawSubtopic.quizzes.map((quiz) => ({
+      ...quiz,
+      _count: {
+        questions: computeCanonicalQuestionCount(quiz.questions),
+        attempts: quiz._count?.attempts || 0,
+      },
+    })),
+  };
+
+  const availableQuizzes = rawAvailableQuizzes.map((quiz) => ({
+    ...quiz,
+    _count: {
+      questions: computeCanonicalQuestionCount(quiz.questions),
+      attempts: quiz._count?.attempts || 0,
+    },
+  }));
 
   return (
     <div>

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Link as LinkIcon, MoreHorizontal, Sparkles, Pencil, ListOrdered, Trash2, Layers, Languages } from "lucide-react";
+import { Link as LinkIcon, MoreHorizontal, Sparkles, Pencil, ListOrdered, Trash2, Layers, Languages, FileDown } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -36,6 +36,7 @@ export interface QuizRowProps {
   onAppendQuestions?: (quiz: Quiz) => void;
   onFindDuplicates?: (quiz: Quiz) => void;
   onTranslateQuiz?: (quiz: Quiz) => void;
+  onDownloadPdf?: (quiz: Quiz) => void;
 }
 
 export const QuizRow = React.memo(function QuizRow({
@@ -49,6 +50,7 @@ export const QuizRow = React.memo(function QuizRow({
   onAppendQuestions,
   onFindDuplicates,
   onTranslateQuiz,
+  onDownloadPdf,
 }: QuizRowProps) {
   const languages =
     quiz.availableLanguages && quiz.availableLanguages.length > 0
@@ -171,6 +173,12 @@ export const QuizRow = React.memo(function QuizRow({
                 <DropdownItem onClick={() => onAppendQuestions(quiz)} className="gap-2 text-primary font-medium">
                   <Sparkles className="h-3.5 w-3.5 text-primary" />
                   <span>AI Append Questions</span>
+                </DropdownItem>
+              )}
+              {onDownloadPdf && (
+                <DropdownItem onClick={() => onDownloadPdf(quiz)} className="gap-2 text-foreground font-medium">
+                  <FileDown className="h-3.5 w-3.5 text-primary" />
+                  <span>Download PDF Booklet</span>
                 </DropdownItem>
               )}
               <DropdownItem onClick={() => onDeleteQuiz(quiz)} className="gap-2 text-danger">

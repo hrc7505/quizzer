@@ -70,27 +70,6 @@ export function QuizResults({ attempt }: QuizResultsProps) {
   const panel = usePanel();
   const dialog = useDialog();
 
-  const handleDownloadPDF = useCallback(async () => {
-    setDownloading(true);
-    try {
-      await generateQuizPDF({
-        title: attempt.quiz.title,
-        questions: attempt.quiz.questions.map((q: QuestionData) => ({
-          text: q.text,
-          imageUrl: q.imageUrl,
-          options: q.options,
-          correctAnswer: q.correctAnswer,
-          description: q.description,
-        })),
-      });
-    } catch (e) {
-      console.error("PDF generation failed", e);
-      setError("Failed to generate PDF");
-    } finally {
-      setDownloading(false);
-    }
-  }, [attempt.quiz.title, attempt.quiz.questions]);
-
   const handleElaborate = useCallback(
     (questionId: string) => {
       setActiveElaborationId(questionId);
@@ -113,8 +92,24 @@ export function QuizResults({ attempt }: QuizResultsProps) {
         ),
       });
     },
-    [attempt.quiz, elaborations, panel, setElaborations]
+    [attempt.quiz, elaborations, panel]
   );
+
+  const handleDetailedReview = useCallback(() => {
+    dialog.open({
+      title: "Detailed Review",
+      className: "max-w-3xl",
+      body: (
+        <DetailedReviewBody
+          questions={attempt.quiz.questions}
+          answers={attempt.answers}
+          elaborations={elaborations}
+          activeElaborationId={activeElaborationId}
+          handleElaborate={handleElaborate}
+        />
+      ),
+    });
+  }, [attempt.quiz.questions, attempt.answers, elaborations, activeElaborationId, handleElaborate, dialog]);
 
   const handleShareUrl = useCallback(async () => {
     const origin = window.location.origin;
@@ -152,6 +147,16 @@ export function QuizResults({ attempt }: QuizResultsProps) {
         <h1 className="text-2xl font-bold tracking-tight text-foreground m-0">Quiz Results</h1>
 
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDetailedReview}
+            className="flex items-center gap-2"
+          >
+            <Eye className="h-4 w-4" />
+            <span>Detailed Review</span>
+          </Button>
+
           <ShareButton
             icon={<Share2 className="h-4 w-4" />}
             buttonAppearance="outline"
@@ -161,53 +166,6 @@ export function QuizResults({ attempt }: QuizResultsProps) {
             defaultUrl={`${typeof window !== "undefined" ? window.location.origin : ""}/quiz/${attempt.quizId}`}
             resolveUrl={handleShareUrl}
           />
-
-          <Dropdown>
-            <DropdownTrigger>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-9 w-9 rounded-lg border border-border/80 bg-surface"
-                aria-label="More actions"
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownTrigger>
-            <DropdownContent align="right" className="w-44">
-              <DropdownItem
-                onClick={() =>
-                  dialog.open({
-                    title: "Detailed Review",
-                    className: "max-w-3xl",
-                    body: (
-                      <DetailedReviewBody
-                        questions={attempt.quiz.questions}
-                        answers={attempt.answers}
-                        elaborations={elaborations}
-                        activeElaborationId={activeElaborationId}
-                        handleElaborate={handleElaborate}
-                      />
-                    ),
-                  })
-                }
-              >
-                <span className="flex items-center gap-2">
-                  <Eye className="h-3.5 w-3.5" />
-                  Detailed Review
-                </span>
-              </DropdownItem>
-              <DropdownItem onClick={handleDownloadPDF} disabled={downloading}>
-                <span className="flex items-center gap-2">
-                  {downloading ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <FileDown className="h-3.5 w-3.5" />
-                  )}
-                  <span>Download PDF</span>
-                </span>
-              </DropdownItem>
-            </DropdownContent>
-          </Dropdown>
         </div>
       </div>
 

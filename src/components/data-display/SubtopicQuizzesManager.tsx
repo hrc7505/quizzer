@@ -2,24 +2,10 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Plus,
-  ArrowLeft,
-  Search,
-  Link as LinkIcon,
-  MoreHorizontal,
-  Unlink,
-  Sparkles,
-  HelpCircle,
-  Layers,
-  Square,
-  CheckSquare,
-  Trash2,
-  GitMerge,
-  X,
-} from "lucide-react";
+import { Plus, ArrowLeft, Search, Link as LinkIcon, MoreHorizontal, Unlink, Sparkles, HelpCircle, Layers, Square, CheckSquare, Trash2, GitMerge, X, FileDown } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
+import { generateQuizPDF } from "@/lib/pdf-generator";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -502,6 +488,30 @@ export function SubtopicQuizzesManager({
     [dialog, subtopic.title, refreshQuizzes, toast]
   );
 
+  const handleDownloadPdf = useCallback(
+    async (quiz: { id: string; title: string; language?: string }) => {
+      try {
+        toast.addToast({ type: "info", message: `Generating PDF for "${quiz.title}"...` });
+        const res = await fetch(`/api/admin/quizzes/${quiz.id}/pdf?mode=${quiz.language || "en"}`);
+        if (!res.ok) throw new Error("Failed to generate PDF on server");
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `quiz-${quiz.title.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase()}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        toast.addToast({ type: "success", message: `Downloaded "${quiz.title}" PDF!` });
+      } catch (err) {
+        console.error(err);
+        toast.addToast({ type: "error", message: "Failed to download PDF booklet." });
+      }
+    },
+    [toast]
+  );
+
   return (
     <div className="flex flex-col gap-6 py-4 w-full relative">
       {error && (
@@ -747,6 +757,12 @@ export function SubtopicQuizzesManager({
                               </DropdownItem>
                               <DropdownItem onClick={() => handleOpenEditQuiz(quiz)}>
                                 Edit Settings
+                              </DropdownItem>
+                              <DropdownItem onClick={() => handleDownloadPdf(quiz)} className="text-foreground font-medium">
+                                <span className="flex items-center gap-2">
+                                  <FileDown className="h-3.5 w-3.5 text-primary" />
+                                  <span>Download PDF Booklet</span>
+                                </span>
                               </DropdownItem>
                               <DropdownItem onClick={() => handleUnlink(quiz)} className="text-warning">
                                 <span className="flex items-center gap-2">

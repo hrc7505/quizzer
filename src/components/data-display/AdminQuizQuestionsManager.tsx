@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, ArrowLeft, Sparkles, Layers, Wand2, Loader2, Languages } from "lucide-react";
+import { Plus, ArrowLeft, Sparkles, Layers, Wand2, Loader2, Languages, FileDown } from "lucide-react";
 
+import { generateQuizPDF } from "@/lib/pdf-generator";
 import { difficultyColor } from "@/lib/format";
 import { cn } from "@/utils/cn";
 import NoData from "@/components/feedback/NoData";
@@ -14,6 +15,7 @@ import { useDialog } from "@/components/providers/OverlayProvider";
 import { useToast } from "@/components/providers/ToastProvider";
 import { PageHeader } from "@/components/data-display/PageHeader";
 import { QuestionCard } from "@/components/data-display/QuestionCard";
+import { Pagination } from "@/components/data-display/Pagination";
 import { QuestionDialogBody, type QuestionForm } from "@/components/data-display/TaxonomyDialogBodies";
 import { GenerateQuizForm } from "@/components/forms/GenerateQuizForm";
 import { DuplicateQuestionsDialogBody } from "@/components/data-display/DuplicateQuestionsDialogBody";
@@ -255,6 +257,182 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
     });
   };
 
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+
+  const runDownloadPdf = async (mode: "current" | "en" | "gu" | "hi") => {
+    const list =
+      mode === "gu"
+        ? guQuestions
+        : mode === "hi"
+          ? hiQuestions
+          : mode === "en"
+            ? enQuestions
+            : displayedQuestions;
+
+    const label =
+      mode === "gu"
+        ? "Gujarati"
+        : mode === "hi"
+          ? "Hindi"
+          : mode === "en"
+            ? "English"
+            : currentLangLabel;
+
+    if (list.length === 0) {
+      toast.addToast({ type: "warning", message: `No ${label} questions available to generate PDF.` });
+      return;
+    }
+
+    setDownloadingPdf(true);
+    try {
+      await generateQuizPDF({
+        title: `${quiz.title} (${label})`,
+        language: mode === "current" ? activeLangTab : mode,
+        questions: list.map((q) => ({
+          text: q.text,
+          imageUrl: q.imageUrl,
+          options: q.options,
+          correctAnswer: q.correctAnswer,
+          description: q.description,
+          hint: q.hint,
+          language: q.language || (mode === "current" ? activeLangTab : mode),
+        })),
+      });
+      toast.addToast({ type: "success", message: `Generated ${label} PDF Booklet successfully!` });
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+      toast.addToast({ type: "error", message: "Failed to generate PDF." });
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
+  const runDownloadBilingualPdf = async (targetLang: "gu" | "hi") => {
+    const targetMap = targetLang === "gu" ? guMap : hiMap;
+    const targetLabel = targetLang === "gu" ? "Gujarati" : "Hindi";
+
+    if (enQuestions.length === 0) {
+      toast.addToast({ type: "warning", message: "English canonical questions required for bilingual booklet." });
+      return;
+    }
+
+    setDownloadingPdf(true);
+    try {
+      await generateQuizPDF({
+        title: `${quiz.title} (English & ${targetLabel})`,
+        language: "bilingual",
+        isBilingual: true,
+        questions: enQuestions.map((enQ) => {
+          const companion = targetMap.get(enQ.id);
+          return {
+            text: enQ.text,
+            secondaryText: companion?.text || null,
+            secondaryLanguage: targetLang,
+            imageUrl: enQ.imageUrl || companion?.imageUrl,
+            options: enQ.options,
+            secondaryOptions: companion?.options || [],
+            correctAnswer: enQ.correctAnswer,
+            secondaryCorrectAnswer: companion?.correctAnswer || null,
+            description: enQ.description,
+            secondaryDescription: companion?.description || null,
+            hint: enQ.hint,
+            language: "en",
+          };
+        }),
+      });
+      toast.addToast({ type: "success", message: `Generated Bilingual (English + ${targetLabel}) PDF!` });
+    } catch (err) {
+      console.error("Bilingual PDF generation failed:", err);
+      toast.addToast({ type: "error", message: "Failed to generate Bilingual PDF." });
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
+  const handleOpenDownloadPdf = () => {
+    const hasGujarati = guQuestions.length > 0;
+    const hasHindi = hiQuestions.length > 0;
+
+    if (!hasGujarati && !hasHindi) {
+      runDownloadPdf("current");
+      return;
+    }
+
+    dialog.open({
+      title: `Download PDF Booklet — ${quiz.title}`,
+      body: (
+        <div className="flex flex-col gap-4 py-2">
+          <p className="text-xs text-muted-foreground">
+            Select the desired format for your printable exam paper and answer key booklet:
+          </p>
+
+          <div className="flex flex-col gap-2.5">
+            <button
+              type="button"
+              onClick={() => {
+                dialog.close();
+                runDownloadPdf("current");
+              }}
+              className="flex items-center justify-between p-3.5 rounded-xl border border-border/80 hover:border-primary/50 hover:bg-primary/5 transition-all text-left group cursor-pointer"
+            >
+              <div className="flex flex-col">
+                <span className="text-xs font-bold text-foreground group-hover:text-primary transition-colors">
+                  📄 {currentLangLabel} Only ({displayedQuestions.length} Questions)
+                </span>
+                <span className="text-[11px] text-muted-foreground mt-0.5">
+                  Standard exam booklet in {currentLangLabel} language.
+                </span>
+              </div>
+              <FileDown className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+            </button>
+
+            {hasGujarati && (
+              <button
+                type="button"
+                onClick={() => {
+                  dialog.close();
+                  runDownloadBilingualPdf("gu");
+                }}
+                className="flex items-center justify-between p-3.5 rounded-xl border border-border/80 hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all text-left group cursor-pointer"
+              >
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                    🌐 Bilingual Booklet: English + ગુજરાતી (Gujarati)
+                  </span>
+                  <span className="text-[11px] text-muted-foreground mt-0.5">
+                    Shows English questions with paired Gujarati translation underneath and bilingual answer key.
+                  </span>
+                </div>
+                <FileDown className="h-4 w-4 text-muted-foreground group-hover:text-emerald-500 transition-colors shrink-0" />
+              </button>
+            )}
+
+            {hasHindi && (
+              <button
+                type="button"
+                onClick={() => {
+                  dialog.close();
+                  runDownloadBilingualPdf("hi");
+                }}
+                className="flex items-center justify-between p-3.5 rounded-xl border border-border/80 hover:border-orange-500/50 hover:bg-orange-500/5 transition-all text-left group cursor-pointer"
+              >
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-foreground group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
+                    🌐 Bilingual Booklet: English + हिन्दी (Hindi)
+                  </span>
+                  <span className="text-[11px] text-muted-foreground mt-0.5">
+                    Shows English questions with paired Hindi translation underneath and bilingual answer key.
+                  </span>
+                </div>
+                <FileDown className="h-4 w-4 text-muted-foreground group-hover:text-orange-500 transition-colors shrink-0" />
+              </button>
+            )}
+          </div>
+        </div>
+      ),
+    });
+  };
+
   const getTime = (q: Question) => {
     const d = q.createdAt;
     return d ? new Date(d).getTime() : 0;
@@ -315,12 +493,20 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
     return "en";
   });
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
   const displayedQuestions =
     activeLangTab === "gu"
       ? guQuestions
       : activeLangTab === "hi"
-      ? hiQuestions
-      : enQuestions;
+        ? hiQuestions
+        : enQuestions;
+
+  const paginatedQuestions = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return displayedQuestions.slice(startIndex, startIndex + pageSize);
+  }, [displayedQuestions, currentPage, pageSize]);
 
   const currentLangLabel =
     activeLangTab === "gu" ? "Gujarati" : activeLangTab === "hi" ? "Hindi" : "English";
@@ -355,10 +541,10 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
   const proofreadBtnLabel = proofreadingAll
     ? "Proofreading…"
     : activeLangTab === "gu"
-    ? "AI Proofread (Gujarati)"
-    : activeLangTab === "hi"
-    ? "AI Proofread (Hindi)"
-    : "AI Proofread & Fix";
+      ? "AI Proofread (Gujarati)"
+      : activeLangTab === "hi"
+        ? "AI Proofread (Hindi)"
+        : "AI Proofread & Fix";
 
   return (
     <div className="flex flex-col gap-6 py-4 w-full">
@@ -433,33 +619,49 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
           <Button
             variant="outline"
             size="sm"
-            className="h-9 px-3 font-semibold text-xs gap-1.5 shadow-2xs text-muted-foreground hover:text-foreground rounded-xl border-border/70"
+            className="h-9 px-3.5 font-semibold text-xs gap-1.5 shadow-2xs text-foreground bg-surface hover:bg-surface-hover border-border/80 hover:border-border rounded-xl transition-all"
             onClick={handleOpenDuplicates}
             title="Scan and remove duplicate questions"
           >
             <Layers className="h-3.5 w-3.5 text-amber-500" />
-            <span className="hidden sm:inline">Find</span> Duplicates
+            <span>Find Duplicates</span>
           </Button>
 
           <Button
             variant="outline"
             size="sm"
-            className="h-9 px-3.5 font-semibold text-xs gap-1.5 shadow-2xs text-indigo-600 dark:text-indigo-400 border-indigo-500/30 hover:bg-indigo-500/10 rounded-xl"
+            className="h-9 px-3.5 font-semibold text-xs gap-1.5 shadow-2xs text-foreground bg-surface hover:bg-surface-hover border-border/80 hover:border-border rounded-xl transition-all"
             onClick={handleOpenTranslateDialog}
             title="Generate a Gujarati or Hindi translation for this quiz"
           >
-            <Languages className="h-3.5 w-3.5 text-indigo-500" />
+            <Languages className="h-3.5 w-3.5 text-indigo-500 dark:text-indigo-400" />
             <span>Localize with AI</span>
           </Button>
 
           <Button
             variant="outline"
             size="sm"
-            className="h-9 px-3.5 font-semibold text-xs gap-1.5 shadow-2xs rounded-xl text-foreground hover:bg-surface-hover"
+            className="h-9 px-3.5 font-semibold text-xs gap-1.5 shadow-2xs text-foreground bg-surface hover:bg-surface-hover border-border/80 hover:border-border rounded-xl transition-all"
             onClick={handleOpenAiAppend}
           >
             <Sparkles className="h-3.5 w-3.5 text-primary" />
             <span>AI Generate More</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 px-3.5 font-semibold text-xs gap-1.5 shadow-2xs text-foreground bg-surface hover:bg-surface-hover border-border/80 hover:border-border rounded-xl transition-all"
+            onClick={handleOpenDownloadPdf}
+            disabled={downloadingPdf}
+            title="Download printable exam paper with answer key"
+          >
+            {downloadingPdf ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+            ) : (
+              <FileDown className="h-3.5 w-3.5 text-primary" />
+            )}
+            <span>{downloadingPdf ? "Generating..." : "Download PDF"}</span>
           </Button>
 
           <Button
@@ -479,7 +681,10 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
         <div className="flex items-center gap-1.5 select-none flex-wrap">
           <button
             type="button"
-            onClick={() => setActiveLangTab("en")}
+            onClick={() => {
+              setActiveLangTab("en");
+              setCurrentPage(1);
+            }}
             className={cn(
               "px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer",
               activeLangTab === "en"
@@ -501,7 +706,10 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
 
           <button
             type="button"
-            onClick={() => setActiveLangTab("gu")}
+            onClick={() => {
+              setActiveLangTab("gu");
+              setCurrentPage(1);
+            }}
             className={cn(
               "px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer",
               activeLangTab === "gu"
@@ -525,7 +733,10 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
 
           <button
             type="button"
-            onClick={() => setActiveLangTab("hi")}
+            onClick={() => {
+              setActiveLangTab("hi");
+              setCurrentPage(1);
+            }}
             className={cn(
               "px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer",
               activeLangTab === "hi"
@@ -575,9 +786,9 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
 
       {/* Questions list */}
       {displayedQuestions.length === 0 ? (
-        <NoData 
-          title={`No ${currentLangLabel} Questions`} 
-          description={`Translate the quiz questions into ${currentLangLabel} using one-click AI localization.`} 
+        <NoData
+          title={`No ${currentLangLabel} Questions`}
+          description={`Translate the quiz questions into ${currentLangLabel} using one-click AI localization.`}
           icon="book"
           action={
             <div className="flex items-center gap-2">
@@ -594,16 +805,36 @@ export function AdminQuizQuestionsManager({ quiz: initialQuiz }: AdminQuizQuesti
         />
       ) : (
         <div className="flex flex-col gap-6">
-          {displayedQuestions.map((q, idx) => (
-            <QuestionCard
-              key={q.id}
-              question={q}
-              index={idx}
-              optionVariant="badge"
-              onEdit={handleOpenEdit}
-              onDelete={(item) => handleDelete(item.id, item.text)}
+          <div className="flex flex-col gap-6">
+            {paginatedQuestions.map((q, idx) => {
+              const globalIndex = (currentPage - 1) * pageSize + idx;
+              return (
+                <QuestionCard
+                  key={q.id}
+                  question={q}
+                  index={globalIndex}
+                  optionVariant="badge"
+                  onEdit={handleOpenEdit}
+                  onDelete={(item) => handleDelete(item.id, item.text)}
+                />
+              );
+            })}
+          </div>
+
+          {displayedQuestions.length > pageSize && (
+            <Pagination
+              totalItems={displayedQuestions.length}
+              pageSize={pageSize}
+              currentPage={currentPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setCurrentPage(1);
+              }}
+              onPageChange={setCurrentPage}
+              pageSizeOptions={[10, 25, 50, 100]}
+              variant="bare"
             />
-          ))}
+          )}
         </div>
       )}
 

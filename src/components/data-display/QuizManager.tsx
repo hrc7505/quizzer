@@ -28,6 +28,7 @@ import { SearchFilterBar } from "@/components/data-display/SearchFilterBar";
 import { PageHeader } from "@/components/data-display/PageHeader";
 import { QuizRow } from "@/components/data-display/QuizRow";
 import { soundEffects } from "@/lib/services/sound-effects.service";
+import { generateQuizPDF } from "@/lib/pdf-generator";
 
 interface TopicRef {
   id: string;
@@ -607,6 +608,28 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
     });
   };
 
+  // Download PDF Booklet
+  const handleDownloadPdf = async (quiz: Quiz) => {
+    try {
+      toast.addToast({ type: "info", message: `Generating PDF booklet for "${quiz.title}"...` });
+      const res = await fetch(`/api/admin/quizzes/${quiz.id}/pdf?mode=${quiz.language || "en"}`);
+      if (!res.ok) throw new Error("Failed to generate PDF on server");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `quiz-${quiz.title.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.addToast({ type: "success", message: `Downloaded "${quiz.title}" PDF successfully!` });
+    } catch (err) {
+      console.error(err);
+      toast.addToast({ type: "error", message: "Failed to generate PDF booklet." });
+    }
+  };
+
   // Open Merge Multiple Quizzes Dialog
   const handleOpenMergeDialog = () => {
     const selectedList = quizzes.filter(q => selectedQuizIds.includes(q.id));
@@ -874,6 +897,7 @@ export function QuizManager({ quizzes: initial, topics }: QuizManagerProps) {
                     onAppendQuestions={handleOpenAppendDialog}
                     onFindDuplicates={handleOpenDuplicatesDialog}
                     onTranslateQuiz={handleOpenTranslateDialog}
+                    onDownloadPdf={handleDownloadPdf}
                   />
                 ))}
               </tbody>

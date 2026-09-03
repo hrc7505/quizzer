@@ -13,7 +13,6 @@ export interface NavItem {
 export const publicNavLinks: NavItem[] = [
   { href: "/", label: "Home", icon: <Home className="h-4 w-4" /> },
   { href: "/exams", label: "Exams", icon: <BookOpen className="h-4 w-4" /> },
-  { href: "/deep-dives", label: "Deep Dives", icon: <Brain className="h-4 w-4" /> },
 ];
 
 export const adminNavLinks: NavItem[] = [

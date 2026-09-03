@@ -128,15 +128,9 @@ export default async function HomePage() {
 
           <div className="flex flex-col sm:flex-row gap-3.5 justify-center flex-wrap">
             <Link href="/exams">
-              <Button variant="primary" className="h-11 px-6 font-semibold gap-2 w-full sm:w-auto shadow-md">
+              <Button variant="primary" className="h-11 px-8 font-semibold gap-2 w-full sm:w-auto shadow-md">
                 <BookOpen className="h-4 w-4" />
                 <span>Browse Exams</span>
-              </Button>
-            </Link>
-            <Link href="/deep-dives">
-              <Button variant="outline" className="h-11 px-6 font-semibold gap-2 w-full sm:w-auto">
-                <Brain className="h-4 w-4" />
-                <span>AI Deep Dives</span>
               </Button>
             </Link>
           </div>

@@ -8,13 +8,14 @@ export interface LanguageOption {
   code: SupportedLanguage;
   label: string;
   nativeLabel: string;
-  flag: string;
+  glyph: string;
+  flag?: string;
 }
 
 export const SUPPORTED_LANGUAGES: LanguageOption[] = [
-  { code: "en", label: "English", nativeLabel: "English", flag: "🇺🇸" },
-  { code: "gu", label: "Gujarati", nativeLabel: "ગુજરાતી", flag: "🇮🇳" },
-  { code: "hi", label: "Hindi", nativeLabel: "हिन्दी", flag: "🇮🇳" },
+  { code: "en", label: "English", nativeLabel: "English", glyph: "A" },
+  { code: "gu", label: "Gujarati", nativeLabel: "ગુજરાતી", glyph: "અ" },
+  { code: "hi", label: "Hindi", nativeLabel: "हिन्दी", glyph: "अ" },
 ];
 
 export const dictionaries = {

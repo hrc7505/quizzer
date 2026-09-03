@@ -17,7 +17,7 @@ interface QuizLobbyProps {
     difficulty: string;
     questions: { id: string }[];
   };
-  availableLanguages?: { code: string; label: string; flag: string; count: number }[];
+  availableLanguages?: { code: string; label: string; glyph?: string; flag?: string; count?: number }[];
   selectedLanguage?: string;
   onSelectLanguage?: (lang: string) => void;
   authWarning: string | null;
@@ -83,22 +83,28 @@ function QuizLobbyInner({
             <div className="flex items-center gap-1.5 p-1 bg-surface-hover/80 rounded-xl border border-border/60 select-none">
               {availableLanguages.map((l) => {
                 const isSelected = selectedLanguage === l.code;
+                const glyph = l.glyph || (l.code === "gu" ? "અ" : l.code === "hi" ? "अ" : "A");
                 return (
                   <button
                     key={l.code}
                     type="button"
                     onClick={() => onSelectLanguage(l.code)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer select-none ${
                       isSelected
-                        ? "bg-card shadow-xs text-foreground ring-1 ring-border/40"
-                        : "text-muted-foreground hover:text-foreground"
+                        ? "bg-card shadow-xs text-foreground ring-1 ring-border/40 font-extrabold"
+                        : "text-muted-foreground hover:text-foreground hover:bg-surface/50"
                     }`}
                   >
-                    <span>{l.flag}</span>
-                    <span>{l.label}</span>
-                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-secondary/80 font-bold">
-                      {l.count}
+                    <span
+                      className={`w-5 h-5 rounded-md text-[11px] font-bold flex items-center justify-center shrink-0 ${
+                        isSelected
+                          ? "bg-primary text-primary-foreground shadow-2xs"
+                          : "bg-secondary text-secondary-foreground"
+                      }`}
+                    >
+                      {glyph}
                     </span>
+                    <span>{l.label}</span>
                   </button>
                 );
               })}

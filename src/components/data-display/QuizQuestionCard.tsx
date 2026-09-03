@@ -133,9 +133,9 @@ function QuizQuestionCardInner({
                       <X className="h-3.5 w-3.5" />
                     </button>
                   </div>
-                  <p className="text-xs text-foreground/90 leading-relaxed font-medium">
-                    {question.hint}
-                  </p>
+                  <div className="text-xs text-foreground/90 leading-relaxed font-medium min-w-0 break-words">
+                    <OptionText text={question.hint} />
+                  </div>
                 </div>
               )}
             </>

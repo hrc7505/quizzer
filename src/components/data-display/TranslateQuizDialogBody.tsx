@@ -211,7 +211,9 @@ export function TranslateQuizDialogBody({
                 )}
               >
                 <div className="flex items-center justify-between w-full mb-1">
-                  <span className="text-base">{lang.flag}</span>
+                  <span className="w-6 h-6 rounded-md bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">
+                    {lang.glyph}
+                  </span>
                   {/* Real-time status indicator on tab */}
                   {isLangProcessing ? (
                     <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary/15 text-primary flex items-center gap-1 animate-pulse">

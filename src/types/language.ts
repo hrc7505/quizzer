@@ -23,20 +23,20 @@ export interface LanguageConfig {
   code: SupportedLanguageCode;
   label: string;
   nativeLabel: string;
-  flag: string;
+  glyph: string;
   promptName: string;
   typographyDesc: string;
 }
 
 /**
- * Canonical registry of supported translation target languages.
+ * Canonical registry of supported translation target languages with native script glyphs.
  */
 export const TRANSLATION_LANGUAGES: Record<SupportedLanguageCode, LanguageConfig> = {
   [LanguageCode.GUJARATI]: {
     code: LanguageCode.GUJARATI,
     label: "Gujarati",
     nativeLabel: "ગુજરાતી",
-    flag: "🇮🇳",
+    glyph: "અ",
     promptName: "Gujarati (ગુજરાતી)",
     typographyDesc: "Anek Gujarati font typography",
   },
@@ -44,7 +44,7 @@ export const TRANSLATION_LANGUAGES: Record<SupportedLanguageCode, LanguageConfig
     code: LanguageCode.HINDI,
     label: "Hindi",
     nativeLabel: "हिन्दी",
-    flag: "🇮🇳",
+    glyph: "अ",
     promptName: "Hindi (हिन्दी)",
     typographyDesc: "Hind font typography",
   },
@@ -52,7 +52,7 @@ export const TRANSLATION_LANGUAGES: Record<SupportedLanguageCode, LanguageConfig
     code: LanguageCode.ENGLISH,
     label: "English",
     nativeLabel: "English",
-    flag: "🇺🇸",
+    glyph: "A",
     promptName: "English",
     typographyDesc: "Winky Sans font typography",
   },
@@ -87,4 +87,15 @@ export function getLanguagePromptName(code: string): string {
 export function getLanguageLabel(code: string): string {
   const lang = TRANSLATION_LANGUAGES[code as SupportedLanguageCode];
   return lang ? lang.label : "English";
+}
+
+/**
+ * Helper to get native script glyph badge for a language code.
+ *
+ * @param code Language code (e.g. 'gu', 'hi', 'en')
+ * @returns Native character glyph e.g. 'A', 'અ', 'अ'
+ */
+export function getLanguageGlyph(code: string): string {
+  const lang = TRANSLATION_LANGUAGES[code as SupportedLanguageCode];
+  return lang ? lang.glyph : "A";
 }

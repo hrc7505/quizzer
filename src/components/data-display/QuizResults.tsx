@@ -74,7 +74,7 @@ export function QuizResults({ attempt }: QuizResultsProps) {
       const cached = elaborations[questionId];
       panel.open({
         title: "AI Deep Dive",
-        width: "max-w-2xl",
+        width: "max-w-3xl lg:max-w-4xl",
         body: (
           <DeepDivePanel
             question={question}

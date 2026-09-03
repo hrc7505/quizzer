@@ -24,6 +24,7 @@ export interface QuestionInfo {
   correctAnswer: string;
   options?: string[];
   elaboration: string | null;
+  language?: string;
   topic: TopicInfo;
   quiz: QuizInfo | null;
 }
@@ -33,4 +34,7 @@ export interface QuestionInfo {
  */
 export interface DeepDiveBodyProps {
   question: QuestionInfo;
+  selectedLanguage?: string;
+  onSelectLanguage?: (lang: string) => void;
+  loadingLanguage?: boolean;
 }

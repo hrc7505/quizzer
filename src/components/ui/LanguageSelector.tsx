@@ -64,7 +64,11 @@ export function LanguageSelector({
                   : "text-muted-foreground hover:text-foreground hover:bg-surface-hover"
               )}
             >
-              {showFlags && <span>{l.flag}</span>}
+              {showFlags && (
+                <span className="w-4 h-4 rounded bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center shrink-0">
+                  {l.glyph}
+                </span>
+              )}
               <span>{l.nativeLabel}</span>
             </button>
           );
@@ -112,7 +116,11 @@ export function LanguageSelector({
                   )}
                 >
                   <div className="flex items-center gap-2">
-                    {showFlags && <span>{l.flag}</span>}
+                    {showFlags && (
+                <span className="w-4 h-4 rounded bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center shrink-0">
+                  {l.glyph}
+                </span>
+              )}
                     <span>{l.nativeLabel}</span>
                   </div>
                   {isActive && <Check className="h-3.5 w-3.5 text-primary stroke-[2.5]" />}
@@ -166,7 +174,9 @@ export function LanguageSelector({
                 )}
               >
                 <div className="flex items-center gap-2.5">
-                  <span className="text-sm">{l.flag}</span>
+                  <span className="w-5 h-5 rounded-md bg-primary/10 text-primary text-[11px] font-bold flex items-center justify-center shrink-0">
+                    {l.glyph}
+                  </span>
                   <div className="flex flex-col text-left">
                     <span className="leading-snug">{l.nativeLabel}</span>
                     <span className="text-[10px] text-muted-foreground font-normal">

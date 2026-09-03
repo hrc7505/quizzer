@@ -92,13 +92,13 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
 
   const availableLanguages = [
     ...(enQuestions.length > 0
-      ? [{ code: "en", label: "English", flag: "🇺🇸", count: enQuestions.length }]
+      ? [{ code: "en", label: "English", glyph: "A", count: enQuestions.length }]
       : []),
     ...(guQuestions.length > 0 && guMap.size + guUnmapped.length > 0
-      ? [{ code: "gu", label: "ગુજરાતી", flag: "🇮🇳", count: guQuestions.length }]
+      ? [{ code: "gu", label: "ગુજરાતી", glyph: "અ", count: guQuestions.length }]
       : []),
     ...(hiQuestions.length > 0 && hiMap.size + hiUnmapped.length > 0
-      ? [{ code: "hi", label: "हिन्दी", flag: "🇮🇳", count: hiQuestions.length }]
+      ? [{ code: "hi", label: "हिन्दी", glyph: "अ", count: hiQuestions.length }]
       : []),
   ];
 
@@ -198,15 +198,17 @@ export function QuizWizard({ quiz }: { quiz: QuizWizardQuiz }) {
                   type="button"
                   onClick={() => setSelectedLang(l.code)}
                   className={cn(
-                    "px-2 py-0.5 text-[10px] font-bold rounded-md transition-all cursor-pointer",
+                    "px-2 py-0.5 text-[10px] font-bold rounded-md transition-all cursor-pointer flex items-center gap-1",
                     selectedLang === l.code
-                      ? "bg-card shadow-2xs text-foreground ring-1 ring-border/40"
+                      ? "bg-card shadow-2xs text-foreground ring-1 ring-border/40 font-extrabold"
                       : "text-muted-foreground hover:text-foreground"
                   )}
                   title={`Switch to ${l.label}`}
                 >
-                  <span>{l.flag}</span>
-                  <span className="ml-1 hidden sm:inline">{l.label}</span>
+                  <span className="w-3.5 h-3.5 rounded bg-primary/10 text-primary text-[9px] font-bold flex items-center justify-center shrink-0">
+                    {l.glyph}
+                  </span>
+                  <span className="hidden sm:inline">{l.label}</span>
                 </button>
               ))}
             </div>

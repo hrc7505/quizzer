@@ -25,16 +25,25 @@ export function DeepDivePanel({
   initialError,
   onSave,
 }: DeepDivePanelProps) {
+  const initialLang = (question as { language?: string })?.language || "en";
+  const [selectedLang, setSelectedLang] = React.useState<string>(initialLang);
+
+  // Multi-language local cache so switching back and forth is instantaneous
+  const [elaborationCache, setElaborationCache] = React.useState<Record<string, string>>(() => {
+    return initialElaboration ? { [initialLang]: initialElaboration } : {};
+  });
+
   const [loading, setLoading] = React.useState(!initialElaboration && !initialError);
+  const [loadingLanguage, setLoadingLanguage] = React.useState(false);
   const [data, setData] = React.useState<string | undefined>(initialElaboration);
   const [error, setError] = React.useState<string | undefined>(initialError);
 
   const onSaveRef = React.useRef(onSave);
-
   React.useEffect(() => {
     onSaveRef.current = onSave;
   }, [onSave]);
 
+  // Initial load for current language if not pre-seeded
   React.useEffect(() => {
     if (initialElaboration || initialError || !question) return;
 
@@ -46,13 +55,14 @@ export function DeepDivePanel({
         const res = await fetch("/api/admin/elaborate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ questionId: question.id }),
+          body: JSON.stringify({ questionId: question.id, targetLanguage: initialLang }),
           signal: controller.signal,
         });
         const json = await res.json();
         if (cancelled) return;
         if (json.success) {
           setData(json.markdown);
+          setElaborationCache((prev) => ({ ...prev, [initialLang]: json.markdown }));
           onSaveRef.current?.({ loading: false, data: json.markdown });
         } else {
           setError(json.error);
@@ -71,7 +81,46 @@ export function DeepDivePanel({
       cancelled = true;
       controller.abort();
     };
-  }, [question, initialElaboration, initialError]);
+  }, [question, initialElaboration, initialError, initialLang]);
+
+  // Handle switching explanation language on the fly
+  const handleSelectLanguage = React.useCallback(
+    async (targetLang: string) => {
+      if (!question || targetLang === selectedLang) return;
+      setSelectedLang(targetLang);
+      setError(undefined);
+
+      // Check if already in cache
+      if (elaborationCache[targetLang]) {
+        setData(elaborationCache[targetLang]);
+        return;
+      }
+
+      setLoadingLanguage(true);
+      try {
+        const res = await fetch("/api/admin/elaborate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ questionId: question.id, targetLanguage: targetLang }),
+        });
+        const json = await res.json();
+        if (json.success && json.markdown) {
+          setData(json.markdown);
+          setElaborationCache((prev) => ({ ...prev, [targetLang]: json.markdown }));
+          if (targetLang === initialLang) {
+            onSaveRef.current?.({ loading: false, data: json.markdown });
+          }
+        } else {
+          setError(json.error || `Failed to generate deep dive in ${targetLang}.`);
+        }
+      } catch {
+        setError(`Failed to generate deep dive in ${targetLang}.`);
+      } finally {
+        setLoadingLanguage(false);
+      }
+    },
+    [question, selectedLang, elaborationCache, initialLang]
+  );
 
   if (!question) return null;
 
@@ -94,14 +143,18 @@ export function DeepDivePanel({
           </Alert>
         );
       })()}
-      {data && question && (
+      {!loading && question && (
         <DeepDiveBody
           question={{
             ...question,
-            elaboration: data,
+            elaboration: data || null,
+            language: selectedLang,
             quiz: { id: quiz.id, title: quiz.title, difficulty: quiz.difficulty || "Medium" },
             topic: question.topic || { id: "", title: "General" },
           }}
+          selectedLanguage={selectedLang}
+          onSelectLanguage={handleSelectLanguage}
+          loadingLanguage={loadingLanguage}
         />
       )}
     </div>

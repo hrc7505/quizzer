@@ -39,7 +39,7 @@ export function PanelHost({ config, onClose }: PanelHostProps) {
         role="dialog"
         aria-modal="true"
         className={cn(
-          "relative z-50 h-full w-full bg-card border-border p-6 shadow-lg flex flex-col overflow-y-auto text-foreground",
+          "relative z-50 h-full w-full bg-card border-border p-4 sm:p-6 shadow-lg flex flex-col overflow-y-auto text-foreground",
           config.side === "left" ? "border-r animate-slide-in-left" : "border-l animate-slide-in-right",
           config.width ?? "max-w-xl",
           config.className

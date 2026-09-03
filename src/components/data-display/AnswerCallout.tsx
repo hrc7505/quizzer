@@ -97,8 +97,8 @@ export function AnswerCallout({
     >
       <Lightbulb className="h-4 w-4 text-warning shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0 break-words">
-        <span className="font-bold text-warning select-none">{title || t("hintLabel", "Hint:")} </span>
-        <span>{text || children}</span>
+        <span className="font-bold text-warning select-none mr-1.5">{title || t("hintLabel", "Hint:")}</span>
+        {typeof text === "string" ? <OptionText text={text} className="inline font-medium" /> : children}
       </div>
     </div>
   );

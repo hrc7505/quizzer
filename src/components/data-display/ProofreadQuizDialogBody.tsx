@@ -8,21 +8,9 @@ import { BatchProgressCard } from "@/components/feedback/BatchProgressCard";
 import { soundEffects } from "@/lib/services/sound-effects.service";
 
 import type { ProofreadQuizDialogBodyProps } from "@/components/data-display/interfaces/ProofreadQuizDialogBody.interface";
+import type { ServerBatchQueue } from "@/types/batch";
 
 const BATCH_SIZE = 8;
-
-interface ServerBatchStatus {
-  status: "IDLE" | "PROCESSING" | "PAUSED" | "FAILED" | "COMPLETED";
-  quizId: string;
-  language: string;
-  totalQuestions: number;
-  totalBatches: number;
-  currentBatch: number;
-  completedBatches: number;
-  processedQuestions: number;
-  error: string | null;
-  failedBatchIndex?: number | null;
-}
 
 /**
  * ProofreadQuizDialogBody — server-backed background batch proofreader.
@@ -36,7 +24,7 @@ export function ProofreadQuizDialogBody({
   onClose,
 }: ProofreadQuizDialogBodyProps) {
   const [actionBusy, setActionBusy] = React.useState(false);
-  const [serverStatus, setServerStatus] = React.useState<ServerBatchStatus | null>(null);
+  const [serverStatus, setServerStatus] = React.useState<ServerBatchQueue | null>(null);
   const hasTriggeredSuccessRef = React.useRef(false);
 
   const langLabel =
@@ -58,7 +46,7 @@ export function ProofreadQuizDialogBody({
         `/api/admin/questions/fix-language?quizId=${encodeURIComponent(quizId)}&language=${encodeURIComponent(language)}`
       );
       if (!res.ok) return;
-      const data: ServerBatchStatus = await res.json();
+      const data: ServerBatchQueue = await res.json();
       setServerStatus(data);
 
       if (data.status === "COMPLETED" && !hasTriggeredSuccessRef.current) {

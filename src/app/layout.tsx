@@ -115,15 +115,23 @@ export default function RootLayout({
           />
           {children}
         </Providers>
-        {/* Service Worker Registration */}
+        {/* Service Worker Registration — disabled on localhost to prevent dev HMR conflicts */}
         <Script id="service-worker-register" strategy="afterInteractive">
           {`
             if ('serviceWorker' in navigator) {
-              window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js').catch(function(err) {
-                  console.error('SW registration failed:', err);
+              if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                  for (var registration of registrations) {
+                    registration.unregister();
+                  }
                 });
-              });
+              } else {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').catch(function(err) {
+                    console.error('SW registration failed:', err);
+                  });
+                });
+              }
             }
           `}
         </Script>

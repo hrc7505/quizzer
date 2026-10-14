@@ -3,6 +3,7 @@
 import { type ReactNode } from "react";
 
 import NavBar from "@/components/navigation/NavBar";
+import Footer from "@/components/navigation/Footer";
 import { Container, CONTAINER_MAX_WIDTH } from "@/components/layouts/Container";
 import { cn } from "@/utils/cn";
 
@@ -17,18 +18,26 @@ interface PageLayoutProps {
    *  manage their own full-bleed + Container layout (e.g. the home page). */
   contained?: boolean;
   className?: string;
+  /** Whether to render the global Footer. Defaults to true for public non-scroll variants. */
+  showFooter?: boolean;
 }
 
+/**
+ * Standard page wrapper handling sticky navigation, scroll containment,
+ * responsive gutters, and optional global footer.
+ */
 export function PageLayout({ 
   children, 
   variant = "public", 
   navMaxWidth = CONTAINER_MAX_WIDTH,
   mainMaxWidth = CONTAINER_MAX_WIDTH,
   contained = true,
-  className 
+  className,
+  showFooter,
 }: PageLayoutProps) {
   
   const isScrollContainer = variant === "admin" || variant === "deep-dives";
+  const shouldRenderFooter = showFooter !== undefined ? showFooter : (variant === "public" && !isScrollContainer);
 
   return (
     <div 
@@ -55,6 +64,7 @@ export function PageLayout({
           {children}
         </main>
       )}
+      {shouldRenderFooter && <Footer maxWidth={navMaxWidth} />}
     </div>
   );
 }

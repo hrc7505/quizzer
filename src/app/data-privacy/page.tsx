@@ -1,20 +1,10 @@
 import Link from "next/link";
-import { 
-  ShieldCheck, 
-  Lock, 
-  Database, 
-  Eye, 
-  Download, 
-  Trash2, 
-  Sparkles, 
-  CheckCircle2, 
-  ArrowRight,
-  UserCheck
-} from "lucide-react";
+import { ShieldCheck, Lock, Eye, Download, Sparkles, CheckCircle2, UserCheck } from "lucide-react";
 
 import { PageLayout } from "@/components/layouts/PageLayout";
 import { Container } from "@/components/layouts/Container";
 import { Button } from "@/components/ui/Button";
+
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -180,34 +170,24 @@ export default function DataPrivacyPage() {
             <span>How to Access, Export, or Delete Your Data</span>
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-xs text-muted-foreground leading-relaxed">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs text-muted-foreground leading-relaxed">
             <div className="flex flex-col gap-2">
               <strong className="text-foreground text-sm flex items-center gap-1.5">
                 <CheckCircle2 className="h-4 w-4 text-success" />
-                1. Inspect Live Records
+                1. Inspect Recorded Categories
               </strong>
               <span>
-                Visit your <Link href="/profile" className="text-primary hover:underline font-semibold">User Profile</Link> at any time to view all connected accounts, recent quiz scores, and raw database records.
+                Visit your <Link href="/profile" className="text-primary hover:underline font-semibold">User Profile</Link> at any time to view your learning analytics, recent quiz scores, and recorded data categories.
               </span>
             </div>
 
             <div className="flex flex-col gap-2">
               <strong className="text-foreground text-sm flex items-center gap-1.5">
                 <CheckCircle2 className="h-4 w-4 text-success" />
-                2. Export Everything
+                2. Erase Quiz History
               </strong>
               <span>
-                Click "Export My Data" on your profile to download a standardized JSON file containing all your attempts, timestamps, and answer selections.
-              </span>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <strong className="text-foreground text-sm flex items-center gap-1.5">
-                <CheckCircle2 className="h-4 w-4 text-success" />
-                3. Erase Quiz History
-              </strong>
-              <span>
-                Want a clean slate? Tap "Clear All Quiz History" on your profile to permanently delete all your quiz attempts and recorded answers from our database.
+                Want a clean slate? Tap &quot;Clear All Quiz History&quot; on your profile to permanently delete all your quiz attempts and recorded answers from our database.
               </span>
             </div>
           </div>

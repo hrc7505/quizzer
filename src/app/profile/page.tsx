@@ -1,6 +1,7 @@
 import { PageLayout } from "@/components/layouts/PageLayout";
 import { Container } from "@/components/layouts/Container";
 import { ProfileView } from "@/features/profile/components/ProfileView";
+
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {

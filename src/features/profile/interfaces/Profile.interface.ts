@@ -27,13 +27,26 @@ export interface ProfileStats {
 }
 
 /**
+ * Descriptor for an individual recorded database attribute.
+ */
+export interface RecordedDataFieldItem {
+  key: string;
+  label: string;
+  description?: string;
+  type?: string;
+}
+
+/**
  * Data transparency item showing why specific data points are stored.
  */
 export interface RecordedDataPurpose {
   category: string;
-  fields: string[];
+  badge?: string;
+  iconName?: string;
+  fields: Array<string | RecordedDataFieldItem>;
   purpose: string;
   retention: string;
+  isClearable?: boolean;
 }
 
 /**

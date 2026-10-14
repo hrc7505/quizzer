@@ -117,12 +117,7 @@ export function useQuizWizard(quiz: QuizWizardQuiz): [QuizWizardState, QuizWizar
       }
 
       try {
-        const res = await fetch("/api/attempt", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ quizId: quiz.id, createOnNotFound: false }),
-        });
-        const attemptData = await res.json();
+        const attemptData = await AttemptService.startAttempt(quiz.id, { createOnNotFound: false });
 
         if (
           attemptData.success &&
@@ -130,7 +125,18 @@ export function useQuizWizard(quiz: QuizWizardQuiz): [QuizWizardState, QuizWizar
           attemptData.answers &&
           attemptData.answers.length > 0
         ) {
-          if (!cancelled) setActiveAttempt(attemptData);
+          if (!cancelled) {
+            setActiveAttempt({
+              attemptId: attemptData.attemptId,
+              quizId: quiz.id,
+              answers: attemptData.answers.map((ans) => ({
+                questionId: ans.questionId,
+                selectedAnswer: ans.selectedAnswer,
+                isCorrect: ans.isCorrect,
+              })),
+              timeTakenSec: attemptData.timeTakenSec ?? 0,
+            });
+          }
         }
 
         const leaderboardData = await AttemptService.getLeaderboard(quiz.id);
@@ -218,14 +224,9 @@ export function useQuizWizard(quiz: QuizWizardQuiz): [QuizWizardState, QuizWizar
           return;
         }
 
-        const res = await fetch("/api/attempt", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ quizId: quiz.id, forceNew }),
-        });
-        const data = await res.json();
+        const data = await AttemptService.startAttempt(quiz.id, { forceNew });
 
-        if (data.success) {
+        if (data.success && data.attemptId) {
           setAttemptId(data.attemptId);
 
           if (!forceNew && data.answers && data.answers.length > 0) {
@@ -238,7 +239,7 @@ export function useQuizWizard(quiz: QuizWizardQuiz): [QuizWizardState, QuizWizar
             );
 
             setAnswers(formattedAnswers);
-            setTimeTaken(data.timeTakenSec);
+            setTimeTaken(data.timeTakenSec ?? 0);
             setCurrentIndex(formattedAnswers.length);
           } else {
             setAnswers([]);

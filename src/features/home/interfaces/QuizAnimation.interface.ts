@@ -1,5 +1,3 @@
-import type { ReactNode } from "react";
-
 /**
  * Interface representing a sample quiz question for the homepage animation.
  */

@@ -6,7 +6,6 @@ import { DeepDiveDetail } from "@/components/data-display/DeepDiveDetail";
 import { PageLayout } from "@/components/layouts/PageLayout";
 
 export const revalidate = 60;
-export const tags = ["deep-dives"];
 
 /**
  * Individual Deep Dive detail page.

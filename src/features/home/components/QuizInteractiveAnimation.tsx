@@ -2,23 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Sparkles, 
-  Brain, 
-  CheckCircle2, 
-  XCircle, 
-  Timer, 
-  Flame, 
-  RotateCcw, 
-  ArrowRight, 
-  Play, 
-  Pause,
-  HelpCircle,
-  Trophy
-} from "lucide-react";
+import { Sparkles, Brain, CheckCircle2, XCircle, Timer, Flame, RotateCcw, ArrowRight, Play, Pause } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/utils/cn";
+
 import type { SampleQuizQuestion, QuizInteractiveAnimationProps } from "../interfaces/QuizAnimation.interface";
 
 const SAMPLE_QUESTIONS: SampleQuizQuestion[] = [

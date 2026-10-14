@@ -4,7 +4,6 @@ import { DeepDivesLibrary } from "@/components/data-display/DeepDivesLibrary";
 import { PageLayout } from "@/components/layouts/PageLayout";
 
 export const revalidate = 60;
-export const tags = ["deep-dives"];
 
 export const metadata = {
   title: "AI Deep Dives Library",

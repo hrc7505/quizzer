@@ -511,7 +511,7 @@ export default async function HomePage() {
               Understand the Concept, Not Just the Answer
             </h2>
             <p className="text-sm text-muted-foreground leading-relaxed m-0">
-              When you submit a response, Quizzer doesn't just score you. It breaks down the physics, mathematics, or grammatical reasoning behind each choice. Learn why plausible distractors are incorrect to avoid traps on test day.
+              When you submit a response, Quizzer doesn&apos;t just score you. It breaks down the physics, mathematics, or grammatical reasoning behind each choice. Learn why plausible distractors are incorrect to avoid traps on test day.
             </p>
             <div className="flex flex-col gap-2.5 pt-2 text-xs text-foreground/90">
               <div className="flex items-center gap-2">

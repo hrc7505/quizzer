@@ -8,17 +8,16 @@ import {
   BookOpen, 
   HelpCircle, 
   UserCircle, 
-  Layers, 
   Calculator,
   Brain,
   Home,
-  User,
-  ArrowUpRight
+  User
 } from "lucide-react";
 
 import { CONTAINER_MAX_WIDTH } from "@/components/layouts/Container";
 import { cn } from "@/utils/cn";
-import type { FooterProps, FooterLinkSection } from "./interfaces/Footer.interface";
+
+import type { FooterProps, FooterLinkSection } from "@/components/navigation/interfaces/Footer.interface";
 
 /**
  * Structured link sections for the Quizzer footer.

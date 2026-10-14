@@ -1,17 +1,10 @@
 import Link from "next/link";
-import { 
-  Mail, 
-  MessageSquare, 
-  Clock, 
-  HelpCircle, 
-  ShieldCheck, 
-  Sparkles,
-  ArrowRight
-} from "lucide-react";
+import { Mail, Clock, HelpCircle, ShieldCheck, ArrowRight } from "lucide-react";
 
 import { PageLayout } from "@/components/layouts/PageLayout";
 import { Container } from "@/components/layouts/Container";
 import { ContactForm } from "@/features/contact/components/ContactForm";
+
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -34,7 +27,7 @@ const faqs = [
   },
   {
     question: "What user data does Quizzer record about me?",
-    answer: "We only record your essential account details (name, email) and your quiz performance history (score %, time taken, selected answers) to power your progress dashboard. You can review and export all your recorded data on your Profile page.",
+    answer: "We only record your essential account details (name, email) and your quiz performance history (score %, time taken, selected answers) to power your progress dashboard. You can review your recorded data and manage your history on your Profile page.",
   },
   {
     question: "Can I request new exam categories or subjects?",
@@ -53,7 +46,7 @@ export default function ContactPage() {
         <div className="max-w-2xl mx-auto">
           <div className="inline-flex items-center gap-2 bg-primary/10 px-3.5 py-1.5 rounded-full border border-primary/20 mb-4">
             <Mail className="h-4 w-4 text-primary" />
-            <span className="text-primary text-xs font-semibold">We're Here to Help</span>
+            <span className="text-primary text-xs font-semibold">We&apos;re Here to Help</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-3">
             Get in Touch with Quizzer

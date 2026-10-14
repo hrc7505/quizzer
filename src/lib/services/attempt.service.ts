@@ -8,9 +8,10 @@ export interface LeaderboardEntry {
   timeTakenSec?: number;
 }
 
-interface StartAttemptResult {
+export interface StartAttemptResult {
   success: boolean;
   attemptId?: string;
+  quizId?: string;
   answers?: { questionId: string; selectedAnswer: string; isCorrect: boolean }[];
   timeTakenSec?: number;
   error?: string;

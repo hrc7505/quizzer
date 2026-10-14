@@ -3,32 +3,67 @@ import { getServerSession } from "next-auth/next";
 
 import { prisma } from "@/lib/prisma";
 import { authOptions, SessionUser } from "@/lib/auth";
+
 import type { RecordedDataPurpose } from "@/features/profile/interfaces/Profile.interface";
 
 const DATA_PURPOSES: RecordedDataPurpose[] = [
   {
     category: "Identity & Authentication",
-    fields: ["id", "name", "email", "phoneNumber", "role", "OAuth Provider Account ID"],
+    badge: "Account Identity",
+    iconName: "user",
+    fields: [
+      { key: "id", label: "User ID", description: "Unique database identifier for your account" },
+      { key: "name", label: "Full Name", description: "Display name from your profile or Google login" },
+      { key: "email", label: "Email Address", description: "Primary contact and sign-in email address" },
+      { key: "phoneNumber", label: "Phone Number", description: "Optional contact phone number" },
+      { key: "role", label: "Account Role", description: "Platform permission level (USER / ADMIN)" },
+      { key: "providerAccountId", label: "OAuth ID", description: "Secure federated login token from Google" },
+    ],
     purpose: "Authenticates your identity securely and associates quiz attempts with your personal account.",
     retention: "Retained until account deletion.",
+    isClearable: false,
   },
   {
     category: "Quiz Performance & Progress",
-    fields: ["quizId", "scorePercentage", "correctCount", "wrongCount", "timeTakenSec", "completed", "createdAt"],
+    badge: "Study History",
+    iconName: "trophy",
+    fields: [
+      { key: "quizId", label: "Quiz Reference", description: "Database identifier for the taken test" },
+      { key: "scorePercentage", label: "Score %", description: "Calculated exam accuracy score (0-100%)" },
+      { key: "correctCount", label: "Correct Answers", description: "Number of questions answered correctly" },
+      { key: "wrongCount", label: "Incorrect Answers", description: "Number of wrong or missed questions" },
+      { key: "timeTakenSec", label: "Time Taken", description: "Total duration in seconds spent solving" },
+      { key: "completed", label: "Completion Status", description: "Whether the quiz was finished or paused" },
+      { key: "createdAt", label: "Timestamp", description: "Exact date and time when the attempt was submitted" },
+    ],
     purpose: "Calculates scores, tracks study velocity, and enables you to resume in-progress quizzes where you left off.",
     retention: "Retained for your study history; can be cleared anytime by the user.",
+    isClearable: true,
   },
   {
     category: "Question Level Responses",
-    fields: ["questionId", "selectedAnswer", "isCorrect"],
+    badge: "Answer History",
+    iconName: "check",
+    fields: [
+      { key: "questionId", label: "Question Reference", description: "Identifier of the question answered" },
+      { key: "selectedAnswer", label: "Selected Answer", description: "The specific option choice you clicked" },
+      { key: "isCorrect", label: "Correctness State", description: "Whether your choice was right or wrong" },
+    ],
     purpose: "Provides detailed question-by-question review and shows why specific options were correct or incorrect.",
-    retention: "Associated with the corresponding Quiz Attempt.",
+    retention: "Associated with the corresponding Quiz Attempt; purged if attempt is deleted.",
+    isClearable: true,
   },
   {
     category: "Session & Security Logs",
-    fields: ["sessionToken", "expiresAt"],
+    badge: "Session Auth",
+    iconName: "shield",
+    fields: [
+      { key: "sessionToken", label: "Session Token", description: "Cryptographically signed JWT session key" },
+      { key: "expiresAt", label: "Expiry Date", description: "Automatic expiration date of the active session" },
+    ],
     purpose: "Maintains active login sessions and prevents unauthorized account hijacking.",
     retention: "Expires automatically based on token expiration.",
+    isClearable: false,
   },
 ];
 

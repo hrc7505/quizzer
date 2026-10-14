@@ -7,30 +7,114 @@ import {
   Mail, 
   Calendar, 
   Trophy, 
-  Timer, 
-  CheckCircle, 
-  AlertCircle, 
-  Download, 
   Trash2, 
   ShieldCheck, 
-  Database, 
   ArrowRight, 
   Sparkles, 
   BookOpen, 
   Edit3, 
   Check, 
   X,
-  ExternalLink,
-  Layers,
-  Lock
+  Lock,
+  Clock,
+  ListChecks
 } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
 import { Alert } from "@/components/ui/Alert";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
-import type { UserProfileResponse } from "../interfaces/Profile.interface";
+import { UserService } from "@/lib/services/user.service";
+
+import type { UserProfileResponse, RecordedDataFieldItem } from "../interfaces/Profile.interface";
+
+/**
+ * Fallback mapping table for database schema attributes to friendly labels and explanations.
+ */
+const FIELD_MAP: Record<string, { label: string; description: string }> = {
+  quizId: { label: "Quiz ID", description: "Reference to the specific practice quiz" },
+  scorePercentage: { label: "Score %", description: "Calculated exam accuracy score (0-100%)" },
+  correctCount: { label: "Correct Answers", description: "Total count of questions answered correctly" },
+  wrongCount: { label: "Incorrect Answers", description: "Total count of wrong or skipped questions" },
+  timeTakenSec: { label: "Time Taken", description: "Total duration in seconds spent solving" },
+  completed: { label: "Completion Status", description: "Whether the quiz was completed or left in-progress" },
+  createdAt: { label: "Timestamp", description: "Exact date and time when the attempt was submitted" },
+  id: { label: "User ID", description: "Unique database identifier for your account" },
+  name: { label: "Full Name", description: "Display name from your profile or Google login" },
+  email: { label: "Email Address", description: "Primary contact and sign-in email address" },
+  phoneNumber: { label: "Phone Number", description: "Optional contact phone number" },
+  role: { label: "Account Role", description: "Platform permission level (USER / ADMIN)" },
+  providerAccountId: { label: "OAuth ID", description: "Secure federated login token from Google" },
+  "OAuth Provider Account ID": { label: "OAuth ID", description: "Secure federated login token from Google" },
+  questionId: { label: "Question ID", description: "Reference to the question item in the database" },
+  selectedAnswer: { label: "Selected Answer", description: "The choice or option selected during the test" },
+  isCorrect: { label: "Correctness State", description: "Whether the selected answer was right or wrong" },
+  sessionToken: { label: "Session Token", description: "Cryptographically signed JWT session key" },
+  expiresAt: { label: "Expiry Date", description: "Automatic expiration date of the active session" },
+};
+
+/**
+ * Normalizes a field into a structured descriptor with a user-friendly label and tooltip.
+ *
+ * @param field - A string field key or a structured RecordedDataFieldItem.
+ * @returns A structured RecordedDataFieldItem.
+ */
+function normalizeField(field: string | RecordedDataFieldItem): RecordedDataFieldItem {
+  if (typeof field === "object" && field !== null && "key" in field) {
+    return field;
+  }
+  const key = String(field);
+  const info = FIELD_MAP[key];
+  return {
+    key,
+    label: info?.label || key,
+    description: info?.description || `Database column: ${key}`,
+  };
+}
+
+/**
+ * Derives visual styling and iconography based on the data purpose category.
+ *
+ * @param category - Name of the data category.
+ * @returns Stylistic configuration and Lucide icon.
+ */
+function getCategoryConfig(category: string) {
+  const cat = category.toLowerCase();
+  if (cat.includes("quiz") || cat.includes("performance") || cat.includes("progress")) {
+    return {
+      icon: Trophy,
+      iconBg: "bg-amber-500/10 text-amber-500 border-amber-500/25",
+      badgeClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25",
+      badgeText: "Study History",
+      isClearable: true,
+    };
+  }
+  if (cat.includes("identity") || cat.includes("auth")) {
+    return {
+      icon: User,
+      iconBg: "bg-primary/10 text-primary border-primary/25",
+      badgeClass: "bg-primary/10 text-primary border-primary/25",
+      badgeText: "Account Identity",
+      isClearable: false,
+    };
+  }
+  if (cat.includes("response") || cat.includes("question")) {
+    return {
+      icon: ListChecks,
+      iconBg: "bg-emerald-500/10 text-emerald-500 border-emerald-500/25",
+      badgeClass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
+      badgeText: "Answer Log",
+      isClearable: true,
+    };
+  }
+  return {
+    icon: ShieldCheck,
+    iconBg: "bg-violet-500/10 text-violet-500 border-violet-500/25",
+    badgeClass: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/25",
+    badgeText: "Security Session",
+    isClearable: false,
+  };
+}
 
 /**
  * Interactive User Profile view featuring learning metrics, recent quiz activity,
@@ -51,17 +135,14 @@ export function ProfileView() {
   const [clearingHistory, setClearingHistory] = useState(false);
   const [actionAlert, setActionAlert] = useState<{ type: "success" | "danger"; message: string } | null>(null);
 
-  const fetchProfile = async () => {
+  const fetchProfile = async (isInitial = false) => {
     try {
-      setLoading(true);
-      const res = await fetch("/api/user/profile");
-      if (res.ok) {
-        const json = await res.json();
-        setData(json);
-        setNameInput(json.user?.name || "");
-      } else {
-        setData(null);
+      if (!isInitial) {
+        setLoading(true);
       }
+      const profile = await UserService.getProfile();
+      setData(profile);
+      setNameInput(profile?.user?.name || "");
     } catch (err) {
       console.error("Failed to load profile:", err);
       setData(null);
@@ -71,19 +152,37 @@ export function ProfileView() {
   };
 
   useEffect(() => {
-    fetchProfile();
+    let ignore = false;
+    UserService.getProfile()
+      .then((profile) => {
+        if (!ignore) {
+          setData(profile);
+          setNameInput(profile?.user?.name || "");
+        }
+      })
+      .catch((err) => {
+        if (!ignore) {
+          console.error("Failed to load profile:", err);
+          setData(null);
+        }
+      })
+      .finally(() => {
+        if (!ignore) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   const handleUpdateName = async () => {
     setSavingName(true);
     setActionAlert(null);
     try {
-      const res = await fetch("/api/user/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: nameInput }),
-      });
-      if (res.ok) {
+      const ok = await UserService.updateName(nameInput);
+      if (ok) {
         setIsEditingName(false);
         setActionAlert({ type: "success", message: "Name updated successfully!" });
         await fetchProfile();
@@ -101,10 +200,8 @@ export function ProfileView() {
     setClearingHistory(true);
     setActionAlert(null);
     try {
-      const res = await fetch("/api/user/attempts/clear", {
-        method: "POST",
-      });
-      if (res.ok) {
+      const ok = await UserService.clearAttempts();
+      if (ok) {
         setShowClearConfirm(false);
         setActionAlert({ type: "success", message: "Your quiz attempt history has been cleared." });
         await fetchProfile();
@@ -116,10 +213,6 @@ export function ProfileView() {
     } finally {
       setClearingHistory(false);
     }
-  };
-
-  const handleExportData = () => {
-    window.location.href = "/api/user/export";
   };
 
   if (loading) {
@@ -268,19 +361,6 @@ export function ProfileView() {
             </div>
           </div>
         </div>
-
-        {/* Quick Data Action */}
-        <div className="flex items-center gap-2 self-stretch md:self-auto">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportData}
-            className="gap-1.5 text-xs font-semibold w-full md:w-auto"
-          >
-            <Download className="h-3.5 w-3.5" />
-            <span>Export My Data</span>
-          </Button>
-        </div>
       </div>
 
       {/* Tabs with horizontal scroll support on mobile */}
@@ -305,7 +385,7 @@ export function ProfileView() {
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
-          <Database className="h-4 w-4 shrink-0" />
+          <ShieldCheck className="h-4 w-4 shrink-0" />
           <span>What We Record From You <span className="hidden sm:inline">(Data Transparency)</span></span>
         </button>
       </div>
@@ -360,7 +440,7 @@ export function ProfileView() {
               <div className="bg-card border border-border/80 rounded-xl p-8 text-center flex flex-col items-center gap-3">
                 <BookOpen className="h-8 w-8 text-muted-foreground/60" />
                 <p className="text-sm text-muted-foreground m-0">
-                  You haven't attempted any quizzes yet. Choose an exam to test your knowledge!
+                  You haven&apos;t attempted any quizzes yet. Choose an exam to test your knowledge!
                 </p>
                 <Link href="/exams">
                   <Button variant="primary" size="sm" className="font-semibold mt-2">
@@ -495,63 +575,100 @@ export function ProfileView() {
               Data Categories, Recorded Fields, & Why They Are Collected
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {recordedData.purposes.map((purpose, idx) => (
-                <div key={idx} className="bg-card border border-border/80 rounded-xl p-5 shadow-xs flex flex-col gap-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-primary px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/20">
-                      {purpose.category}
-                    </span>
-                    <span className="text-[11px] text-muted-foreground">{purpose.retention}</span>
-                  </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {recordedData.purposes.map((purpose, idx) => {
+                const cfg = getCategoryConfig(purpose.category);
+                const CategoryIcon = cfg.icon;
+                const isClearable = purpose.isClearable ?? cfg.isClearable;
 
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {purpose.fields.map((field) => (
-                      <code key={field} className="px-2 py-0.5 rounded text-[11px] font-mono bg-surface border border-border/60 text-foreground">
-                        {field}
-                      </code>
-                    ))}
-                  </div>
+                return (
+                  <div 
+                    key={idx} 
+                    className="bg-card border border-border/80 hover:border-primary/40 transition-all rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col gap-4 group"
+                  >
+                    {/* Header: Icon, Category Name & Status Badge */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${cfg.iconBg} transition-transform group-hover:scale-105`}>
+                          <CategoryIcon className="h-5 w-5" />
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <h4 className="text-sm sm:text-base font-bold text-foreground tracking-tight m-0 truncate">
+                            {purpose.category}
+                          </h4>
+                          <span className="text-[11px] text-muted-foreground mt-0.5">
+                            {purpose.fields.length} recorded {purpose.fields.length === 1 ? "attribute" : "attributes"}
+                          </span>
+                        </div>
+                      </div>
 
-                  <p className="text-xs text-muted-foreground leading-relaxed m-0 pt-1">
-                    {purpose.purpose}
-                  </p>
-                </div>
-              ))}
+                      <div className="shrink-0">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${cfg.badgeClass}`}>
+                          {purpose.badge || cfg.badgeText}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Purpose Description */}
+                    <div className="p-3 rounded-xl bg-surface/70 border border-border/60 text-xs text-muted-foreground leading-relaxed">
+                      <span className="font-semibold text-foreground mr-1.5">Purpose:</span>
+                      {purpose.purpose}
+                    </div>
+
+                    {/* Recorded Fields Section with Friendly Labels + Schema Keys */}
+                    <div className="flex flex-col gap-2">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                        Stored Schema Attributes
+                      </span>
+                      <div className="flex flex-wrap gap-2">
+                        {purpose.fields.map((fItem) => {
+                          const field = normalizeField(fItem);
+                          return (
+                            <div
+                              key={field.key}
+                              title={field.description}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-secondary/80 hover:bg-secondary border border-border text-xs transition-colors shadow-2xs group/chip cursor-help"
+                            >
+                              <span className="font-medium text-foreground text-xs">{field.label}</span>
+                              <span className="text-[10px] font-mono text-muted-foreground/80 bg-background/80 px-1.5 py-0.5 rounded border border-border/60 group-hover/chip:text-primary transition-colors">
+                                {field.key}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Retention Footer Banner */}
+                    <div className="mt-auto pt-3 border-t border-border/60 flex flex-wrap items-center justify-between gap-2 text-xs">
+                      <div className="flex items-center gap-2 text-muted-foreground min-w-0">
+                        <Clock className="h-3.5 w-3.5 text-primary shrink-0" />
+                        <span className="text-[11px] leading-relaxed">
+                          <strong className="text-foreground font-semibold">Retention:</strong> {purpose.retention}
+                        </span>
+                      </div>
+
+                      {isClearable && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400 shrink-0">
+                          <Sparkles className="h-3 w-3" />
+                          User clearable
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
-          {/* Raw Account Record Inspection */}
-          <div className="bg-card border border-border/80 rounded-2xl p-6 shadow-xs flex flex-col gap-3">
-            <h3 className="text-sm font-bold text-foreground m-0 flex items-center gap-2">
-              <Database className="h-4 w-4 text-primary" />
-              <span>Your Current User Record in Quizzer</span>
-            </h3>
-            <p className="text-xs text-muted-foreground m-0">
-              Direct representation of your record stored in the <code className="font-mono text-primary">User</code> database model:
-            </p>
-            <pre className="p-4 rounded-xl bg-surface/80 border border-border/60 text-xs font-mono text-foreground overflow-x-auto m-0">
-              {JSON.stringify(recordedData.userRecord, null, 2)}
-            </pre>
-          </div>
-
-          {/* Export and Deletion Controls */}
+          {/* Deletion and Privacy Controls */}
           <div className="bg-card border border-border/80 rounded-2xl p-6 sm:p-7 shadow-xs flex flex-col gap-4">
-            <h3 className="text-base font-bold text-foreground m-0">Data Portability & Deletion Rights</h3>
+            <h3 className="text-base font-bold text-foreground m-0">Quiz History & Privacy Controls</h3>
             <p className="text-xs text-muted-foreground leading-relaxed m-0">
-              You maintain full sovereignty over your educational data. You can download a complete JSON archive of all your attempts and answers, or permanently purge your attempt history.
+              Manage your personal practice data. You can reset your progress by permanently deleting all your quiz attempts and recorded answers.
             </p>
 
-            <div className="flex flex-wrap gap-3 pt-2">
-              <Button
-                variant="primary"
-                onClick={handleExportData}
-                className="gap-2 font-semibold text-xs shadow-xs"
-              >
-                <Download className="h-4 w-4" />
-                <span>Export My Data (JSON)</span>
-              </Button>
-
+            <div className="flex flex-wrap gap-3 pt-1">
               {!showClearConfirm ? (
                 <Button
                   variant="outline"

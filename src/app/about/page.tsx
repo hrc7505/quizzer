@@ -2,8 +2,6 @@ import Link from "next/link";
 import { 
   Sparkles, 
   Brain, 
-  Languages, 
-  Calculator, 
   Target, 
   ShieldCheck, 
   CheckCircle2, 
@@ -17,6 +15,7 @@ import {
 import { PageLayout } from "@/components/layouts/PageLayout";
 import { Container } from "@/components/layouts/Container";
 import { Button } from "@/components/ui/Button";
+
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {

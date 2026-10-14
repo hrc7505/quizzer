@@ -1,4 +1,4 @@
-import { Home, BookOpen, Brain, LayoutDashboard, Plus, Database, Users, Settings, Layers } from "lucide-react";
+import { Home, BookOpen, Brain, LayoutDashboard, Plus, Database, Users, Settings, Layers, Info, Mail } from "lucide-react";
 
 import type { ReactNode } from "react";
 
@@ -13,6 +13,8 @@ export interface NavItem {
 export const publicNavLinks: NavItem[] = [
   { href: "/", label: "Home", icon: <Home className="h-4 w-4" /> },
   { href: "/exams", label: "Exams", icon: <BookOpen className="h-4 w-4" /> },
+  { href: "/about", label: "About", icon: <Info className="h-4 w-4" /> },
+  { href: "/contact", label: "Contact", icon: <Mail className="h-4 w-4" /> },
 ];
 
 export const adminNavLinks: NavItem[] = [

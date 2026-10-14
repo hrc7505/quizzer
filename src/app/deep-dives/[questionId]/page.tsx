@@ -6,12 +6,11 @@ import { DeepDiveDetail } from "@/components/data-display/DeepDiveDetail";
 import { PageLayout } from "@/components/layouts/PageLayout";
 
 export const revalidate = 60;
-export const tags = ["deep-dives"];
 
 /**
  * Individual Deep Dive detail page.
  * Renders the saved elaboration markdown from the DB.
- * No Gemini call — purely DB-driven.
+ * No external AI call — purely DB-driven.
  */
 export default async function DeepDiveDetailPage({ params }: { params: Promise<{ questionId: string }> }) {
   const { questionId } = await params;

@@ -20,7 +20,7 @@ export function AdminNavDrawer({ pathname, onClose }: AdminNavDrawerProps) {
   const [isTaxonomyOpen, setIsTaxonomyOpen] = useState(true);
 
   return (
-    <>
+    <div className="flex flex-col h-full justify-between">
       <div className="flex flex-col gap-6 overflow-y-auto pr-1">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -76,7 +76,7 @@ export function AdminNavDrawer({ pathname, onClose }: AdminNavDrawerProps) {
         </div>
       </div>
 
-      <div className="border-t border-border/80 pt-4">
+      <div className="border-t border-border/80 pt-4 mt-auto">
         <Button
           variant="secondary"
           className="w-full justify-start gap-3 text-sm text-danger hover:bg-danger/10 hover:border-danger/20 font-medium h-10 px-3"
@@ -94,6 +94,6 @@ export function AdminNavDrawer({ pathname, onClose }: AdminNavDrawerProps) {
           <span>Logout Admin</span>
         </Button>
       </div>
-    </>
+    </div>
   );
 }

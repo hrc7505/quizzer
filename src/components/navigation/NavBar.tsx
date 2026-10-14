@@ -33,7 +33,11 @@ export function NavBar({ maxWidth = CONTAINER_MAX_WIDTH }: { maxWidth?: string }
   };
 
   const openDrawer = (body: React.ReactNode) =>
-    panel.open({ side: isAdminRoute ? "right" : "left", body });
+    panel.open({ 
+      side: isAdminRoute ? "right" : "left", 
+      width: isAdminRoute ? "max-w-xs" : "max-w-[300px] sm:max-w-xs",
+      body 
+    });
 
   const brandHref = isAdminRoute ? "/admin" : "/";
 
@@ -117,12 +121,18 @@ export function NavBar({ maxWidth = CONTAINER_MAX_WIDTH }: { maxWidth?: string }
           {!isAdminRoute &&
             (isStudentUser ? (
               <div className="flex items-center gap-2 pl-2 border-l border-border/80">
-                <div className="h-7 w-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20">
-                  {session!.user!.name?.slice(0, 2).toUpperCase() || "U"}
-                </div>
-                <span className="hidden sm:inline text-xs font-semibold text-foreground/90 max-w-[120px] truncate">
-                  {session!.user!.name || session!.user!.email?.split("@")[0]}
-                </span>
+                <Link
+                  href="/profile"
+                  className="flex items-center gap-2 text-foreground/90 hover:text-primary transition-colors no-underline group"
+                  title="View Profile and Recorded Data"
+                >
+                  <div className="h-7 w-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20 group-hover:border-primary/50 transition-colors">
+                    {session!.user!.name?.slice(0, 2).toUpperCase() || "U"}
+                  </div>
+                  <span className="hidden sm:inline text-xs font-semibold max-w-[120px] truncate group-hover:underline">
+                    {session!.user!.name || session!.user!.email?.split("@")[0]}
+                  </span>
+                </Link>
                 <Button
                   variant="ghost"
                   size="icon"

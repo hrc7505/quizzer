@@ -321,7 +321,7 @@ export function describeAiError(error: unknown): AiErrorResult {
   }
   if (/quota|rate limit|resource_exhausted|exhausted/i.test(message)) {
     return {
-      message: "AI quota exceeded on all configured subscriptions. Please check your Gemini API keys.",
+      message: "AI quota temporarily reached on all configured subscriptions. Please try again shortly or contact support.",
       meta: { icon: DEFAULT_ERROR_ICON, variant: "warning" },
     };
   }

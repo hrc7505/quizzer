@@ -81,7 +81,7 @@ const SAMPLE_QUESTIONS: SampleQuizQuestion[] = [
 /**
  * Interactive and animated quiz showcase widget.
  * Simulates real-time test taking, option selection with instant feedback,
- * animated timer countdowns, and Gemini AI explanation unfolding.
+ * animated timer countdowns, and step-by-step AI explanation unfolding.
  */
 export function QuizInteractiveAnimation({ className, autoPlay = true }: QuizInteractiveAnimationProps) {
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -170,7 +170,7 @@ export function QuizInteractiveAnimation({ className, autoPlay = true }: QuizInt
         className="absolute -bottom-4 -right-2 sm:-right-4 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-card/90 border border-primary/30 shadow-md backdrop-blur-md text-xs font-semibold text-primary"
       >
         <Sparkles className="h-3.5 w-3.5 text-primary" />
-        <span>Gemini 2.5 Explanations Active</span>
+        <span>AI Explanations Active</span>
       </motion.div>
 
       {/* Main Interactive Quiz Card */}
@@ -279,7 +279,7 @@ export function QuizInteractiveAnimation({ className, autoPlay = true }: QuizInt
           })}
         </div>
 
-        {/* Gemini AI Explanation Card — Animated Slide Down */}
+        {/* AI Explanation Card — Animated Slide Down */}
         <AnimatePresence>
           {showExplanation && (
             <motion.div
@@ -293,7 +293,7 @@ export function QuizInteractiveAnimation({ className, autoPlay = true }: QuizInt
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-primary flex items-center gap-1.5 text-[11px]">
                     <Brain className="h-3.5 w-3.5" />
-                    Gemini AI Conceptual Explanation:
+                    AI Conceptual Explanation:
                   </span>
                   <span className="text-[10px] font-bold text-success bg-success/15 px-2 py-0.2 rounded-full uppercase">
                     +100 XP

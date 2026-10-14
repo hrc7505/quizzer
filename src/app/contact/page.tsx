@@ -30,7 +30,7 @@ const faqs = [
   },
   {
     question: "How are the AI explanations created?",
-    answer: "Our explanations are powered by Google Gemini AI, which analyzes each question, examines all multiple-choice options, highlights common student pitfalls, and caches structured deep dives in our database.",
+    answer: "Our explanations are powered by advanced AI models, which analyze each question, examine all multiple-choice options, highlight common student pitfalls, and cache structured deep dives in our database.",
   },
   {
     question: "What user data does Quizzer record about me?",

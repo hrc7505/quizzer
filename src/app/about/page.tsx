@@ -21,7 +21,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "About Quizzer · Intelligent Exam Preparation & AI Explanations",
-  description: "Learn about Quizzer's mission to empower students with curriculum-aligned practice quizzes, instant step-by-step Gemini AI explanations, multilingual study options, and LaTeX math formatting.",
+  description: "Learn about Quizzer's mission to empower students with curriculum-aligned practice quizzes, instant step-by-step AI explanations, multilingual study options, and LaTeX math formatting.",
 };
 
 const corePillars = [
@@ -34,7 +34,7 @@ const corePillars = [
   {
     number: "02",
     title: "Persistent AI Conceptual Explanations",
-    subtitle: "Powered by Google Gemini",
+    subtitle: "Advanced AI Intelligence",
     description: "Traditional test banks only tell you that 'Option C is correct'. Quizzer provides comprehensive, cached deep dives detailing why Option C is right, why Options A, B, and D are wrong, and which core theorems apply.",
   },
   {
@@ -94,7 +94,7 @@ export default function AboutPage() {
           </h1>
 
           <p className="text-muted-foreground text-sm sm:text-base leading-relaxed max-w-2xl mx-auto mb-8">
-            Quizzer is designed to eliminate the frustration of confusing answer keys. We pair structured exam taxonomies with Google Gemini AI to help every student understand the *why* behind every concept.
+            Quizzer is designed to eliminate the frustration of confusing answer keys. We pair structured exam taxonomies with advanced AI models to help every student understand the *why* behind every concept.
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-3">

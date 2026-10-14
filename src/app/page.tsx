@@ -46,7 +46,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Quizzer · AI-Powered Interactive Quizzes & Deep Explanations",
-  description: "Master competitive and academic exams with interactive practice quizzes, step-by-step Gemini AI explanations, LaTeX math support, and multilingual learning.",
+  description: "Master competitive and academic exams with interactive practice quizzes, step-by-step AI explanations, LaTeX math support, and multilingual learning.",
 };
 
 const howItWorksSteps = [
@@ -65,7 +65,7 @@ const howItWorksSteps = [
   {
     step: "03",
     title: "Unlock Instant AI Explanations",
-    description: "Read persistent Gemini AI deep dives that explain why the correct answer works and why distractors are wrong.",
+    description: "Read persistent AI deep dives that explain why the correct answer works and why distractors are wrong.",
     icon: <Sparkles className="h-5 w-5 text-info" />,
   },
   {
@@ -78,7 +78,7 @@ const howItWorksSteps = [
 
 /**
  * Public Home Page showcasing all core features of the Quizzer learning platform:
- * structured exams, interactive quizzes, Gemini AI explanations, multilingual support,
+ * structured exams, interactive quizzes, step-by-step AI explanations, multilingual support,
  * LaTeX mathematical formulas, student analytics, and user data transparency.
  */
 export default async function HomePage() {
@@ -177,7 +177,7 @@ export default async function HomePage() {
               </h1>
               
               <p className="text-xs sm:text-sm md:text-base text-muted-foreground leading-relaxed mb-6 max-w-xl">
-                Test your knowledge with curriculum-aligned practice questions, train under realistic exam timers, and unlock instant, step-by-step Gemini AI explanations in English, Gujarati, and Hindi.
+                Test your knowledge with curriculum-aligned practice questions, train under realistic exam timers, and unlock instant, step-by-step AI explanations in English, Gujarati, and Hindi.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start items-center flex-wrap w-full">
@@ -400,7 +400,7 @@ export default async function HomePage() {
               <Sparkles className="h-5 w-5" />
             </div>
             <div className="flex flex-col gap-1.5">
-              <h3 className="text-base font-bold text-foreground m-0">Persistent Gemini AI Explanations</h3>
+              <h3 className="text-base font-bold text-foreground m-0">Persistent AI Explanations</h3>
               <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed m-0">
                 Never get stuck with just an answer key. Every single question includes full-page, database-cached explanations that analyze every distractor option and teach you the underlying principles.
               </p>
@@ -542,7 +542,7 @@ export default async function HomePage() {
             <div className="flex justify-between items-center pb-3 border-b border-border/60 text-xs">
               <span className="font-bold text-primary flex items-center gap-1.5">
                 <Sparkles className="h-3.5 w-3.5" />
-                Gemini AI Deep Dive Preview
+                AI Deep Dive Preview
               </span>
               <span className="text-muted-foreground">Physics · Mechanics</span>
             </div>

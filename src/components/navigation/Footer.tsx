@@ -77,14 +77,14 @@ export function Footer({ maxWidth = CONTAINER_MAX_WIDTH, className }: FooterProp
               />
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-sm m-0">
-              Quizzer is an intelligent, distraction-free study platform combining curriculum-aligned multiple-choice questions with deep, persistent AI explanations powered by Gemini.
+              Quizzer is an intelligent, distraction-free study platform combining curriculum-aligned multiple-choice questions with deep, persistent AI explanations.
             </p>
             
             {/* Platform Feature Badges */}
             <div className="flex flex-wrap gap-2 pt-2">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-primary/10 text-primary border border-primary/20">
                 <Sparkles className="h-3 w-3" />
-                Gemini AI Explanations
+                Intelligent AI Explanations
               </span>
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-info/10 text-info border border-info/20">
                 <Languages className="h-3 w-3" />

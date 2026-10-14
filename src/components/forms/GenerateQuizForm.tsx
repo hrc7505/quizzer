@@ -24,7 +24,7 @@ interface GenerateQuizFormProps {
 }
 
 /**
- * GenerateQuizForm — embeddable form that generates a quiz via Gemini AI.
+ * GenerateQuizForm — embeddable form that generates a quiz via AI.
  * Supports creating brand-new standalone quizzes or appending questions directly to an existing quiz.
  */
 export function GenerateQuizForm({
@@ -149,7 +149,7 @@ export function GenerateQuizForm({
       onSuccess?.(data);
     } catch (err) {
       const message = err instanceof Error ? err.message : undefined;
-      setError(message || "An unexpected error occurred while communicating with Gemini API.");
+      setError(message || "An unexpected error occurred while communicating with the AI service.");
     } finally {
       setLoading(false);
     }

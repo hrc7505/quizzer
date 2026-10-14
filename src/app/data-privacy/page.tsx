@@ -122,7 +122,7 @@ export default function DataPrivacyPage() {
             </div>
             <h3 className="text-base font-bold text-foreground m-0">AI Privacy Guarantee</h3>
             <p className="text-xs text-muted-foreground leading-relaxed m-0">
-              Gemini AI is used to analyze test questions and generate conceptual explanations. Your personal identity and email are NEVER sent to LLMs.
+              Our AI models are used strictly to analyze test questions and generate conceptual explanations. Your personal identity and email are NEVER shared with external AI providers.
             </p>
           </div>
 

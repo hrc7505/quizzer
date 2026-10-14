@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 
 import { LinkButton } from "@/components/ui/LinkButton";
 import { DeepDiveBody } from "@/components/data-display/DeepDiveBody";
+import { ResourceRecommendationCard } from "@/components/ui/ResourceRecommendationCard";
 
 interface Question {
   id: string;
@@ -91,6 +92,13 @@ export function DeepDiveDetail({ question }: DeepDiveDetailProps) {
         selectedLanguage={selectedLang}
         onSelectLanguage={handleSelectLanguage}
         loadingLanguage={loadingLanguage}
+      />
+
+      {/* Non-intrusive Contextual Resource / Partner Recommendations */}
+      <ResourceRecommendationCard
+        contextTopic={`${question.topic.title} ${question.text}`}
+        title="Further Reading & Certification Prep"
+        subtitle={`Master concepts related to ${question.topic.title} with curated guides and practice material.`}
       />
     </div>
   );

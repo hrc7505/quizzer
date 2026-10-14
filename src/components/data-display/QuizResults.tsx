@@ -18,6 +18,7 @@ import { QuizLeaderboard } from "@/components/data-display/QuizLeaderboard";
 import { DetailedQuestionAccordion } from "@/components/data-display/DetailedQuestionAccordion";
 import { DeepDivePanel } from "@/components/data-display/DeepDivePanel";
 import { QuizScoreCelebration } from "@/components/feedback/QuizScoreCelebration";
+import { ResourceRecommendationCard } from "@/components/ui/ResourceRecommendationCard";
 
 /**
  * QuizResults component renders the results screen after quiz completion,
@@ -189,6 +190,13 @@ export function QuizResults({ attempt }: QuizResultsProps) {
           title="Quiz Leaderboard - Top 10"
         />
       </div>
+
+      {/* Non-intrusive Contextual Resource / Partner Recommendations */}
+      <ResourceRecommendationCard
+        contextTopic={attempt.quiz.title}
+        title="Recommended Certifications & Study Resources"
+        subtitle={`Level up your knowledge in ${attempt.quiz.title} with verified exam preps and guides.`}
+      />
     </div>
   );
 }
